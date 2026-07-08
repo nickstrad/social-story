@@ -1,0 +1,21 @@
+# Secrets
+.env
+
+# macOS
+.DS_Store
+
+# Compiled binary
+/social-story
+
+# Generated artifacts
+/images/
+/images_clean/
+/final_stories/
+
+# Large source assets
+/character_base.png
+/photos/*.jpeg
+/photos/*.jpg
+/photos/*.JPG
+/photos/*.png
+/photos/*.bak

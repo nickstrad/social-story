@@ -55,6 +55,7 @@ export interface PageRepo {
   delete(id: string): Promise<void>
   addImage(input: CreatePageImage): Promise<PageImage>
   listImages(pageId: string): Promise<PageImage[]>
+  listImagesByStory(storyId: string): Promise<PageImage[]>
 }
 
 export interface TaskRepo {

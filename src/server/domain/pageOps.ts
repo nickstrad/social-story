@@ -67,9 +67,28 @@ export function setHidden(
   return pages.map((page) => (page.id === pageId ? { ...page, hidden } : page))
 }
 
+/** A page shows in the export/gates a step: the cover always, others unless hidden. */
+export function isPageVisible(page: Pick<Page, "kind" | "hidden">): boolean {
+  return page.kind === "COVER" || !page.hidden
+}
+
 export function visiblePagesInOrder(pages: Page[]): Page[] {
-  return normalizePositions(pages).filter(
-    ({ kind, hidden }) => kind === "COVER" || !hidden
+  return normalizePositions(pages).filter(isPageVisible)
+}
+
+/**
+ * Reorder content pages to follow `orderedPageIds`, then re-normalize with the
+ * cover pinned at position 0. Ids that aren't content pages (e.g. the cover) are
+ * ignored, so callers can't dislodge the cover.
+ */
+export function reorderPages(pages: Page[], orderedPageIds: string[]): Page[] {
+  const byId = new Map(pages.map((page) => [page.id, page]))
+  const content = orderedPageIds
+    .map((id) => byId.get(id))
+    .filter((page): page is Page => page?.kind === "PAGE")
+  return withCoverAndPositions(
+    pages.filter(({ kind }) => kind === "COVER"),
+    content
   )
 }
 

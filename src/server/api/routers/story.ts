@@ -4,6 +4,7 @@ import { z } from "zod"
 import { assertStoryOwnership } from "@/server/api/ownership"
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc"
 import type { Deps } from "@/server/container"
+import { isPageVisible } from "@/server/domain/pageOps"
 import { hasActiveTask } from "@/server/domain/taskMachine"
 import type { Story } from "@/server/domain/types"
 import { createTask } from "@/server/services/tasks"
@@ -39,17 +40,28 @@ export const storyRouter = createTRPCRouter({
       ctx.deps.repos.rules.listByStory(story.id),
       ctx.deps.repos.pages.listByStory(story.id),
     ])
-    const pagesWithImageCount = (
-      await Promise.all(
-        pages.map((page) => ctx.deps.repos.pages.listImages(page.id))
-      )
-    ).filter((images) => images.length > 0).length
+    // Attach each page's selected image URL so the editor grid can render
+    // thumbnails without an extra per-card query — one batched query, not N.
+    const images = await ctx.deps.repos.pages.listImagesByStory(story.id)
+    const urlById = new Map(images.map((image) => [image.id, image.url]))
+    const pagesWithImage = pages.map((page) => ({
+      ...page,
+      selectedImageUrl: page.selectedImageId
+        ? (urlById.get(page.selectedImageId) ?? null)
+        : null,
+    }))
+
+    // Export is gated on visible pages that have a chosen image, so a hidden
+    // page or a page with only unselected variants doesn't unlock it.
+    const pagesWithImageCount = pagesWithImage.filter(
+      (page) => page.selectedImageUrl !== null && isPageVisible(page)
+    ).length
 
     return {
       ...story,
       characters,
       rules,
-      pages,
+      pages: pagesWithImage,
       counts: {
         characters: characters.length,
         rules: rules.length,
@@ -167,13 +179,10 @@ export const storyRouter = createTRPCRouter({
  * database delete, so failures are swallowed per-URL.
  */
 async function deleteStoryBlobs(deps: Deps, story: Story): Promise<void> {
-  const [characters, pages] = await Promise.all([
+  const [characters, pageImages] = await Promise.all([
     deps.repos.characters.listByStory(story.id),
-    deps.repos.pages.listByStory(story.id),
+    deps.repos.pages.listImagesByStory(story.id),
   ])
-  const pageImages = (
-    await Promise.all(pages.map((page) => deps.repos.pages.listImages(page.id)))
-  ).flat()
 
   const urls = [
     story.baseImageUrl,

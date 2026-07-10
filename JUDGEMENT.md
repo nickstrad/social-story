@@ -1,8 +1,6 @@
-I attempted to run the test suite and typecheck to verify the implementer's claims, but command approval was denied, so this judgement is based on the diff alone (the change summary reports 61 tests, typecheck, lint, and build passing).
+# Judgement — feature/task-system
 
-# Judgement — feature/trpc
-
-Plan: docs/03-trpc.md
+Plan: docs/05-task-system.md
 Verdict: READY
 
 ## Blockers
@@ -10,10 +8,16 @@ _none_
 
 ## Should-fix
 
-- **Retry button can't recover a failed suspense query** — `src/components/ErrorBoundary.tsx:29` — `reset` only clears the boundary's local state. When the error came from a `useSuspenseQuery` (the primary use case per the plan), React Query still holds the rejected query, so re-rendering re-throws the same error and the retry loops uselessly. Wire in `useQueryErrorResetBoundary` (e.g. via a small `QueryErrorResetBoundary` wrapper or passing an `onReset` that calls the reset callback) so "Try again" actually refetches.
-- **`prefetch()` is a no-op that only makes sense with a different call shape than the plan documents** — `src/lib/trpc-server.tsx:31` — the plan's usage is `prefetch(trpc.story.get.queryOptions({ storyId }))`, but the implementation's `prefetch(promise)` just voids whatever it's handed; the real work happens inside `trpc.x.prefetch()` from `createHydrationHelpers`. This is a legitimate "current equivalent" per the plan's own caveat, and the file header documents the corrected pattern — but the header example (`prefetch(trpc.story.get.prefetch(...))`) double-wraps redundantly. Clean the documented pattern to a single call (`void trpc.story.get.prefetch(...)` or make `prefetch` accept and invoke the helper) so plans 07–12 copy a coherent convention.
+**`runTask` bypasses the plan's `canTransition` guard** — src/server/services/tasks.ts:31
+The plan specifies that `runTask` should "use `canTransition` (plan 04) to move PENDING→RUNNING". The implementation instead introduces a new `claimPending` repo method (src/server/ports/repos.ts:59) that hard-codes the PENDING→RUNNING check in each repo adapter, leaving `taskMachine.canTransition` unused for this transition. The atomic claim is a genuine improvement over a read-then-write guard (it closes the duplicate-delivery race, and the test at src/server/services/tasks.test.ts:74 proves it), but the state-machine rule now lives in two repo implementations instead of the single domain function plan 04 built for it. Resolve by having `claimPending` implementations (or `runTask`) consult `canTransition`, or by documenting in the code that the repo method is the intentional replacement for the domain guard — and confirming plan 04's owner is fine with the transition rules being duplicated.
 
 ## Nits
 
-- **File is `trpc-server.tsx`, plan names `trpc-server.ts`** — `src/lib/trpc-server.tsx:1` — no JSX appears in the file, so the `.tsx` extension is unnecessary and deviates from the planned filename that later plans will import by convention. Rename to `.ts` (path-alias imports are unaffected, so this is cosmetic).
-- **`createHookWrapper` defaults `fetch` to `globalThis.fetch`** — `src/hooks/test-utils.tsx:11` — the plan intends hook tests to run against a mock fetch/msw; defaulting to the real global fetch invites accidental network calls in tests that forget to pass one. Consider defaulting to a stub that throws with a helpful message.
+**Event payload extends the plan's `{ taskId }` contract** — src/server/inngest/dispatcher.ts:11
+The plan defines the `task/dispatch` payload as `{ taskId }`; the dispatcher sends `{ taskId, userId }`. The extra field is necessary for the per-user `concurrency` key on `taskDispatchFn` and is disclosed in the change summary, but the plan doc should be updated so later plans (07/09/10/12) emit the same shape — a task dispatched without `userId` would silently escape the per-user cap.
+
+**`immediateDispatcher` ships in production code path** — src/server/ports/dispatcher.ts:5
+The plan describes `immediateDispatcher(runner)` as a fake for tests, but it lives in the ports module imported by production code. Harmless (it's a two-line wrapper), just slightly blurs the port/fake boundary; a `test-utils` or `fakes` home would match the repo's existing convention (`src/server/services/fakes`).
+
+**Missing-handler fallback is unplanned behavior** — src/server/inngest/functions/index.ts:10
+Failing a task whose type has no registered handler (rather than exiting and leaving it PENDING) is an out-of-scope addition, though a sensible and tested one (src/server/inngest/functions/index.test.ts:24). Worth confirming plans 07/09/10/12 register handlers at module load before the Inngest route serves traffic, since a registration race would now permanently FAIL the task instead of retrying.

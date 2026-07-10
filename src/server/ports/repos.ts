@@ -56,6 +56,7 @@ export interface TaskRepo {
   create(input: CreateTask): Promise<Task>
   getById(id: string): Promise<Task | null>
   listByStory(storyId: string): Promise<Task[]>
+  claimPending(id: string, startedAt: Date): Promise<Task | null>
   update(id: string, input: UpdateTask): Promise<Task>
 }
 

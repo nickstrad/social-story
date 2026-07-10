@@ -2,6 +2,13 @@ import sharp from "sharp"
 
 import type { ImageGenerator } from "../ports/image"
 import type { TextGenerator } from "../ports/text"
+import type { TaskDispatcher } from "../ports/dispatcher"
+
+export function immediateDispatcher(
+  runner: (taskId: string) => Promise<void>
+): TaskDispatcher {
+  return { dispatch: runner }
+}
 
 export function fakeTextGenerator(
   cannedByPrompt: Readonly<Record<string, unknown>>

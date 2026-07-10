@@ -13,7 +13,7 @@ Read `docs/00-overview.md`. Every long-running job (parse, base image, page imag
 - `npm i inngest`.
 - `src/server/inngest/client.ts` — `new Inngest({ id: 'social-story' })`.
 - `src/app/api/inngest/route.ts` — `serve({ client, functions: [...allFunctions] })` where `allFunctions` is exported from `src/server/inngest/functions/index.ts` (starts empty; plans 07/09/10/12 append).
-- Event naming: `task/dispatch` with payload `{ taskId }` — one generic event; the handler looks up the task row and switches on `task.type`. This keeps later plans additive.
+- Event naming: `task/dispatch` with payload `{ taskId, userId }` — one generic event; the handler looks up the task row by `taskId` and switches on `task.type`, while `userId` supplies the per-user concurrency key. Later plans dispatch through `TaskDispatcher` rather than sending this event directly. This keeps later plans additive.
 - Dev instructions in the file header: `npx inngest-cli dev` alongside `npm run dev`.
 
 ### 2. Task service — `src/server/services/tasks.ts`
@@ -30,7 +30,7 @@ export interface TaskDispatcher {
 - Adapter `inngestDispatcher` (sends `task/dispatch`); fake `immediateDispatcher(runner)` for tests that runs the handler inline; add `dispatcher` to `container.ts`.
 - `createTask(deps, { userId, storyId, pageId?, type }): Promise<Task>` — inserts PENDING, dispatches, returns row.
 - `runTask(deps, taskId, handler)` — the shared execution wrapper used by every Inngest function: load task; use `canTransition` (plan 04) to move PENDING→RUNNING (if not PENDING, exit — idempotency/duplicate-delivery guard); await `handler(task, deps)`; write SUCCEEDED + `resultJson`, or FAILED + `error` message. `startedAt`/`finishedAt` stamped.
-- Handler registry — `src/server/inngest/handlers.ts`: `registerTaskHandler(type, handler)` / `getTaskHandler(type)`. One Inngest function `taskDispatchFn` subscribes to `task/dispatch`, resolves the handler by type, calls `runTask`. Concurrency config: cap at 10 per user (Inngest `concurrency` option) mirroring the CLI default.
+- Handler registry — `src/server/inngest/handlers.ts`: `registerTaskHandler(type, handler)` / `getTaskHandler(type)`. Concrete task modules register handlers at module load before the Inngest route serves traffic; a missing handler is persisted as a configuration failure. One Inngest function `taskDispatchFn` subscribes to `task/dispatch`, resolves the handler by type, calls `runTask`. Concurrency config: cap at 10 per user (Inngest `concurrency` option) mirroring the CLI default.
 
 ### 3. tRPC router — `src/server/api/routers/task.ts`
 

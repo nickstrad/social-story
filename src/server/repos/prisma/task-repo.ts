@@ -36,6 +36,14 @@ export const prismaTaskRepo = (db: PrismaClient): TaskRepo => ({
       })
     ).map(toDomain)
   },
+  async claimPending(id, startedAt) {
+    const claimed = await db.task.updateMany({
+      where: { id, status: "PENDING" },
+      data: { status: "RUNNING", startedAt },
+    })
+    if (claimed.count === 0) return null
+    return toDomain(await db.task.findUniqueOrThrow({ where: { id } }))
+  },
   async update(id, input) {
     return toDomain(
       await db.task.update({ where: { id }, data: updateData(input) })

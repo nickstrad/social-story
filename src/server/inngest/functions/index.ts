@@ -6,6 +6,7 @@ import { runTask } from "@/server/services/tasks"
 // Side-effect imports: register concrete task handlers with the handler
 // registry so dispatchTask can resolve them.
 import "./baseImage"
+import "./pageImage"
 import "./parseStory"
 
 export async function dispatchTask(deps: Deps, taskId: string): Promise<void> {

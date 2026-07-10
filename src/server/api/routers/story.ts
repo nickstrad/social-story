@@ -4,6 +4,7 @@ import { z } from "zod"
 import { assertStoryOwnership } from "@/server/api/ownership"
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc"
 import type { Deps } from "@/server/container"
+import { hasActiveTask } from "@/server/domain/taskMachine"
 import type { Story } from "@/server/domain/types"
 import { createTask } from "@/server/services/tasks"
 
@@ -121,13 +122,7 @@ export const storyRouter = createTRPCRouter({
       // Guard against two destructive re-parses racing on the same story: both
       // would call replaceAll and interleave their page/title/status writes.
       const tasks = await ctx.deps.repos.tasks.listByStory(story.id)
-      if (
-        tasks.some(
-          (task) =>
-            task.type === "PARSE_STORY" &&
-            (task.status === "PENDING" || task.status === "RUNNING")
-        )
-      ) {
+      if (hasActiveTask(tasks, { type: "PARSE_STORY" })) {
         throw new TRPCError({
           code: "CONFLICT",
           message: "A parse is already in progress for this story",

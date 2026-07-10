@@ -1,8 +1,6 @@
-I attempted to run the test suite and typecheck to verify the implementer's claims, but command approval was denied, so this judgement is based on the diff alone (the change summary reports 61 tests, typecheck, lint, and build passing).
+# Judgement — feature/characters-rules
 
-# Judgement — feature/trpc
-
-Plan: docs/03-trpc.md
+Plan: docs/08-characters-rules.md
 Verdict: READY
 
 ## Blockers
@@ -10,10 +8,11 @@ _none_
 
 ## Should-fix
 
-- **Retry button can't recover a failed suspense query** — `src/components/ErrorBoundary.tsx:29` — `reset` only clears the boundary's local state. When the error came from a `useSuspenseQuery` (the primary use case per the plan), React Query still holds the rejected query, so re-rendering re-throws the same error and the retry loops uselessly. Wire in `useQueryErrorResetBoundary` (e.g. via a small `QueryErrorResetBoundary` wrapper or passing an `onReset` that calls the reset callback) so "Try again" actually refetches.
-- **`prefetch()` is a no-op that only makes sense with a different call shape than the plan documents** — `src/lib/trpc-server.tsx:31` — the plan's usage is `prefetch(trpc.story.get.queryOptions({ storyId }))`, but the implementation's `prefetch(promise)` just voids whatever it's handed; the real work happens inside `trpc.x.prefetch()` from `createHydrationHelpers`. This is a legitimate "current equivalent" per the plan's own caveat, and the file header documents the corrected pattern — but the header example (`prefetch(trpc.story.get.prefetch(...))`) double-wraps redundantly. Clean the documented pattern to a single call (`void trpc.story.get.prefetch(...)` or make `prefetch` accept and invoke the helper) so plans 07–12 copy a coherent convention.
+- **Photo preview is never rendered** — `src/components/characters/CharacterForm.tsx:12` — The component declares the `photoPreviewUrl` prop (as the plan specifies) but never renders it anywhere in the form, so picking a file gives no visual feedback until the dialog closes and the card refreshes. The hook test even asserts `photoPreviewUrl` is set, yet no UI consumes it. Render a thumbnail (e.g. an `Avatar`/`img` next to the file input) driven by `photoPreviewUrl`.
+- **Upload-in-flight skeleton is dead code** — `src/components/characters/CharacterCard.tsx:16` — `imagePending` defaults to `false` and `CharactersScreen.tsx` never passes it, so the plan's "`Skeleton` while … an upload is in flight" behavior on the card can never occur. Track the uploading character's id in `CharactersScreen` (surfaced from the form's `uploadState`) and pass `imagePending` to the matching card.
 
 ## Nits
 
-- **File is `trpc-server.tsx`, plan names `trpc-server.ts`** — `src/lib/trpc-server.tsx:1` — no JSX appears in the file, so the `.tsx` extension is unnecessary and deviates from the planned filename that later plans will import by convention. Rename to `.ts` (path-alias imports are unaffected, so this is cosmetic).
-- **`createHookWrapper` defaults `fetch` to `globalThis.fetch`** — `src/hooks/test-utils.tsx:11` — the plan intends hook tests to run against a mock fetch/msw; defaulting to the real global fetch invites accidental network calls in tests that forget to pass one. Consider defaulting to a stub that throws with a helpful message.
+- **File input rather than a dropzone area** — `src/components/characters/CharacterForm.tsx:56` — The plan calls for a "photo dropzone area"; a plain `<Input type="file">` works but doesn't accept drag-and-drop. Adding `onDrop`/`onDragOver` handlers on the wrapping block would satisfy the spec fully.
+- **Character-delete cleanup can leave a stored rule below its structural minimum** — `src/server/api/routers/character.ts:66` — Removing a deleted character's id from a TOGETHER rule can leave it with one participant, which `ruleInputSchema` would reject on any future edit. The plan mandates this cleanup, so it's acceptable, but consider deleting rules that fall below their minimum instead of leaving them in an un-savable state.
+- **`describeRule` fallback text** — `src/lib/ruleText.ts:4` — An empty `characterIds` structured rule renders "Selected characters always appear together"; unreachable through validated input plus the cleanup nit above notwithstanding, a guard or explicit wording would be more robust.

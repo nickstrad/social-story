@@ -42,4 +42,21 @@ describe("domain schemas", () => {
   it("bounds author steering text", () => {
     expect(steeringTextSchema.safeParse("x".repeat(2_001)).success).toBe(false)
   })
+
+  it("requires enough characters for structured rules", () => {
+    expect(
+      ruleInputSchema.safeParse({
+        text: "Stay together",
+        kind: "TOGETHER",
+        characterIds: ["a"],
+      }).success
+    ).toBe(false)
+    expect(
+      ruleInputSchema.safeParse({
+        text: "A custom direction",
+        kind: "FREEFORM",
+        characterIds: [],
+      }).success
+    ).toBe(true)
+  })
 })

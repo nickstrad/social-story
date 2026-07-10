@@ -116,6 +116,9 @@ export function inMemoryRepos(): Repos {
         rules.set(value.id, value)
         return value
       },
+      async getById(id) {
+        return rules.get(id) ?? null
+      },
       async listByStory(storyId) {
         return [...rules.values()].filter((item) => item.storyId === storyId)
       },

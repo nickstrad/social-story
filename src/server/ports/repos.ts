@@ -36,6 +36,7 @@ export interface CharacterRepo {
 
 export interface RuleRepo {
   create(input: CreateRule): Promise<Rule>
+  getById(id: string): Promise<Rule | null>
   listByStory(storyId: string): Promise<Rule[]>
   update(id: string, input: UpdateRule): Promise<Rule>
   delete(id: string): Promise<void>

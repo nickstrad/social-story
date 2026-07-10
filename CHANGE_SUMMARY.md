@@ -57,7 +57,7 @@ Plan: docs/10-page-generation.md
 ## Notes for review
 
 - **Deviation:** `usePageGeneration(pageId, storyId)` takes `storyId` too (the plan wrote `usePageGeneration(pageId)`). `task.listForStory` and the poll are story-scoped and there is no `page.get` to resolve `storyId` from `pageId`, so the caller (plan 11 UI) must supply it.
-- `generateBulk` intentionally has no per-page active-task guard (plan says "one task per page"); Inngest concurrency throttles.
+- `generateBulk` creates one task per page but now skips pages with an active render (returning them in `skipped`), so it can't spawn a racing second task; Inngest concurrency still throttles the rest.
 - `page.listImages` reverses the repo's ascending-variant order for newest-first; the repo still returns ascending for other callers.
 - UI is out of scope (plan 11); only hooks were built here.
-- Build, lint, typecheck, and full test suite (39 files / ~130 tests) all green.
+- Build, lint, typecheck, and full test suite (40 files / 134 tests) all green.

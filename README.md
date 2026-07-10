@@ -44,7 +44,7 @@ photos/
 
 ```markdown
 - `daughter.jpg` — our 7-year-old daughter, with two puff hairstyles.
-- `family.jpg`   — the whole family together.
+- `family.jpg` — the whole family together.
 ```
 
 Then, right before each page's image is generated, the tool runs an extra step:
@@ -187,14 +187,14 @@ prints the models it used, e.g. `Models: chat=gpt-5.6-terra image=gpt-image-2`.
 
 Only the **`gpt-image-*`** models can attach your personal photos. DALL·E cannot.
 
-| Model | Sizes | Quality | Personal photos? | ~ Price/image | Notes |
-|-------|-------|---------|:---:|-------|-------|
-| `gpt-image-2` *(default)* | up to 3840px, many ratios | low/med/high/auto | ✅ | $0.005–$0.211 | Best quality & likeness |
-| `gpt-image-1.5` | 1024², 1024×1536, 1536×1024 | low/med/high | ✅ | $0.009–$0.20 | Mid-tier |
-| `gpt-image-1` | 1024², 1024×1536, 1536×1024 | low/med/high | ✅ | $0.011–$0.25 | |
-| `gpt-image-1-mini` | 1024², 1024×1536, 1536×1024 | low/med/high | ✅ | $0.005–$0.052 | Cheapest — best for testing |
-| `dall-e-3` | 1024², 1024×1792, 1792×1024 | standard/hd | ❌ | ~$0.04–$0.12 | No reference-photo support |
-| `dall-e-2` | 256², 512², 1024² | — | ✅ (mask) | ~$0.016–$0.02 | Outdated, low quality |
+| Model                     | Sizes                       | Quality           | Personal photos? | ~ Price/image | Notes                       |
+| ------------------------- | --------------------------- | ----------------- | :--------------: | ------------- | --------------------------- |
+| `gpt-image-2` _(default)_ | up to 3840px, many ratios   | low/med/high/auto |        ✅        | $0.005–$0.211 | Best quality & likeness     |
+| `gpt-image-1.5`           | 1024², 1024×1536, 1536×1024 | low/med/high      |        ✅        | $0.009–$0.20  | Mid-tier                    |
+| `gpt-image-1`             | 1024², 1024×1536, 1536×1024 | low/med/high      |        ✅        | $0.011–$0.25  |                             |
+| `gpt-image-1-mini`        | 1024², 1024×1536, 1536×1024 | low/med/high      |        ✅        | $0.005–$0.052 | Cheapest — best for testing |
+| `dall-e-3`                | 1024², 1024×1792, 1792×1024 | standard/hd       |        ❌        | ~$0.04–$0.12  | No reference-photo support  |
+| `dall-e-2`                | 256², 512², 1024²           | —                 |    ✅ (mask)     | ~$0.016–$0.02 | Outdated, low quality       |
 
 #### Chat model options (`--chat-model`)
 
@@ -202,16 +202,16 @@ Used for splitting the story into pages and picking a photo per page. This is a
 fairly simple task, so cheaper/smaller models are perfectly fine. Prices below
 are per 1M tokens (input/output), as of July 2026.
 
-| Model | ~ Price (in/out per 1M) | Notes |
-|-------|-------|-------|
-| `gpt-5.6-terra` *(default)* | $2.50 / $15 | Current mid-tier; the tool's default |
-| `gpt-5.6-luna` | $1 / $6 | Cheaper 5.6 tier |
-| `gpt-5.6-sol` | $5 / $30 | Top 5.6 tier |
-| `gpt-5.5` | $5 / $30 | Flagship |
-| `gpt-5.4` | $2.50 / $15 | Production workhorse, 1M context |
-| `gpt-5.4-mini` | $0.75 / $4.50 | Budget option |
-| `gpt-5.4-nano` | $0.20 / $1.25 | Cheapest/fastest — plenty for parsing |
-| `gpt-4o` | ~$2.50 / $10 | Legacy, still available |
+| Model                       | ~ Price (in/out per 1M) | Notes                                 |
+| --------------------------- | ----------------------- | ------------------------------------- |
+| `gpt-5.6-terra` _(default)_ | $2.50 / $15             | Current mid-tier; the tool's default  |
+| `gpt-5.6-luna`              | $1 / $6                 | Cheaper 5.6 tier                      |
+| `gpt-5.6-sol`               | $5 / $30                | Top 5.6 tier                          |
+| `gpt-5.5`                   | $5 / $30                | Flagship                              |
+| `gpt-5.4`                   | $2.50 / $15             | Production workhorse, 1M context      |
+| `gpt-5.4-mini`              | $0.75 / $4.50           | Budget option                         |
+| `gpt-5.4-nano`              | $0.20 / $1.25           | Cheapest/fastest — plenty for parsing |
+| `gpt-4o`                    | ~$2.50 / $10            | Legacy, still available               |
 
 > This task barely needs a flagship — `gpt-5.4-nano` will parse a story well for
 > a fraction of the cost. Availability depends on your account.

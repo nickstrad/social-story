@@ -4,19 +4,27 @@ import { parseConfig } from "./config"
 import { createDeps } from "./container"
 import { inMemoryRepos } from "./repos/memory"
 import { inMemoryStorage } from "./services/memory-storage"
+import { fakeImageGenerator, fakeTextGenerator } from "./services/fakes"
 import type { Deps } from "./container"
 
 describe("Deps", () => {
   it("supports fully in-memory test dependencies", () => {
-    const deps: Deps = { repos: inMemoryRepos(), storage: inMemoryStorage() }
+    const deps: Deps = {
+      repos: inMemoryRepos(),
+      storage: inMemoryStorage(),
+      text: fakeTextGenerator({}),
+      image: fakeImageGenerator(),
+    }
     expect(deps.repos.stories).toBeDefined()
     expect(deps.storage.put).toBeTypeOf("function")
+    expect(deps.text.generateJson).toBeTypeOf("function")
+    expect(deps.image.generate).toBeTypeOf("function")
   })
 
   it("wires adapters from parsed configuration", () => {
     const config = parseConfig({
       DATABASE_URL: "https://database.example.com",
-      OPENAPI_TOKEN: "openai-token",
+      OPENAI_TOKEN: "openai-token",
       BLOB_READ_WRITE_TOKEN: "blob-token",
       BETTER_AUTH_SECRET: "auth-secret",
       BETTER_AUTH_URL: "https://app.example.com",
@@ -25,5 +33,7 @@ describe("Deps", () => {
     const deps = createDeps(config)
     expect(deps.repos.pages.listByStory).toBeTypeOf("function")
     expect(deps.storage.fetchBuffer).toBeTypeOf("function")
+    expect(deps.text.generateJson).toBeTypeOf("function")
+    expect(deps.image.generate).toBeTypeOf("function")
   })
 })

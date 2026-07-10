@@ -2,7 +2,7 @@ import { z } from "zod"
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
-  OPENAPI_TOKEN: z.string().min(1),
+  OPENAI_TOKEN: z.string().min(1),
   BLOB_READ_WRITE_TOKEN: z.string().min(1),
   BETTER_AUTH_SECRET: z.string().min(1),
   BETTER_AUTH_URL: z.string().url(),
@@ -35,7 +35,7 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
   return {
     db: { url: value.DATABASE_URL },
     openai: {
-      token: value.OPENAPI_TOKEN,
+      token: value.OPENAI_TOKEN,
       chatModel: value.OPENAI_CHAT_MODEL,
       imageModel: value.OPENAI_IMAGE_MODEL,
     },

@@ -21,12 +21,13 @@ Skip the Go CLI (`cli/`) in worktrees — deprecated, kept for reference only.
 
 ## Plan → judge → fix workflow
 
-When implementing a plan from `docs/`, use this skill chain instead of working freehand:
+When implementing a plan from `docs/`, use this skill chain instead of working freehand. Each step is triggered manually by the user — never chain into the next step automatically:
 
-1. `/do-next-plan <plan file>` — implements the plan in a new worktree, runs `/simplify`, writes `CHANGE_SUMMARY.md` at the worktree root naming the source plan, then runs `scripts/judge-branch.sh`, which has the `fable` model (fresh context, via `claude -p`) judge the full worktree diff against the plan and write `JUDGEMENT.md` at the worktree root.
-2. `/handle-judge-feedback` — implements `JUDGEMENT.md`'s feedback in priority order.
+1. `/do-next-plan <plan file>` — implements the plan in a new worktree, runs `/simplify`, writes `CHANGE_SUMMARY.md` at the worktree root naming the source plan.
+2. `/judge-branch` — runs `scripts/judge-branch.sh`: the `fable` model judges the full worktree diff (committed and uncommitted) against the plan in a fresh `claude -p` context and writes `JUDGEMENT.md` at the worktree root.
+3. `/handle-judge-feedback` — implements `JUDGEMENT.md`'s feedback in priority order.
 
-`/judge-branch` re-runs just the judge step standalone when needed. No step merges to `main` — that's always a separate, explicit action.
+The pipeline stops and asks rather than pushing past blockers it can't resolve (missing `.env` values, migrations that can't run, services needing provisioning). Nothing merges to `main` — that's always a separate, explicit action.
 
 # .env
 

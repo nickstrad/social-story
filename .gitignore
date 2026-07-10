@@ -40,8 +40,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Go CLI (whole folder, to be removed)
-/cli/
-
 # Backup of Go artifacts (pdfs, images, json)
 /bkup/
+
+# Go CLI runtime output (generated images, PDFs, personal photos)
+/cli/images/
+/cli/images_clean/
+/cli/final_stories/
+/cli/photos/
+/cli/character_base.png
+/cli/social-story
+/cli/*.json

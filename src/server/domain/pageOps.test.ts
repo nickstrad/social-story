@@ -1,0 +1,114 @@
+// @vitest-environment node
+
+import { describe, expect, it } from "vitest"
+import {
+  insertPage,
+  movePage,
+  normalizePositions,
+  parsedStoryToPages,
+  removePage,
+  setHidden,
+  visiblePagesInOrder,
+} from "./pageOps"
+import { character, page } from "./testFactories"
+
+const cover = page("cover", 8, "COVER")
+
+describe("page collection operations", () => {
+  it("normalizes content and pins the cover at zero", () => {
+    const result = normalizePositions([page("b", 9), cover, page("a", 3)])
+    expect(result.map(({ id, position }) => [id, position])).toEqual([
+      ["cover", 0],
+      ["a", 1],
+      ["b", 2],
+    ])
+    expect(() =>
+      normalizePositions([cover, page("other-cover", 0, "COVER")])
+    ).toThrow("at most one cover")
+  })
+
+  it("inserts after the cover at zero, clamps negatives, and appends past the end", () => {
+    const pages = [cover, page("a", 1), page("b", 2)]
+    expect(insertPage(pages, 0, page("zero", 99)).map(({ id }) => id)).toEqual([
+      "cover",
+      "zero",
+      "a",
+      "b",
+    ])
+    expect(
+      insertPage(pages, -10, page("negative", 99)).map(({ id }) => id)
+    ).toEqual(["cover", "negative", "a", "b"])
+    expect(insertPage(pages, 99, page("last", 99)).map(({ id }) => id)).toEqual(
+      ["cover", "a", "b", "last"]
+    )
+  })
+
+  it("inserts, removes, and moves with contiguous positions", () => {
+    const inserted = insertPage(
+      [cover, page("a", 1), page("c", 2)],
+      1,
+      page("b", 99)
+    )
+    expect(inserted.map(({ id }) => id)).toEqual(["cover", "a", "b", "c"])
+    const moved = movePage(inserted, "c", 1)
+    expect(moved.map(({ id, position }) => [id, position])).toEqual([
+      ["cover", 0],
+      ["c", 1],
+      ["a", 2],
+      ["b", 3],
+    ])
+    expect(removePage(moved, "a").map(({ id }) => id)).toEqual([
+      "cover",
+      "c",
+      "b",
+    ])
+    expect(removePage(moved, "cover").map(({ id }) => id)).toContain("cover")
+  })
+
+  it("updates hidden state immutably and orders only visible pages", () => {
+    const pages = [page("b", 2), cover, page("a", 1)]
+    const hidden = setHidden(pages, "a", true)
+    expect(pages[2].hidden).toBe(false)
+    expect(visiblePagesInOrder(hidden).map(({ id }) => id)).toEqual([
+      "cover",
+      "b",
+    ])
+  })
+
+  it("maps parsed names to ids, drops unknowns, and creates a cover", () => {
+    const result = parsedStoryToPages(
+      {
+        title: "My Story",
+        pages: [
+          {
+            page: 1,
+            text: "Hello",
+            imagePrompt: "A wave",
+            characterNames: ["Allison", "Unknown"],
+          },
+        ],
+      },
+      [character("a", "Allison")]
+    )
+    expect(result[0]).toMatchObject({
+      kind: "COVER",
+      position: 0,
+      text: "My Story",
+    })
+    expect(result[1].characterIds).toEqual(["a"])
+  })
+
+  it("creates unique ids when parsed page numbers repeat", () => {
+    const result = parsedStoryToPages(
+      {
+        title: "My Story",
+        pages: [
+          { page: 1, text: "One", imagePrompt: "One", characterNames: [] },
+          { page: 1, text: "Again", imagePrompt: "Again", characterNames: [] },
+        ],
+      },
+      []
+    )
+    expect(result.map(({ id }) => id)).toEqual(["cover", "page-1", "page-2"])
+  })
+})

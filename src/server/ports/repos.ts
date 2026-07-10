@@ -46,6 +46,10 @@ export interface PageRepo {
   create(input: CreatePage): Promise<Page>
   getById(id: string): Promise<Page | null>
   listByStory(storyId: string): Promise<Page[]>
+  replaceAll(
+    storyId: string,
+    pages: Omit<CreatePage, "storyId">[]
+  ): Promise<Page[]>
   update(id: string, input: UpdatePage): Promise<Page>
   updateOrder(storyId: string, orderedIds: string[]): Promise<Page[]>
   delete(id: string): Promise<void>

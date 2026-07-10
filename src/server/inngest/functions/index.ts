@@ -3,6 +3,9 @@ import { inngest } from "@/server/inngest/client"
 import { getTaskHandler } from "@/server/inngest/handlers"
 import { runTask } from "@/server/services/tasks"
 
+// Import for side effects: registers concrete task handlers on load.
+import "@/server/inngest/functions/parseStory"
+
 export async function dispatchTask(deps: Deps, taskId: string): Promise<void> {
   const task = await deps.repos.tasks.getById(taskId)
   if (!task) return

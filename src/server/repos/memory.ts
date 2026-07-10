@@ -158,6 +158,27 @@ export function inMemoryRepos(): Repos {
           .filter((item) => item.storyId === storyId)
           .sort((a, b) => a.position - b.position)
       },
+      async replaceAll(storyId, newPages) {
+        for (const [key, value] of pages)
+          if (value.storyId === storyId) pages.delete(key)
+        for (const input of newPages) {
+          const timestamp = now()
+          const value: Page = {
+            id: newId(),
+            steeringText: null,
+            hidden: false,
+            selectedImageId: null,
+            ...input,
+            storyId,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          }
+          pages.set(value.id, value)
+        }
+        return [...pages.values()]
+          .filter((item) => item.storyId === storyId)
+          .sort((a, b) => a.position - b.position)
+      },
       async update(id, input) {
         const value = {
           ...required(pages.get(id), "Page"),

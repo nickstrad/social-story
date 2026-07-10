@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { signOut } from "@/lib/auth-client"
 
@@ -16,7 +17,7 @@ export function useSignOut() {
       router.push("/signin")
       router.refresh()
     } catch {
-      // Keep the current session and let the user retry.
+      toast.error("Unable to sign out. Please try again.")
     } finally {
       setIsSigningOut(false)
     }

@@ -23,6 +23,7 @@ Plan: docs/02-auth.md
 - Ensured sign-out failures cannot leave the header permanently disabled and added regression coverage.
 - Replaced Zod's deprecated error `flatten()` method with `z.flattenError()`.
 - Added signup-hook coverage for the mode-dependent required-name validation.
+- Added a visible error toast when sign-out fails while preserving the retryable session state.
 
 ## Notes for review
 

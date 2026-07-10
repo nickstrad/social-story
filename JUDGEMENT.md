@@ -1,17 +1,16 @@
 # Judgement — feature/auth
 
 Plan: docs/02-auth.md
-Verdict: NOT READY
+Verdict: READY
 
 ## Blockers
-
-- **Missing `.env.example`** — `.env.example` (absent from diff). The plan's deliverable 1 explicitly requires adding `BETTER_AUTH_SECRET`/`BETTER_AUTH_URL` placeholders to a new `.env.example`, and it's listed in "Files created". The diff contains no `.env.example`. Create it with placeholder entries for the auth keys (and any other config-module variables), without touching `.env`.
+_none_
 
 ## Should-fix
-
-- **Sign-out failure leaves the header stuck in "Signing out"** — `src/hooks/useSignOut.ts:13-17`. `await signOut()` has no try/catch/finally; a network failure rejects and leaves `isSigningOut` permanently `true`, disabling the button with no recovery. Wrap in try/finally (and surface or swallow the error), mirroring the recoverable-error handling already added to `useAuthForm`.
+_none_
 
 ## Nits
 
-- **`error.flatten()` is deprecated in zod v4** — `src/lib/validation/auth.ts:27`. The project resolves zod ^4 (per better-auth's dependency tree); `flatten()` still works but is deprecated in favor of `z.treeifyError()`/`z.flattenError()`. Consider switching to avoid a future break.
-- **Invalid-input hook test only covers signin** — `src/hooks/useAuthForm.test.tsx:44-53`. A signup-mode invalid case (e.g. empty name) would also exercise the mode-dependent branch of `validateAuthInput` through the hook. Plan's minimum is met, so nit only.
+- **Extra `AppShell` client wrapper not in the plan's file list** — `src/components/layout/AppShell.tsx:1`. The plan specifies a dumb `AppHeader` + `useSignOut` hook; the implementation adds a third file, a `"use client"` shell, to bridge the server layout to the client hook. This is a legitimate and arguably necessary wiring layer (a server layout can't call `useSignOut` directly), and it keeps `AppHeader` stateless as specified, so it's an acceptable deviation rather than scope creep. No change required; noting it as an undocumented file addition.
+- **Sign-out failure is silent** — `src/hooks/useSignOut.ts:17`. On a failed sign-out the catch block intentionally recovers the button (good, and regression-tested) but gives the user no feedback that sign-out failed. A toast or transient message would improve UX. Not plan-mandated, so a nit only.
+- **Acceptance criteria not independently re-verified** — the change summary reports all tests, lint, typecheck, and the production build passing (including the DB-backed integration test); the judging environment could not re-run these commands. The test files themselves match the plan's required coverage (validation unit tests, mocked-client hook tests including the signup name-required case, and a real-DB integration test with `describe.skipIf(!hasDatabase)` guarding the no-`DATABASE_URL` case), so this rests on the implementer's reported results.

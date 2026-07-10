@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   refresh: vi.fn(),
   signOut: vi.fn(),
+  toastError: vi.fn(),
 }))
 
 vi.mock("next/navigation", () => ({
@@ -14,6 +15,7 @@ vi.mock("next/navigation", () => ({
 }))
 
 vi.mock("@/lib/auth-client", () => ({ signOut: mocks.signOut }))
+vi.mock("sonner", () => ({ toast: { error: mocks.toastError } }))
 
 describe("useSignOut", () => {
   beforeEach(() => vi.clearAllMocks())
@@ -26,5 +28,8 @@ describe("useSignOut", () => {
 
     expect(result.current.isSigningOut).toBe(false)
     expect(mocks.push).not.toHaveBeenCalled()
+    expect(mocks.toastError).toHaveBeenCalledWith(
+      "Unable to sign out. Please try again."
+    )
   })
 })

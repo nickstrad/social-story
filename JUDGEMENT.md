@@ -1,18 +1,16 @@
-# Judgement — feature/openai-service
+# Judgement — feature/auth
 
-Plan: docs/06-openai-service.md
+Plan: docs/02-auth.md
 Verdict: READY
 
 ## Blockers
-
 _none_
 
 ## Should-fix
-
-- **Unused `zod-to-json-schema` dependency** — `package.json:52`. The plan called for building the JSON schema via `zod-to-json-schema`, but the implementation (justifiably, per the change summary — the package emits empty definitions for Zod 4 schemas) uses Zod 4's native `toJSONSchema` in `src/server/services/openai/text.ts:1`. The `zod-to-json-schema` dependency was still added and is imported nowhere. Remove it from `package.json`/`package-lock.json` so the deviation is clean rather than half-applied.
+_none_
 
 ## Nits
 
-- **`strict: true` compatibility not exercised** — `src/server/services/openai/text.ts:56`. The request declares `strict: true`, which requires the emitted schema to have `additionalProperties: false` and all properties required. The test at `src/server/services/openai/text.test.ts:31` only asserts a property type, not that `toJSONSchema` output satisfies strict-mode constraints. A one-line assertion on `additionalProperties`/`required` would lock this in.
-- **Optional smoke script omitted** — `scripts/smoke-openai.ts` (absent). The plan lists it as optional and the change summary explains the omission (needs a real token, not CI); acceptable, noting for completeness.
-- **Backoff cap absent** — `src/server/services/openai/http.ts:14`. A hostile/large `Retry-After` value is honored unbounded. The Go original may behave the same; harmless at maxRetries=3 but a cap (e.g. 30s) would be safer.
+- **Extra `AppShell` client wrapper not in the plan's file list** — `src/components/layout/AppShell.tsx:1`. The plan specifies a dumb `AppHeader` + `useSignOut` hook; the implementation adds a third file, a `"use client"` shell, to bridge the server layout to the client hook. This is a legitimate and arguably necessary wiring layer (a server layout can't call `useSignOut` directly), and it keeps `AppHeader` stateless as specified, so it's an acceptable deviation rather than scope creep. No change required; noting it as an undocumented file addition.
+- **Sign-out failure is silent** — `src/hooks/useSignOut.ts:17`. On a failed sign-out the catch block intentionally recovers the button (good, and regression-tested) but gives the user no feedback that sign-out failed. A toast or transient message would improve UX. Not plan-mandated, so a nit only.
+- **Acceptance criteria not independently re-verified** — the change summary reports all tests, lint, typecheck, and the production build passing (including the DB-backed integration test); the judging environment could not re-run these commands. The test files themselves match the plan's required coverage (validation unit tests, mocked-client hook tests including the signup name-required case, and a real-DB integration test with `describe.skipIf(!hasDatabase)` guarding the no-`DATABASE_URL` case), so this rests on the implementer's reported results.

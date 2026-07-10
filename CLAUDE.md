@@ -23,11 +23,10 @@ Skip the Go CLI (`cli/`) in worktrees — deprecated, kept for reference only.
 
 When implementing a plan from `docs/`, use this skill chain instead of working freehand:
 
-1. `/do-next-plan <plan file>` — implements the plan in a new worktree, runs `/simplify`, then writes `CHANGE_SUMMARY.md` at the worktree root naming the source plan.
-2. `/judge-branch` — the `fable` model reviews the branch diff against the plan (via `CHANGE_SUMMARY.md`) and writes `JUDGEMENT.md` at the worktree root.
-3. `/handle-judge-feedback` — implements `JUDGEMENT.md`'s feedback in priority order.
+1. `/do-next-plan <plan file>` — implements the plan in a new worktree, runs `/simplify`, writes `CHANGE_SUMMARY.md` at the worktree root naming the source plan, then runs `scripts/judge-branch.sh`, which has the `fable` model (fresh context, via `claude -p`) judge the full worktree diff against the plan and write `JUDGEMENT.md` at the worktree root.
+2. `/handle-judge-feedback` — implements `JUDGEMENT.md`'s feedback in priority order.
 
-No step merges to `main` — that's always a separate, explicit action.
+`/judge-branch` re-runs just the judge step standalone when needed. No step merges to `main` — that's always a separate, explicit action.
 
 # .env
 

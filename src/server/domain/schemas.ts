@@ -38,10 +38,29 @@ export const characterInputSchema = z.object({
   photoDescription: z.string().trim().max(2_000).nullable().optional(),
 })
 
-export const ruleInputSchema = z.object({
-  text: requiredText.max(2_000),
-  kind: z.enum(["TOGETHER", "ALWAYS_INCLUDE", "NEVER_INCLUDE", "FREEFORM"]),
-  characterIds: z.array(requiredText),
-})
+type RuleKind = "TOGETHER" | "ALWAYS_INCLUDE" | "NEVER_INCLUDE" | "FREEFORM"
+
+export const minCharacterIds = (kind: RuleKind) =>
+  kind === "FREEFORM" ? 0 : kind === "TOGETHER" ? 2 : 1
+
+export const ruleInputSchema = z
+  .object({
+    text: requiredText.max(2_000),
+    kind: z.enum(["TOGETHER", "ALWAYS_INCLUDE", "NEVER_INCLUDE", "FREEFORM"]),
+    characterIds: z.array(requiredText),
+  })
+  .superRefine((rule, ctx) => {
+    const minimum = minCharacterIds(rule.kind)
+    if (rule.characterIds.length < minimum) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["characterIds"],
+        message:
+          rule.kind === "TOGETHER"
+            ? "Together rules require at least two characters"
+            : "This rule requires at least one character",
+      })
+    }
+  })
 
 export type ParsedStory = z.infer<typeof parsedStorySchema>

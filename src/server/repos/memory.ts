@@ -221,6 +221,18 @@ export function inMemoryRepos(): Repos {
       async listByStory(storyId) {
         return [...tasks.values()].filter((item) => item.storyId === storyId)
       },
+      async claimPending(id, startedAt) {
+        const task = tasks.get(id)
+        if (!task || task.status !== "PENDING") return null
+        const value: Task = {
+          ...task,
+          status: "RUNNING",
+          startedAt,
+          updatedAt: now(),
+        }
+        tasks.set(id, value)
+        return value
+      },
       async update(id, input) {
         const value = {
           ...required(tasks.get(id), "Task"),

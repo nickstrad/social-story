@@ -6,6 +6,7 @@ import { inMemoryRepos } from "./repos/memory"
 import { inMemoryStorage } from "./services/memory-storage"
 import { fakeImageGenerator, fakeTextGenerator } from "./services/fakes"
 import type { Deps } from "./container"
+import { immediateDispatcher } from "./services/fakes"
 
 describe("Deps", () => {
   it("supports fully in-memory test dependencies", () => {
@@ -14,11 +15,13 @@ describe("Deps", () => {
       storage: inMemoryStorage(),
       text: fakeTextGenerator({}),
       image: fakeImageGenerator(),
+      dispatcher: immediateDispatcher(async () => {}),
     }
     expect(deps.repos.stories).toBeDefined()
     expect(deps.storage.put).toBeTypeOf("function")
     expect(deps.text.generateJson).toBeTypeOf("function")
     expect(deps.image.generate).toBeTypeOf("function")
+    expect(deps.dispatcher.dispatch).toBeTypeOf("function")
   })
 
   it("wires adapters from parsed configuration", () => {

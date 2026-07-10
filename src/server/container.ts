@@ -7,6 +7,8 @@ import type { Repos } from "./ports/repos"
 import type { Storage } from "./ports/storage"
 import type { ImageGenerator } from "./ports/image"
 import type { TextGenerator } from "./ports/text"
+import type { TaskDispatcher } from "./ports/dispatcher"
+import { inngestDispatcher } from "./inngest/dispatcher"
 import { prismaRepos } from "./repos/prisma"
 import { createVercelBlobStorage } from "./services/vercel-blob-storage"
 import { openAIImageGenerator } from "./services/openai/image"
@@ -17,16 +19,19 @@ export interface Deps {
   repos: Repos
   text: TextGenerator
   image: ImageGenerator
+  dispatcher: TaskDispatcher
 }
 
 let deps: Deps | undefined
 
 export function createDeps(config: Config, client: PrismaClient = db): Deps {
+  const repos = prismaRepos(client)
   return {
     storage: createVercelBlobStorage(config.blob.token),
-    repos: prismaRepos(client),
+    repos,
     text: openAITextGenerator(config.openai),
     image: openAIImageGenerator(config.openai),
+    dispatcher: inngestDispatcher(repos),
   }
 }
 

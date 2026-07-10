@@ -1,23 +1,28 @@
-# Change summary — feature/trpc
+# Change summary — feature/task-system
 
-Plan: docs/03-trpc.md
+Plan: docs/05-task-system.md
 
 ## What was implemented
 
-- Added the tRPC v11 server context, SuperJSON transformer, formatted Zod errors, public/protected procedures, health and session queries, and the App Router fetch handler.
-- Added repository-backed story/page ownership guards with in-memory unit coverage.
-- Added the React Query/tRPC client provider, shared query-client factory, request-scoped RSC prefetch/hydration helpers, and the root-layout provider mount.
-- Added a shared route error boundary plus reusable server caller and Suspense-aware hook test utilities.
-- Added protected-procedure integration coverage and installed the tRPC, React Query, and SuperJSON dependencies.
+- Added Inngest client, Next.js webhook route, generic `task/dispatch` function, per-user concurrency limit, handler registry, and task dispatcher adapters.
+- Added vendor-agnostic task creation and execution services with transition guards, timestamps, results, and persisted failures.
+- Added ownership-checked tRPC task get/list/retry procedures and registered the task router.
+- Added polling hooks, the pure polling interval helper and tests, and a stateless shadcn task status badge.
+- Added unit coverage for task execution and a real-Prisma integration suite for inline dispatch, retry, and ownership.
+- Added an atomic `claimPending` repository operation so duplicate deliveries cannot run the same task twice.
+- Missing registered handlers now transition tasks to FAILED with a persisted error instead of leaving them PENDING.
+- `runTask` validates PENDING→RUNNING through the domain state machine before using the repository's atomic compare-and-set claim.
 
 ## What /simplify changed
 
-- Reviewed all new and modified code for duplication, readability, and idiomatic tRPC/React Query usage; the explicit factories and small helpers were retained because they are the reusable interfaces required by later plans.
-- Applied Prettier to the implementation and kept the server/client boundaries explicit.
+- Removed the duplicate task-handler type by sharing the service type with the handler registry.
+- Reused `pollInterval` when deciding whether story task polling should continue.
+- Kept conditional task claiming in the repository abstraction and moved the Inngest dispatcher adapter out of the composition root.
+- Moved the test-only immediate dispatcher into the existing service fakes module.
 
 ## Notes for review
 
-- Verification passed: 61 tests, TypeScript, ESLint, changed-file Prettier checks, and the production build.
-- Judge feedback renamed the JSX-free RSC helper to `src/lib/trpc-server.ts` and made the hook-test wrapper fail safely unless given a mock fetch implementation.
-- The repository-wide `format:check` still reports the pre-existing tracked `JUDGEMENT.md`; this plan did not modify that file.
-- Next.js emits its existing multiple-lockfile/workspace-root warning when building from a nested worktree.
+- `npx tsc --noEmit`, ESLint, the production build, and the full test suite pass (25 files, 74 tests), including all three task integration cases against the configured database.
+- Inngest 4.12.0 required npm legacy peer resolution because its optional SvelteKit peer dependency conflicts with this project's Vite 8 test tooling.
+- The dispatch event includes `userId` alongside `taskId` solely to support Inngest's per-user concurrency key; task resolution and execution still use `taskId`.
+- Updated the source plan to document the event payload and module-load handler registration contract for downstream plans.

@@ -4,7 +4,7 @@
 
 ## Context
 
-Repo is a fresh Next.js 16 (App Router) app at root; `src/app/` has only the scaffold. `.env` at root already contains `DATABASE_URL` (Neon Postgres), `OPENAPI_TOKEN` (OpenAI key — nonstandard name, keep it), and will contain `BLOB_READ_WRITE_TOKEN` (Vercel Blob). Read `docs/00-overview.md` for full conventions. **Before writing Next.js code, read the relevant guide under `node_modules/next/dist/docs/`.**
+Repo is a fresh Next.js 16 (App Router) app at root; `src/app/` has only the scaffold. `.env` at root already contains `DATABASE_URL` (Neon Postgres), `OPENAI_TOKEN` (OpenAI key), and will contain `BLOB_READ_WRITE_TOKEN` (Vercel Blob). Read `docs/00-overview.md` for full conventions. **Before writing Next.js code, read the relevant guide under `node_modules/next/dist/docs/`.**
 
 ## Deliverables
 
@@ -57,7 +57,7 @@ Single zod-validated source of all environment configuration; **nothing else in 
 ```ts
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
-  OPENAPI_TOKEN: z.string().min(1), // nonstandard name — keep
+  OPENAI_TOKEN: z.string().min(1),
   BLOB_READ_WRITE_TOKEN: z.string().min(1),
   BETTER_AUTH_SECRET: z.string().min(1),
   BETTER_AUTH_URL: z.string().url(),

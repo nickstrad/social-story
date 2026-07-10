@@ -4,7 +4,7 @@ import { parseConfig } from "./config"
 
 const validEnv = {
   DATABASE_URL: "https://database.example.com",
-  OPENAPI_TOKEN: "openai-token",
+  OPENAI_TOKEN: "openai-token",
   BLOB_READ_WRITE_TOKEN: "blob-token",
   BETTER_AUTH_SECRET: "auth-secret",
   BETTER_AUTH_URL: "https://app.example.com",
@@ -26,7 +26,7 @@ describe("parseConfig", () => {
 
   it("reports multiple errors together", () => {
     expect(() =>
-      parseConfig({ ...validEnv, DATABASE_URL: "invalid", OPENAPI_TOKEN: "" })
-    ).toThrow(/DATABASE_URL.*OPENAPI_TOKEN/)
+      parseConfig({ ...validEnv, DATABASE_URL: "invalid", OPENAI_TOKEN: "" })
+    ).toThrow(/DATABASE_URL.*OPENAI_TOKEN/)
   })
 })

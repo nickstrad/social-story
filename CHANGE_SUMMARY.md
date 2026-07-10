@@ -1,30 +1,25 @@
-# Change summary — feature/db-foundation
+# Change summary — feature/openai-service
 
-Plan: docs/01-db-foundation.md
+Plan: docs/06-openai-service.md
 
 ## What was implemented
 
-- Added Prisma and the complete Better Auth/application schema, generated client setup, database scripts, and a checked-in initial PostgreSQL migration.
-- Added centralized Zod environment parsing, memoized configuration, the Prisma singleton, and a composition root.
-- Added vendor-neutral storage and repository ports, Prisma adapters, Vercel Blob storage, and in-memory fakes.
-- Added unit coverage for configuration, storage, storage keys, dependency construction, and in-memory repositories, plus a repository-backed database integration test.
-- Added `test:run` and documented all current configuration keys in `.env.example`.
+- Added provider-neutral text and image generation ports and wired OpenAI adapters into the dependency container.
+- Added transparent REST adapters for structured chat completions, image generations, multipart image edits, base64 decoding, and retry/backoff behavior.
+- Added test fakes, including a Sharp-compatible 4×4 PNG image generator.
+- Added a Sharp caption compositor with exported wrapping, sizing, and SVG helpers.
+- Added unit and integration-style tests for validation, endpoint and multipart selection, retries, caption geometry, pixel preservation, and blank-caption passthrough.
+- Added a direct `sharp` dependency. Zod 4's native JSON Schema converter is used because `zod-to-json-schema` emits empty definitions for Zod 4 schemas.
 
 ## What /simplify changed
 
-- Formatted the new source as a single consistency pass and kept adapter mapping direct where Prisma records already match domain types.
-- Kept shared storage-key construction and test fake creation in focused helpers rather than duplicating path and setup logic.
-
-## Judge feedback addressed
-
-- Made the guarded database integration test load Prisma and repository adapters lazily, so missing database configuration skips without constructing a client.
-- Replaced per-file Node annotations with Vitest 4 server/client projects, preserving jsdom for client tests and enforcing Node for `src/server/**`.
-- Added a testable `createDeps(config)` composition factory while retaining memoized `getDeps()` for production.
-- Moved the Prisma CLI to development dependencies.
+- Aligned the direct Sharp dependency with Next.js's existing Sharp version to avoid a duplicate native dependency stack.
+- Kept shared response decoding, multipart construction, XML escaping, and retry/error handling in focused helpers to reduce duplication and keep the public adapter methods readable.
+- Removed the unused direct `zod-to-json-schema` dependency, capped retry delays at 30 seconds, and added explicit strict-schema assertions following judge feedback.
+- Renamed the configured OpenAI credential variable from `OPENAPI_TOKEN` to `OPENAI_TOKEN` to match the deployed environment.
 
 ## Notes for review
 
-- `prisma migrate dev --name init` applied the initial migration successfully to the configured Neon database after the root `.env` was refreshed into the worktree.
-- The repository-backed database integration test ran against Neon and passed, including nested page reads and cascade deletion.
-- Vitest 4 no longer supports `environmentMatchGlobs`; equivalent server/client projects now enforce the environment split centrally.
-- `npm run test:run` passes all 11 tests; `npm run lint`, `npx tsc --noEmit`, Prisma generation, and `npm run build` also pass. The build required network access for the scaffold's existing Google-hosted Geist fonts.
+- `npx vitest run --project server --exclude src/server/__tests__/db.int.test.ts` passes (46 tests), as do TypeScript, ESLint, and the production build.
+- The complete `npm run test:run` reaches 46 passing tests but fails the existing Prisma integration test because the configured Neon database is unreachable. No environment files were inspected or modified beyond the required opaque copy.
+- The optional live OpenAI smoke script was not added or run because it requires a real token and is not part of CI.

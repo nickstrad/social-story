@@ -6,7 +6,7 @@
 
 Read `docs/00-overview.md` and the OpenAI client code in `cli/main.go` (`parseStory`, `imageGenerate`, `imageEdit`, `doWithRetry`) plus `cli/caption.go`. This plan implements the **provider-agnostic ports** for text and image generation with OpenAI as implementation #1, and a sharp-based caption compositor replacing the Go freetype code. **No vendor concepts in port signatures.**
 
-Config: the API key (`OPENAPI_TOKEN` — nonstandard name, keep) and model ids (`OPENAI_CHAT_MODEL`/`OPENAI_IMAGE_MODEL` with defaults) are already validated in `src/server/config.ts` (plan 01). Adapter constructors take a config slice (`getConfig().openai`) passed in by `container.ts` — **never read `process.env` directly**.
+Config: the API key (`OPENAI_TOKEN`) and model ids (`OPENAI_CHAT_MODEL`/`OPENAI_IMAGE_MODEL` with defaults) are already validated in `src/server/config.ts` (plan 01). Adapter constructors take a config slice (`getConfig().openai`) passed in by `container.ts` — **never read `process.env` directly**.
 
 ## Deliverables
 

@@ -11,9 +11,15 @@ export function useSignOut() {
 
   async function handleSignOut() {
     setIsSigningOut(true)
-    await signOut()
-    router.push("/signin")
-    router.refresh()
+    try {
+      await signOut()
+      router.push("/signin")
+      router.refresh()
+    } catch {
+      // Keep the current session and let the user retry.
+    } finally {
+      setIsSigningOut(false)
+    }
   }
 
   return { handleSignOut, isSigningOut }

@@ -15,9 +15,17 @@ Plan: docs/02-auth.md
 - Centralized the hook's sign-in/sign-up dispatch in a small helper.
 - Made submission cleanup unconditional and added a clear recoverable error for network failures so the form cannot remain stuck in a submitting state.
 - Kept UI components stateless and isolated client orchestration in hooks and the small app shell.
+- Made sign-out failures recoverable by restoring the header action and keeping the current session available for a retry.
+
+## Judge feedback addressed
+
+- Made the existing auth secret entry in `.env.example` an explicit safe placeholder.
+- Ensured sign-out failures cannot leave the header permanently disabled and added regression coverage.
+- Replaced Zod's deprecated error `flatten()` method with `z.flattenError()`.
+- Added signup-hook coverage for the mode-dependent required-name validation.
 
 ## Notes for review
 
 - Synced the worktree with the merged `feature/openai-service` work, including its `OPENAI_TOKEN` config rename.
-- `npm run test:run` passes all 54 tests, including the Neon-backed auth and repository integration tests.
+- `npm run test:run` passes all tests, including the Neon-backed auth and repository integration tests.
 - TypeScript, ESLint, and the production Next.js build pass. The build requires network access for the scaffold's Google-hosted Geist fonts and warns about multiple lockfiles because this branch intentionally lives in a worktree.

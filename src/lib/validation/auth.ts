@@ -23,7 +23,7 @@ export function validateAuthInput(
 
   if (result.success) return {}
 
-  const fields = result.error.flatten().fieldErrors
+  const fields = z.flattenError(result.error).fieldErrors
   return Object.fromEntries(
     Object.entries(fields).map(([field, messages]) => [field, messages?.[0]])
   ) as AuthErrors

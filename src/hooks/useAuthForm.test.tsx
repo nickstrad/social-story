@@ -51,4 +51,17 @@ describe("useAuthForm", () => {
     expect(result.current.errors.password).toBeTruthy()
     expect(mocks.signInEmail).not.toHaveBeenCalled()
   })
+
+  it("requires a name before signing up", async () => {
+    const { result } = renderHook(() => useAuthForm("signup"))
+
+    act(() => {
+      result.current.onChange("email", "alex@example.com")
+      result.current.onChange("password", "password1")
+    })
+    await act(() => result.current.onSubmit())
+
+    expect(result.current.errors.name).toBeTruthy()
+    expect(mocks.signUpEmail).not.toHaveBeenCalled()
+  })
 })

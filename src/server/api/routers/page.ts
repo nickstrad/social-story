@@ -6,11 +6,14 @@ import {
   assertStoryOwnership,
 } from "@/server/api/ownership"
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc"
+import { insertPage, removePage, reorderPages } from "@/server/domain/pageOps"
+import { applyRulesToPage } from "@/server/domain/rules"
 import { hasActiveTask } from "@/server/domain/taskMachine"
 import { createTask } from "@/server/services/tasks"
 
 const pageIdInput = z.object({ pageId: z.string().min(1) })
 const steeringSchema = z.string().trim().max(2_000)
+const textSchema = z.string().max(5_000)
 
 export const pageRouter = createTRPCRouter({
   generate: protectedProcedure
@@ -93,6 +96,176 @@ export const pageRouter = createTRPCRouter({
         )
       )
       return { taskIds: tasks.map((task) => task.id), skipped }
+    }),
+
+  update: protectedProcedure
+    .input(
+      pageIdInput.extend({
+        text: textSchema.optional(),
+        imagePrompt: textSchema.optional(),
+        characterIds: z.array(z.string().min(1)).optional(),
+        steeringText: steeringSchema.optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const page = await assertPageOwnership(
+        ctx.deps.repos,
+        input.pageId,
+        ctx.session.user.id
+      )
+
+      const patch: {
+        text?: string
+        imagePrompt?: string
+        characterIds?: string[]
+        steeringText?: string | null
+      } = {}
+      if (input.text !== undefined) patch.text = input.text
+      if (input.imagePrompt !== undefined) patch.imagePrompt = input.imagePrompt
+      if (input.steeringText !== undefined) {
+        patch.steeringText = input.steeringText || null
+      }
+
+      let effectiveIds: string[] | undefined
+      if (input.characterIds !== undefined) {
+        const [characters, rules] = await Promise.all([
+          ctx.deps.repos.characters.listByStory(page.storyId),
+          ctx.deps.repos.rules.listByStory(page.storyId),
+        ])
+        const valid = new Set(characters.map((character) => character.id))
+        if (!input.characterIds.every((id) => valid.has(id))) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "All characters must belong to the story",
+          })
+        }
+        // Persist the author's raw selection (generation re-applies rules at
+        // render time), but return the rule-expanded list so the UI can show
+        // which characters a rule auto-adds.
+        patch.characterIds = input.characterIds
+        effectiveIds = applyRulesToPage(
+          input.characterIds,
+          rules,
+          characters
+        ).characterIds
+      }
+
+      const updated = await ctx.deps.repos.pages.update(page.id, patch)
+      return effectiveIds ? { ...updated, characterIds: effectiveIds } : updated
+    }),
+
+  add: protectedProcedure
+    .input(
+      z.object({
+        storyId: z.string().min(1),
+        afterPageId: z.string().min(1).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertStoryOwnership(
+        ctx.deps.repos,
+        input.storyId,
+        ctx.session.user.id
+      )
+      const pages = await ctx.deps.repos.pages.listByStory(input.storyId)
+      const content = pages
+        .filter((page) => page.kind === "PAGE")
+        .sort((a, b) => a.position - b.position)
+      const afterIndex = input.afterPageId
+        ? content.findIndex((page) => page.id === input.afterPageId)
+        : content.length - 1
+      if (input.afterPageId && afterIndex === -1) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "afterPageId does not belong to this story",
+        })
+      }
+
+      const created = await ctx.deps.repos.pages.create({
+        storyId: input.storyId,
+        kind: "PAGE",
+        position: pages.length,
+        text: "",
+        imagePrompt: "",
+        characterIds: [],
+      })
+      // Place the new page directly after the anchor, then renumber contiguously
+      // with the cover pinned at position 0.
+      const ordered = insertPage(pages, afterIndex + 1, created)
+      await ctx.deps.repos.pages.updateOrder(
+        input.storyId,
+        ordered.map((page) => page.id)
+      )
+      return created
+    }),
+
+  remove: protectedProcedure
+    .input(pageIdInput)
+    .mutation(async ({ ctx, input }) => {
+      const page = await assertPageOwnership(
+        ctx.deps.repos,
+        input.pageId,
+        ctx.session.user.id
+      )
+      if (page.kind === "COVER") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The cover page cannot be removed",
+        })
+      }
+      const pages = await ctx.deps.repos.pages.listByStory(page.storyId)
+      const remaining = removePage(pages, page.id)
+      await ctx.deps.repos.pages.delete(page.id)
+      await ctx.deps.repos.pages.updateOrder(
+        page.storyId,
+        remaining.map((p) => p.id)
+      )
+      return { success: true }
+    }),
+
+  setHidden: protectedProcedure
+    .input(pageIdInput.extend({ hidden: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const page = await assertPageOwnership(
+        ctx.deps.repos,
+        input.pageId,
+        ctx.session.user.id
+      )
+      return ctx.deps.repos.pages.update(page.id, { hidden: input.hidden })
+    }),
+
+  reorder: protectedProcedure
+    .input(
+      z.object({
+        storyId: z.string().min(1),
+        orderedPageIds: z.array(z.string().min(1)),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertStoryOwnership(
+        ctx.deps.repos,
+        input.storyId,
+        ctx.session.user.id
+      )
+      const pages = await ctx.deps.repos.pages.listByStory(input.storyId)
+      const known = new Set(pages.map((page) => page.id))
+      const requested = new Set(input.orderedPageIds)
+      if (
+        input.orderedPageIds.length !== pages.length ||
+        requested.size !== input.orderedPageIds.length ||
+        !input.orderedPageIds.every((id) => known.has(id))
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "orderedPageIds must be a permutation of the story's pages",
+        })
+      }
+      // The domain pins the cover at position 0, so a client can't dislodge it.
+      const ordered = reorderPages(pages, input.orderedPageIds)
+      return ctx.deps.repos.pages.updateOrder(
+        input.storyId,
+        ordered.map((page) => page.id)
+      )
     }),
 
   selectImage: protectedProcedure

@@ -37,12 +37,14 @@ export function nextVariant(existingVariants: number[]): number {
   return Math.max(0, ...existingVariants) + 1
 }
 
-export function summarizeStoryTasks(tasks: Task[]): {
+export interface TaskProgress {
   pending: number
   running: number
   failed: number
   done: number
-} {
+}
+
+export function summarizeStoryTasks(tasks: Task[]): TaskProgress {
   return tasks.reduce(
     (summary, task) => {
       const key =

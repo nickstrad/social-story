@@ -37,4 +37,9 @@ export const prismaPageRepo = (db: PrismaClient): PageRepo => ({
   addImage: (data) => db.pageImage.create({ data }),
   listImages: (pageId) =>
     db.pageImage.findMany({ where: { pageId }, orderBy: { variant: "asc" } }),
+  listImagesByStory: (storyId) =>
+    db.pageImage.findMany({
+      where: { page: { storyId } },
+      orderBy: { variant: "asc" },
+    }),
 })

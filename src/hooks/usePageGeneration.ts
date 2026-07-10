@@ -26,34 +26,40 @@ function latestImage(images: PageImage[]): PageImage | undefined {
 }
 
 /**
- * Derive one page's generation state from its PAGE_IMAGE tasks and its stored
- * variants. `tasks` must already be filtered to this page's PAGE_IMAGE tasks.
- * Pure so it can be unit-tested without React or the network.
+ * The generation state implied by a page's PAGE_IMAGE tasks. `tasks` must
+ * already be filtered to this page; `hasImage` is whether it has a stored
+ * variant. Pure so both the focused editor and the grid can share it.
+ */
+export function pageGenStateFromTasks(
+  tasks: Task[],
+  hasImage: boolean
+): PageGenState {
+  switch (latestTask(tasks)?.status) {
+    case "PENDING":
+      return "queued"
+    case "RUNNING":
+      return "generating"
+    case "FAILED":
+      return "failed"
+    default:
+      // SUCCEEDED, or no task this session: an existing variant means done.
+      return hasImage ? "done" : "idle"
+  }
+}
+
+/**
+ * Derive one page's generation state and latest variant URL. `tasks` must
+ * already be filtered to this page's PAGE_IMAGE tasks.
  */
 export function derivePageGenState(
   tasks: Task[],
   images: PageImage[]
 ): { state: PageGenState; latestImageUrl: string | undefined } {
   const image = latestImage(images)
-  const latestImageUrl = image?.url
-
-  const task = latestTask(tasks)
-  let state: PageGenState
-  switch (task?.status) {
-    case "PENDING":
-      state = "queued"
-      break
-    case "RUNNING":
-      state = "generating"
-      break
-    case "FAILED":
-      state = "failed"
-      break
-    default:
-      // SUCCEEDED, or no task this session: an existing variant means done.
-      state = image ? "done" : "idle"
+  return {
+    state: pageGenStateFromTasks(tasks, Boolean(image)),
+    latestImageUrl: image?.url,
   }
-  return { state, latestImageUrl }
 }
 
 export function usePageGeneration(pageId: string, storyId: string) {

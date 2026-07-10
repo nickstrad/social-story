@@ -220,6 +220,16 @@ export function inMemoryRepos(): Repos {
           .filter((item) => item.pageId === pageId)
           .sort((a, b) => a.variant - b.variant)
       },
+      async listImagesByStory(storyId) {
+        const storyPageIds = new Set(
+          [...pages.values()]
+            .filter((page) => page.storyId === storyId)
+            .map((page) => page.id)
+        )
+        return [...images.values()]
+          .filter((item) => storyPageIds.has(item.pageId))
+          .sort((a, b) => a.variant - b.variant)
+      },
     },
     tasks: {
       async create(input) {

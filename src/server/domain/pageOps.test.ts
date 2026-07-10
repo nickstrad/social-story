@@ -3,10 +3,12 @@
 import { describe, expect, it } from "vitest"
 import {
   insertPage,
+  isPageVisible,
   movePage,
   normalizePositions,
   parsedStoryToPages,
   removePage,
+  reorderPages,
   setHidden,
   visiblePagesInOrder,
 } from "./pageOps"
@@ -96,6 +98,27 @@ describe("page collection operations", () => {
       text: "My Story",
     })
     expect(result[1].characterIds).toEqual(["a"])
+  })
+
+  it("reorders content by the requested permutation and pins the cover", () => {
+    const pages = [cover, page("a", 1), page("b", 2), page("c", 3)]
+    const result = reorderPages(pages, ["c", "a", "b"])
+    expect(result.map(({ id }) => id)).toEqual(["cover", "c", "a", "b"])
+    expect(result.map(({ position }) => position)).toEqual([0, 1, 2, 3])
+  })
+
+  it("ignores any attempt to reorder the cover out of position 0", () => {
+    const pages = [cover, page("a", 1), page("b", 2)]
+    const result = reorderPages(pages, ["b", "cover", "a"])
+    expect(result.map(({ id }) => id)).toEqual(["cover", "b", "a"])
+    expect(result[0].position).toBe(0)
+  })
+
+  it("treats the cover as always visible and other pages by hidden flag", () => {
+    expect(isPageVisible(cover)).toBe(true)
+    expect(isPageVisible({ ...cover, hidden: true })).toBe(true)
+    expect(isPageVisible(page("a", 1))).toBe(true)
+    expect(isPageVisible({ ...page("a", 1), hidden: true })).toBe(false)
   })
 
   it("creates unique ids when parsed page numbers repeat", () => {

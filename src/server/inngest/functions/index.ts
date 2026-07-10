@@ -3,9 +3,10 @@ import { inngest } from "@/server/inngest/client"
 import { getTaskHandler } from "@/server/inngest/handlers"
 import { runTask } from "@/server/services/tasks"
 
-// Side-effect import: registers concrete task handlers with the handler
+// Side-effect imports: register concrete task handlers with the handler
 // registry so dispatchTask can resolve them.
 import "./baseImage"
+import "./parseStory"
 
 export async function dispatchTask(deps: Deps, taskId: string): Promise<void> {
   const task = await deps.repos.tasks.getById(taskId)

@@ -4,7 +4,11 @@ import type { Deps } from "@/server/container"
 import { createTestCaller } from "@/server/api/test-utils"
 import { db } from "@/server/db"
 import { prismaRepos } from "@/server/repos/prisma"
-import { fakeImageGenerator, fakeTextGenerator } from "@/server/services/fakes"
+import {
+  fakeImageGenerator,
+  fakeTextGenerator,
+  immediateDispatcher,
+} from "@/server/services/fakes"
 import { inMemoryStorage } from "@/server/services/memory-storage"
 
 const suffix = crypto.randomUUID()
@@ -27,6 +31,7 @@ const deps = (): Deps => ({
   storage: inMemoryStorage(),
   text: fakeTextGenerator({}),
   image: fakeImageGenerator(),
+  dispatcher: immediateDispatcher(async () => {}),
 })
 
 describe("character and rule routers", () => {

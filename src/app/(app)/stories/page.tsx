@@ -1,3 +1,18 @@
+import { Suspense } from "react"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
+import { StoriesScreen } from "@/components/story/StoriesScreen"
+import { StoryListSkeleton } from "@/components/story/StoryListSkeleton"
+import { HydrateClient, prefetch, trpc } from "@/lib/trpc-server"
+
 export default function StoriesPage() {
-  return <h1 className="text-2xl font-semibold">Your stories</h1>
+  prefetch(trpc.story.list.prefetch())
+  return (
+    <HydrateClient>
+      <ErrorBoundary fallbackTitle="Could not load stories">
+        <Suspense fallback={<StoryListSkeleton />}>
+          <StoriesScreen />
+        </Suspense>
+      </ErrorBoundary>
+    </HydrateClient>
+  )
 }

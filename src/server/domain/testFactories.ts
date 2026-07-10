@@ -54,7 +54,10 @@ export function page(
   }
 }
 
-export function task(status: Task["status"]): Task {
+export function task(
+  status: Task["status"],
+  overrides: Partial<Task> = {}
+): Task {
   return {
     id: status,
     userId: "user",
@@ -68,5 +71,6 @@ export function task(status: Task["status"]): Task {
     finishedAt: null,
     createdAt: now,
     updatedAt: now,
+    ...overrides,
   }
 }

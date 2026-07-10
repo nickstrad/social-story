@@ -2,23 +2,16 @@ import type { Deps } from "@/server/container"
 import { buildBaseSheetPrompt } from "@/server/domain/prompts"
 import type { Character, Task } from "@/server/domain/types"
 import { registerTaskHandler } from "@/server/inngest/handlers"
+import { toReferenceImage } from "@/server/services/references"
 import { baseImageKey } from "@/server/services/storage-keys"
 
-async function loadReferenceImages(
-  deps: Deps,
-  characters: Character[]
-): Promise<{ data: Buffer; mimeType: string }[]> {
+async function loadReferenceImages(deps: Deps, characters: Character[]) {
   const withPhotos = characters.filter(
     (character): character is Character & { photoUrl: string } =>
       Boolean(character.photoUrl)
   )
-  // The upload route re-encodes every photo to PNG before storing, so stored
-  // photo blobs are always PNG (see src/app/api/upload/photo/route.ts).
   return Promise.all(
-    withPhotos.map(async (character) => ({
-      data: await deps.storage.fetchBuffer(character.photoUrl),
-      mimeType: "image/png",
-    }))
+    withPhotos.map((character) => toReferenceImage(deps, character.photoUrl))
   )
 }
 

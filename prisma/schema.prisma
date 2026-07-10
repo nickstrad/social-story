@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  stories       Story[]
+  tasks         Task[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model Story {
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  script       String
+  status       StoryStatus @default(DRAFT)
+  baseImageUrl String?
+  coverNote    String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  characters   Character[]
+  rules        Rule[]
+  pages        Page[]
+  tasks        Task[]
+
+  @@index([userId])
+}
+
+model Character {
+  id               String   @id @default(cuid())
+  storyId          String
+  story            Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  name             String
+  role             String?
+  age              String?
+  appearance       String?
+  photoUrl         String?
+  photoDescription String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([storyId])
+}
+
+model Rule {
+  id           String   @id @default(cuid())
+  storyId      String
+  story        Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  text         String
+  kind         RuleKind
+  characterIds String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([storyId])
+}
+
+model Page {
+  id              String      @id @default(cuid())
+  storyId         String
+  story           Story       @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  kind            PageKind
+  position        Int
+  text            String
+  imagePrompt     String
+  characterIds    String[]
+  steeringText    String?
+  hidden          Boolean     @default(false)
+  selectedImageId String?     @unique
+  selectedImage   PageImage?  @relation("SelectedPageImage", fields: [selectedImageId], references: [id], onDelete: SetNull)
+  images          PageImage[] @relation("PageImages")
+  tasks           Task[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([storyId, position])
+}
+
+model PageImage {
+  id         String   @id @default(cuid())
+  pageId     String
+  page       Page     @relation("PageImages", fields: [pageId], references: [id], onDelete: Cascade)
+  selectedBy Page?    @relation("SelectedPageImage")
+  url        String
+  rawUrl     String?
+  promptUsed String
+  variant    Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([pageId, variant])
+}
+
+model Task {
+  id         String     @id @default(cuid())
+  userId     String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storyId    String
+  story      Story      @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  pageId     String?
+  page       Page?      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  type       TaskType
+  status     TaskStatus @default(PENDING)
+  error      String?
+  resultJson Json?
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([pageId])
+  @@index([storyId, status])
+}
+
+enum StoryStatus {
+  DRAFT
+  PARSED
+  READY
+}
+
+enum RuleKind {
+  TOGETHER
+  ALWAYS_INCLUDE
+  NEVER_INCLUDE
+  FREEFORM
+}
+
+enum PageKind {
+  COVER
+  PAGE
+}
+
+enum TaskType {
+  PARSE_STORY
+  BASE_IMAGE
+  PAGE_IMAGE
+  PDF_EXPORT
+}
+
+enum TaskStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}

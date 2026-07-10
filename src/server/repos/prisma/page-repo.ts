@@ -1,0 +1,28 @@
+import type { PrismaClient } from "@prisma/client"
+
+import type { PageRepo } from "../../ports/repos"
+
+export const prismaPageRepo = (db: PrismaClient): PageRepo => ({
+  create: (data) => db.page.create({ data }),
+  getById: (id) => db.page.findUnique({ where: { id } }),
+  listByStory: (storyId) =>
+    db.page.findMany({ where: { storyId }, orderBy: { position: "asc" } }),
+  update: (id, data) => db.page.update({ where: { id }, data }),
+  async updateOrder(storyId, orderedIds) {
+    await db.$transaction(
+      orderedIds.map((id, position) =>
+        db.page.updateMany({ where: { id, storyId }, data: { position } })
+      )
+    )
+    return db.page.findMany({
+      where: { storyId },
+      orderBy: { position: "asc" },
+    })
+  },
+  async delete(id) {
+    await db.page.delete({ where: { id } })
+  },
+  addImage: (data) => db.pageImage.create({ data }),
+  listImages: (pageId) =>
+    db.pageImage.findMany({ where: { pageId }, orderBy: { variant: "asc" } }),
+})

@@ -1,9 +1,10 @@
 # Parallel Plan Coordination
 
-Use this document to schedule the implementation plans in this directory across
-multiple worktrees or coding agents. It supplements the dependency table in
-[`00-overview.md`](00-overview.md); the individual plan remains authoritative
-for its deliverables and acceptance criteria.
+General reference doc (not a numbered implementation plan). Use it to schedule
+the implementation plans in this directory across multiple worktrees or coding
+agents. It supplements the dependency table in [`00-overview.md`](00-overview.md);
+the individual plan remains authoritative for its deliverables and acceptance
+criteria.
 
 ## Dependency graph
 

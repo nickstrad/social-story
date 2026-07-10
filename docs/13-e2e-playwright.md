@@ -1,4 +1,4 @@
-# Plan 14 — Deterministic Playwright E2E tests for all UI flows
+# Plan 13 — Deterministic Playwright E2E tests for all UI flows
 
 ## Goal
 

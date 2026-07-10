@@ -4,22 +4,24 @@ import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { summarizeStoryTasks } from "@/server/domain/taskMachine"
+import type { Task } from "@/server/domain/types"
 import { isAllSelected, selectAll, selectNone, toggle } from "@/lib/selection"
 import { trpc } from "@/lib/trpc"
 import { useStoryTasks } from "@/hooks/useTaskPolling"
+
+// Aggregate progress across this story's PAGE_IMAGE tasks only, so a base image
+// or parse task doesn't leak into the bulk-generation counters. Pure so the
+// filter can be unit-tested without React.
+export function summarizePageProgress(tasks: Task[]) {
+  return summarizeStoryTasks(tasks.filter((task) => task.type === "PAGE_IMAGE"))
+}
 
 export function useBulkGeneration(storyId: string, pageIds: string[]) {
   const utils = trpc.useUtils()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const { tasks } = useStoryTasks(storyId)
 
-  // Aggregate progress across this story's PAGE_IMAGE tasks only, so a base
-  // image or parse task doesn't leak into the bulk-generation counters.
-  const progress = useMemo(
-    () =>
-      summarizeStoryTasks(tasks.filter((task) => task.type === "PAGE_IMAGE")),
-    [tasks]
-  )
+  const progress = useMemo(() => summarizePageProgress(tasks), [tasks])
 
   const mutation = trpc.page.generateBulk.useMutation({
     onSuccess: () => utils.task.listForStory.invalidate({ storyId }),

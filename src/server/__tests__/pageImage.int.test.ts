@@ -161,6 +161,8 @@ describe.skipIf(!runIntegration)("page image integration", () => {
     expect(images[0].variant).toBe(1)
     const reloaded = await deps.repos.pages.getById(page.id)
     expect(reloaded?.selectedImageId).toBe(images[0].id)
+    // The handler's return is persisted as the task's resultJson (plan step 6).
+    expect(finished?.resultJson).toEqual({ pageImageId: images[0].id })
 
     // Captioned image is taller than the raw source (caption band appended).
     const raw = await deps.storage.fetchBuffer(images[0].rawUrl!)
@@ -200,11 +202,18 @@ describe.skipIf(!runIntegration)("page image integration", () => {
     expect(call.referenceImages ?? []).toHaveLength(0)
   })
 
-  it("renders a cover: title caption and coverNote in prompt", async () => {
+  it("renders a cover: title caption, coverNote in prompt, anchor attached", async () => {
     const image = recordingImageGenerator(() => coloredPng(40, 50, 60))
     const deps = await depsWith(image)
+    // A cover counts as peopled, so a present base sheet is attached as a ref.
+    const { url: baseUrl } = await deps.storage.put(
+      baseImageKey(storyId),
+      await coloredPng(1, 2, 3),
+      "image/png"
+    )
     await deps.repos.stories.update(storyId, {
       coverNote: "a gentle sunrise",
+      baseImageUrl: baseUrl,
     })
 
     const cover = await makePage(deps, {
@@ -218,8 +227,12 @@ describe.skipIf(!runIntegration)("page image integration", () => {
     const call = image.calls.at(-1)!
     expect(call.prompt).toContain("My Story")
     expect(call.prompt).toContain("a gentle sunrise")
+    expect(call.referenceImages).toHaveLength(1)
 
-    await deps.repos.stories.update(storyId, { coverNote: null })
+    await deps.repos.stories.update(storyId, {
+      coverNote: null,
+      baseImageUrl: null,
+    })
   })
 
   it("fails the task and writes no PageImage when the generator throws", async () => {
@@ -268,5 +281,43 @@ describe.skipIf(!runIntegration)("page image integration", () => {
     await expect(caller.page.generate({ pageId: page.id })).rejects.toThrow(
       /already generating/i
     )
+  })
+
+  it("generateBulk skips pages that already have an active task", async () => {
+    const deps: Deps = {
+      repos: (await import("@/server/repos/prisma")).prismaRepos(db),
+      storage: inMemoryStorage(),
+      text: (await import("@/server/services/fakes")).fakeTextGenerator({}),
+      image: fakeImageGenerator(),
+      dispatcher: immediateDispatcher(async () => {}),
+    }
+    const busy = await makePage(deps, { kind: "PAGE", characterIds: [] })
+    const free = await makePage(deps, { kind: "PAGE", characterIds: [] })
+    await deps.repos.tasks.create({
+      userId,
+      storyId,
+      pageId: busy.id,
+      type: "PAGE_IMAGE",
+      status: "RUNNING",
+    })
+
+    const caller = createTestCaller({
+      user: {
+        id: userId,
+        name: "Page Test",
+        email: `${userId}@example.com`,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        image: null,
+      },
+      deps,
+    })
+    const result = await caller.page.generateBulk({
+      storyId,
+      pageIds: [busy.id, free.id],
+    })
+    expect(result.skipped).toEqual([busy.id])
+    expect(result.taskIds).toHaveLength(1)
   })
 })

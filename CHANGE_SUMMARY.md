@@ -7,7 +7,7 @@ Plan: docs/10-page-generation.md
 ### Router — `src/server/api/routers/page.ts` (registered in `root.ts` as `page`)
 
 - `page.generate({ pageId, steeringText? })` — persists `steeringText` on the page (when provided), refuses with `CONFLICT` if a `PAGE_IMAGE` task for this page is already PENDING/RUNNING, then `createTask(PAGE_IMAGE, pageId)`. Returns `{ taskId }`.
-- `page.generateBulk({ storyId, pageIds })` — validates every page belongs to the story, creates one task per page, returns `{ taskIds }`. Inngest concurrency (plan 05) throttles execution.
+- `page.generateBulk({ storyId, pageIds })` — validates every page belongs to the story, **skips pages that already have an active PAGE_IMAGE task** (so bulk can't race a single `generate`), creates one task per remaining page, returns `{ taskIds, skipped }`. Inngest concurrency (plan 05) throttles execution.
 - `page.selectImage({ pageId, pageImageId })` — validates the image belongs to the page, sets `selectedImageId`.
 - `page.listImages({ pageId })` — variants newest-first.
 
@@ -45,6 +45,14 @@ Plan: docs/10-page-generation.md
 - **Altitude / dedup:** added `hasActiveTask(tasks, { type, pageId? })` and `isActiveTask` to `taskMachine.ts`; `page.ts` and `story.ts` (parse guard) now use it instead of hand-rolled PENDING/RUNNING checks.
 - **Simplification:** `pickReferencePhoto` now takes the already-resolved page characters (`pageCharacters`) instead of `pageCharacterIds` + full roster, removing a duplicate `byId` map rebuild; `hasAnchor: anchored` passed directly.
 - Skipped (noted, not applied): full COVER/PAGE strategy-map refactor and `pageImageKey` options-param merge (over-engineering for two kinds / breaks the existing standalone key-builder style); `selectAll`/`selectNone` inlining and a shared transition-toast hook (low value / non-trivial due to differing state enums).
+
+## Judge feedback addressed (verdict was READY)
+
+- **Should-fix:** integration test now asserts the succeeded task's `resultJson` equals `{ pageImageId }`.
+- **Should-fix:** `generateBulk` now skips already-active pages and returns `skipped` (closes the race with single `generate`); covered by a new router test.
+- **Nit:** `page.generate` now persists `steeringText` _before_ the active-task guard (plan's stated order), so a rejected render still records the author's direction.
+- **Nit:** cover integration test now runs with a base image set and asserts the anchor reference is attached (anchor-first branch for covers).
+- **Nit:** extracted `summarizePageProgress` (pure) from `useBulkGeneration` and unit-tested the PAGE_IMAGE-only progress filter, matching the repo's pure-helper test convention.
 
 ## Notes for review
 

@@ -22,6 +22,14 @@ export const pageRouter = createTRPCRouter({
         ctx.session.user.id
       )
 
+      // Persist steering first (plan order) so a rejected render still records
+      // the author's new direction for their next attempt.
+      if (input.steeringText !== undefined) {
+        await ctx.deps.repos.pages.update(page.id, {
+          steeringText: input.steeringText || null,
+        })
+      }
+
       // Refuse a second render while one is already queued/running for this
       // page — variants would race and the user cannot tell them apart.
       const tasks = await ctx.deps.repos.tasks.listByStory(page.storyId)
@@ -29,12 +37,6 @@ export const pageRouter = createTRPCRouter({
         throw new TRPCError({
           code: "CONFLICT",
           message: "This page is already generating an image",
-        })
-      }
-
-      if (input.steeringText !== undefined) {
-        await ctx.deps.repos.pages.update(page.id, {
-          steeringText: input.steeringText || null,
         })
       }
 
@@ -60,7 +62,10 @@ export const pageRouter = createTRPCRouter({
         input.storyId,
         ctx.session.user.id
       )
-      const pages = await ctx.deps.repos.pages.listByStory(input.storyId)
+      const [pages, existingTasks] = await Promise.all([
+        ctx.deps.repos.pages.listByStory(input.storyId),
+        ctx.deps.repos.tasks.listByStory(input.storyId),
+      ])
       const validIds = new Set(pages.map((page) => page.id))
       if (!input.pageIds.every((id) => validIds.has(id))) {
         throw new TRPCError({
@@ -69,8 +74,16 @@ export const pageRouter = createTRPCRouter({
         })
       }
 
+      // Skip pages already generating so bulk can't spawn a racing second task
+      // for a page — the same race page.generate refuses. Report the skips so
+      // the caller can surface them.
+      const skipped = input.pageIds.filter((pageId) =>
+        hasActiveTask(existingTasks, { type: "PAGE_IMAGE", pageId })
+      )
+      const toGenerate = input.pageIds.filter((id) => !skipped.includes(id))
+
       const tasks = await Promise.all(
-        input.pageIds.map((pageId) =>
+        toGenerate.map((pageId) =>
           createTask(ctx.deps, {
             userId: ctx.session.user.id,
             storyId: input.storyId,
@@ -79,7 +92,7 @@ export const pageRouter = createTRPCRouter({
           })
         )
       )
-      return { taskIds: tasks.map((task) => task.id) }
+      return { taskIds: tasks.map((task) => task.id), skipped }
     }),
 
   selectImage: protectedProcedure

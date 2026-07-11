@@ -1,26 +1,27 @@
 // @vitest-environment node
 
-import { randomUUID } from "node:crypto"
-
-import type { PrismaClient } from "@prisma/client"
-import "dotenv/config"
 import sharp from "sharp"
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { beforeAll, describe, expect, it } from "vitest"
 
 import { createTestCaller } from "@/server/api/test-utils"
 import type { Deps } from "@/server/container"
 import type { CreatePage, PageKind } from "@/server/domain/types"
 import type { ImageGenerator, ReferenceImage } from "@/server/ports/image"
+import type { Repos } from "@/server/ports/repos"
 import { runPageImageTask } from "@/server/inngest/functions/pageImage"
+import { inMemoryRepos } from "@/server/repos/memory"
 import {
   fakeImageGenerator,
+  fakeTextGenerator,
   immediateDispatcher,
 } from "@/server/services/fakes"
 import { inMemoryStorage } from "@/server/services/memory-storage"
 import { baseImageKey, photoKey } from "@/server/services/storage-keys"
 import { runTask } from "@/server/services/tasks"
 
-const runIntegration = Boolean(process.env.DATABASE_URL)
+// Self-sufficient integration test: in-memory repos + fake adapters, no real
+// Postgres and no external APIs. Real-DB coverage lives in the Playwright E2E
+// suite (docs/13-e2e-playwright.md).
 
 async function coloredPng(r: number, g: number, b: number): Promise<Buffer> {
   return sharp({
@@ -52,23 +53,29 @@ function recordingImageGenerator(
   }
 }
 
-describe.skipIf(!runIntegration)("page image integration", () => {
-  let db: PrismaClient
-  const userId = `page-test-${randomUUID()}`
-  const storyId = `page-test-${randomUUID()}`
+describe("page image integration", () => {
+  const userId = "page-user"
+  let repos: Repos
+  let storyId: string
 
-  function depsWith(image: ImageGenerator): Promise<Deps> {
-    return (async () => {
-      const { prismaRepos } = await import("@/server/repos/prisma")
-      const { fakeTextGenerator } = await import("@/server/services/fakes")
-      return {
-        repos: prismaRepos(db),
-        storage: inMemoryStorage(),
-        text: fakeTextGenerator({}),
-        image,
-        dispatcher: immediateDispatcher(async () => {}),
-      }
-    })()
+  const user = {
+    id: userId,
+    name: "Page Test",
+    email: `${userId}@example.com`,
+    emailVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    image: null,
+  }
+
+  function depsWith(image: ImageGenerator): Deps {
+    return {
+      repos,
+      storage: inMemoryStorage(),
+      text: fakeTextGenerator({}),
+      image,
+      dispatcher: immediateDispatcher(async () => {}),
+    }
   }
 
   async function makePage(
@@ -97,31 +104,18 @@ describe.skipIf(!runIntegration)("page image integration", () => {
   }
 
   beforeAll(async () => {
-    const { db: database } = await import("@/server/db")
-    db = database
-    await db.user.create({
-      data: { id: userId, name: "Page Test", email: `${userId}@example.com` },
+    repos = inMemoryRepos()
+    const story = await repos.stories.create({
+      userId,
+      title: "My Story",
+      script: "Script",
     })
-    await db.story.create({
-      data: {
-        id: storyId,
-        userId,
-        title: "My Story",
-        script: "Script",
-        baseImageUrl: null,
-      },
-    })
-  })
-
-  afterAll(async () => {
-    if (!db) return
-    await db.user.deleteMany({ where: { id: userId } })
-    await db.$disconnect()
+    storyId = story.id
   })
 
   it("renders a peopled page: enforces TOGETHER, anchor-first refs, v1 selected, taller caption", async () => {
     const image = recordingImageGenerator(() => coloredPng(200, 100, 50))
-    const deps = await depsWith(image)
+    const deps = depsWith(image)
 
     const ava = await deps.repos.characters.create({ storyId, name: "Ava" })
     const bo = await deps.repos.characters.create({ storyId, name: "Bo" })
@@ -191,7 +185,7 @@ describe.skipIf(!runIntegration)("page image integration", () => {
 
   it("renders a scene-only page: NO-people line and no references", async () => {
     const image = recordingImageGenerator(() => coloredPng(10, 20, 30))
-    const deps = await depsWith(image)
+    const deps = depsWith(image)
 
     const page = await makePage(deps, { kind: "PAGE", characterIds: [] })
     const finished = await runFor(deps, page.id)
@@ -204,7 +198,7 @@ describe.skipIf(!runIntegration)("page image integration", () => {
 
   it("renders a cover: title caption, coverNote in prompt, anchor attached", async () => {
     const image = recordingImageGenerator(() => coloredPng(40, 50, 60))
-    const deps = await depsWith(image)
+    const deps = depsWith(image)
     // A cover counts as peopled, so a present base sheet is attached as a ref.
     const { url: baseUrl } = await deps.storage.put(
       baseImageKey(storyId),
@@ -239,7 +233,7 @@ describe.skipIf(!runIntegration)("page image integration", () => {
     const image = recordingImageGenerator(async () => {
       throw new Error("image gen boom")
     })
-    const deps = await depsWith(image)
+    const deps = depsWith(image)
 
     const page = await makePage(deps, { kind: "PAGE", characterIds: [] })
     const finished = await runFor(deps, page.id)
@@ -249,14 +243,8 @@ describe.skipIf(!runIntegration)("page image integration", () => {
   })
 
   it("rejects page.generate while a PAGE_IMAGE task is already active", async () => {
-    const deps: Deps = {
-      repos: (await import("@/server/repos/prisma")).prismaRepos(db),
-      storage: inMemoryStorage(),
-      text: (await import("@/server/services/fakes")).fakeTextGenerator({}),
-      image: fakeImageGenerator(),
-      // Never runs the task, so the manually-created task stays PENDING.
-      dispatcher: immediateDispatcher(async () => {}),
-    }
+    // Never runs the task, so the manually-created task stays PENDING.
+    const deps = depsWith(fakeImageGenerator())
     const page = await makePage(deps, { kind: "PAGE", characterIds: [] })
     await deps.repos.tasks.create({
       userId,
@@ -266,31 +254,14 @@ describe.skipIf(!runIntegration)("page image integration", () => {
       status: "PENDING",
     })
 
-    const caller = createTestCaller({
-      user: {
-        id: userId,
-        name: "Page Test",
-        email: `${userId}@example.com`,
-        emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        image: null,
-      },
-      deps,
-    })
+    const caller = createTestCaller({ user, deps })
     await expect(caller.page.generate({ pageId: page.id })).rejects.toThrow(
       /already generating/i
     )
   })
 
   it("generateBulk skips pages that already have an active task", async () => {
-    const deps: Deps = {
-      repos: (await import("@/server/repos/prisma")).prismaRepos(db),
-      storage: inMemoryStorage(),
-      text: (await import("@/server/services/fakes")).fakeTextGenerator({}),
-      image: fakeImageGenerator(),
-      dispatcher: immediateDispatcher(async () => {}),
-    }
+    const deps = depsWith(fakeImageGenerator())
     const busy = await makePage(deps, { kind: "PAGE", characterIds: [] })
     const free = await makePage(deps, { kind: "PAGE", characterIds: [] })
     await deps.repos.tasks.create({
@@ -301,18 +272,7 @@ describe.skipIf(!runIntegration)("page image integration", () => {
       status: "RUNNING",
     })
 
-    const caller = createTestCaller({
-      user: {
-        id: userId,
-        name: "Page Test",
-        email: `${userId}@example.com`,
-        emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        image: null,
-      },
-      deps,
-    })
+    const caller = createTestCaller({ user, deps })
     const result = await caller.page.generateBulk({
       storyId,
       pageIds: [busy.id, free.id],

@@ -1,10 +1,6 @@
 // @vitest-environment node
 
-import { randomUUID } from "node:crypto"
-
-import type { PrismaClient } from "@prisma/client"
-import "dotenv/config"
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { beforeAll, describe, expect, it } from "vitest"
 
 import { createTestCaller } from "@/server/api/test-utils"
 import type { Deps } from "@/server/container"
@@ -12,6 +8,7 @@ import type { ParsedStory } from "@/server/domain/schemas"
 import { getTaskHandler } from "@/server/inngest/handlers"
 // Import for side effects: registers the PARSE_STORY handler.
 import "@/server/inngest/functions/parseStory"
+import { inMemoryRepos } from "@/server/repos/memory"
 import {
   fakeImageGenerator,
   fakeTextGenerator,
@@ -20,7 +17,9 @@ import {
 import { inMemoryStorage } from "@/server/services/memory-storage"
 import { runTask } from "@/server/services/tasks"
 
-const runIntegration = Boolean(process.env.DATABASE_URL)
+// Self-sufficient integration test: in-memory repos + fake adapters, no real
+// Postgres and no external APIs. Real-DB coverage lives in the Playwright E2E
+// suite (docs/13-e2e-playwright.md).
 
 const SCRIPT = "Sam and Mia visit the dentist. Then they go home."
 
@@ -48,10 +47,9 @@ const parsed: ParsedStory = {
   ],
 }
 
-describe.skipIf(!runIntegration)("parse integration", () => {
-  let db: PrismaClient
+describe("parse integration", () => {
   let deps: Deps
-  const userId = `parse-test-${randomUUID()}`
+  const userId = "parse-user"
   const user = {
     id: userId,
     name: "Parse Test User",
@@ -62,16 +60,8 @@ describe.skipIf(!runIntegration)("parse integration", () => {
     updatedAt: new Date(),
   }
 
-  beforeAll(async () => {
-    const [{ db: database }, { prismaRepos }] = await Promise.all([
-      import("@/server/db"),
-      import("@/server/repos/prisma"),
-    ])
-    db = database
-    await db.user.create({
-      data: { id: userId, name: user.name, email: user.email },
-    })
-    const repos = prismaRepos(db)
+  beforeAll(() => {
+    const repos = inMemoryRepos()
     deps = {
       repos,
       storage: inMemoryStorage(),
@@ -83,12 +73,6 @@ describe.skipIf(!runIntegration)("parse integration", () => {
         if (handler) await runTask(deps, taskId, handler)
       }),
     }
-  })
-
-  afterAll(async () => {
-    if (!db) return
-    await db.user.delete({ where: { id: userId } })
-    await db.$disconnect()
   })
 
   it("parses a script into ordered pages, dropping unknown names and applying rules", async () => {

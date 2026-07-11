@@ -11,4 +11,8 @@ export const auth = betterAuth({
   secret: config.auth.secret,
   database: prismaAdapter(db, { provider: "postgresql" }),
   emailAndPassword: { enabled: true },
+  // E2E creates a fresh account per isolated browser context. Keep production
+  // protection intact while preventing deterministic local suites from
+  // tripping Better Auth's process-local signup throttle.
+  rateLimit: { enabled: !config.e2eFakes },
 })

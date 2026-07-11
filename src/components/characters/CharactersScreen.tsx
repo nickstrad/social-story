@@ -6,6 +6,7 @@ import { CharacterCard } from "./CharacterCard"
 import { CharacterForm } from "./CharacterForm"
 import { RuleForm } from "./RuleForm"
 import { RuleList } from "./RuleList"
+import { StoryStepsNav } from "@/components/story/StoryStepsNav"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,8 @@ import { useCharacterForm } from "@/hooks/useCharacterForm"
 import { useCharacters } from "@/hooks/useCharacters"
 import { useRuleForm } from "@/hooks/useRuleForm"
 import { useRules } from "@/hooks/useRules"
+import { deriveStepStates } from "@/lib/steps"
+import { trpc } from "@/lib/trpc"
 import type { Character, Rule } from "@/server/domain/types"
 
 function CharacterEditor({
@@ -83,6 +86,7 @@ function RuleEditor({
 }
 
 export function CharactersScreen({ storyId }: { storyId: string }) {
+  const [story] = trpc.story.get.useSuspenseQuery({ storyId })
   const { characters, remove: removeCharacter } = useCharacters(storyId)
   const { rules, remove: removeRule } = useRules(storyId)
   const [editingCharacter, setEditingCharacter] = useState<
@@ -107,8 +111,19 @@ export function CharactersScreen({ storyId }: { storyId: string }) {
     }
     setDeleteTarget(undefined)
   }
+
+  const steps = deriveStepStates({
+    status: story.status,
+    script: story.script,
+    charactersCount: characters.length,
+    baseImageUrl: story.baseImageUrl,
+    pagesCount: story.counts.pages,
+    pagesWithImageCount: story.counts.pagesWithImage,
+  })
+
   return (
     <div className="mx-auto grid max-w-5xl gap-10">
+      <StoryStepsNav storyId={storyId} steps={steps} current="characters" />
       <section className="grid gap-4">
         <div className="flex items-end justify-between">
           <div>

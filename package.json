@@ -12,6 +12,9 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
+    "test:e2e": "bash scripts/e2e.sh",
+    "test:e2e:ui": "bash scripts/e2e.sh --ui",
+    "test:e2e:down": "docker compose -f docker-compose.e2e.yml down -v",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
@@ -60,6 +63,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",

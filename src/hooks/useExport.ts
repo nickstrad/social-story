@@ -32,7 +32,13 @@ export function useExport(storyId: string) {
   const status = activeTask?.status
 
   const exportMutation = trpc.pdf.export.useMutation({
-    onSuccess: () => utils.task.listForStory.invalidate({ storyId }),
+    onSuccess: async () => {
+      await Promise.all([
+        utils.task.listForStory.invalidate({ storyId }),
+        utils.pdf.latest.invalidate({ storyId }),
+        utils.story.get.invalidate({ storyId }),
+      ])
+    },
     onError: (error) => toast.error(error.message),
   })
 

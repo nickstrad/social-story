@@ -24,7 +24,14 @@ export function useBulkGeneration(storyId: string, pageIds: string[]) {
   const progress = useMemo(() => summarizePageProgress(tasks), [tasks])
 
   const mutation = trpc.page.generateBulk.useMutation({
-    onSuccess: () => utils.task.listForStory.invalidate({ storyId }),
+    onSuccess: async () => {
+      await Promise.all([
+        utils.task.listForStory.invalidate({ storyId }),
+        // Inline/very fast dispatch can complete before the UI observes an
+        // active task, so refresh selected image URLs immediately too.
+        utils.story.get.invalidate({ storyId }),
+      ])
+    },
     onError: (error) => toast.error(error.message),
   })
 

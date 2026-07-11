@@ -33,6 +33,13 @@ The pipeline stops and asks rather than pushing past blockers it can't resolve (
 
 No test may ever hit a real database, external API, or network — not unit, not integration (`*.int.test.ts`), not anything run by `npm run test:run`. Tests must be fully self-sufficient: use the in-memory repos (`inMemoryRepos`), in-memory storage (`inMemoryStorage`), and the fake text/image generators and immediate dispatcher from `src/server/services/fakes.ts`. A "sign-up user" in a test is just a constructed session user passed to `createTestCaller` — never a real Better Auth call. Real Postgres is reserved exclusively for Playwright E2E.
 
+Playwright E2E requires Docker and a one-time `npx playwright install chromium`.
+Run it with `npm run test:e2e`; the runner owns its disposable Postgres container
+and volume and tears them down on every exit. E2E may use that local Postgres,
+but OpenAI, Vercel Blob, Inngest, and other external services must remain behind
+deterministic fakes. Every new UI flow must include an E2E spec, and every new
+external service port must include a deterministic fake.
+
 # .env
 
 Never read, `cat`, `grep`, or otherwise inspect `.env` (or copies) — it holds secrets. Copy it between worktrees as an opaque file only. To learn which variables are required, read the code (`process.env.X` references) or a checked-in `.env.example`.

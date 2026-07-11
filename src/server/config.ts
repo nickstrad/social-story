@@ -11,6 +11,10 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
+  // Playwright E2E switch. When "1", the container swaps every external adapter
+  // (LLM, blob storage, background dispatch) for a deterministic fake while the
+  // database, auth, and tRPC stay real. Off by default — never implied in prod.
+  E2E_FAKES: z.enum(["0", "1"]).default("0"),
 })
 
 export type Config = Readonly<{
@@ -19,6 +23,7 @@ export type Config = Readonly<{
   blob: Readonly<{ token: string }>
   auth: Readonly<{ secret: string; url: string }>
   env: "development" | "test" | "production"
+  e2eFakes: boolean
 }>
 
 export function parseConfig(env: Record<string, string | undefined>): Config {
@@ -42,6 +47,7 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
     blob: { token: value.BLOB_READ_WRITE_TOKEN },
     auth: { secret: value.BETTER_AUTH_SECRET, url: value.BETTER_AUTH_URL },
     env: value.NODE_ENV,
+    e2eFakes: value.E2E_FAKES === "1",
   }
 }
 

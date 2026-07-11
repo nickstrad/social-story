@@ -26,6 +26,31 @@ npm run dev     # scaffold at http://localhost:3000
 npm test        # vitest
 ```
 
+## End-to-end tests
+
+The Playwright suite runs against a production Next.js build and a disposable
+Postgres database. Docker must be running. Install Chromium once after installing
+the project dependencies:
+
+```bash
+npm install
+npx playwright install chromium
+```
+
+Run the complete suite with:
+
+```bash
+npm run test:e2e
+```
+
+The runner starts Postgres, applies migrations, runs the browser tests, and
+always removes the container and its volume when it exits. OpenAI, Vercel Blob,
+and Inngest are replaced by deterministic local fixtures in E2E mode, so the
+suite makes no paid external-service calls.
+
+New UI flows must include a Playwright E2E spec. Any new external service port
+must include a deterministic fake suitable for automated tests.
+
 ## The Go CLI (working today)
 
 Lives in `cli/`. It parses a story into pages, optionally personalizes illustrations with your own photos, keeps characters consistent via a generated character sheet, captions pages deterministically, and assembles a PDF.

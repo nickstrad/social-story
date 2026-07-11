@@ -1,6 +1,6 @@
 import type { Storage } from "../ports/storage"
 
-async function toBuffer(data: Buffer | ReadableStream): Promise<Buffer> {
+export async function toBuffer(data: Buffer | ReadableStream): Promise<Buffer> {
   if (Buffer.isBuffer(data)) return Buffer.from(data)
   return Buffer.from(await new Response(data).arrayBuffer())
 }

@@ -10,6 +10,7 @@ export default async function CharactersPage({
   params: Promise<{ storyId: string }>
 }) {
   const { storyId } = await params
+  prefetch(trpc.story.get.prefetch({ storyId }))
   prefetch(trpc.character.listForStory.prefetch({ storyId }))
   prefetch(trpc.rule.listForStory.prefetch({ storyId }))
   return (

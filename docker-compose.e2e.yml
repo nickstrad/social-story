@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: e2e
+      POSTGRES_PASSWORD: e2e
+      POSTGRES_DB: social_story_e2e
+    ports:
+      - "5433:5432" # non-default host port to avoid clashing with local dev Postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U e2e -d social_story_e2e"]
+      interval: 1s
+      retries: 30

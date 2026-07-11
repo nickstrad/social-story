@@ -1,0 +1,23 @@
+{
+  "title": "My Calm Dentist Visit",
+  "pages": [
+    {
+      "page": 1,
+      "text": "Nick sits calmly in the dental chair.",
+      "imagePrompt": "Nick sits calmly in the dental chair at the beginning of his appointment.",
+      "characterNames": ["Nick"]
+    },
+    {
+      "page": 2,
+      "text": "The friendly dentist gently counts Nick's teeth.",
+      "imagePrompt": "A friendly dentist gently counts Nick's teeth during a calm checkup.",
+      "characterNames": ["Nick"]
+    },
+    {
+      "page": 3,
+      "text": "Nick feels proud and goes home.",
+      "imagePrompt": "Nick leaves the dental clinic smiling proudly and giving a relaxed thumbs-up.",
+      "characterNames": ["Nick"]
+    }
+  ]
+}

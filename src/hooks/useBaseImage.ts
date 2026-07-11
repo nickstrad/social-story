@@ -46,7 +46,15 @@ export function useBaseImage(storyId: string) {
   const status = activeTask?.status
 
   const generate = trpc.story.generateBaseImage.useMutation({
-    onSuccess: () => utils.task.listForStory.invalidate({ storyId }),
+    onSuccess: async () => {
+      await Promise.all([
+        utils.task.listForStory.invalidate({ storyId }),
+        // A task can finish before the first poll (as it does with the E2E
+        // inline dispatcher). Refresh the story here as well as on a witnessed
+        // active → terminal transition so the new URL is never left stale.
+        utils.story.get.invalidate({ storyId }),
+      ])
+    },
     onError: (error) => toast.error(error.message),
   })
 

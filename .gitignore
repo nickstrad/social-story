@@ -13,6 +13,13 @@
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
+
+# local plan/judge workflow state
+/CHANGE_SUMMARY.md
+/HANDOFF.md
+/JUDGEMENT.md
 
 # next.js
 /.next/

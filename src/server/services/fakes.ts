@@ -23,6 +23,28 @@ export function fakeTextGenerator(
   }
 }
 
+// Prompt-agnostic variant for E2E: returns the same canned value for any prompt,
+// validated against the caller's schema. PARSE_STORY is the only text task, so a
+// single fixture suffices; the schema.parse guards against fixture/schema drift.
+export function staticTextGenerator(canned: unknown): TextGenerator {
+  return {
+    async generateJson({ schema }) {
+      return schema.parse(canned)
+    },
+  }
+}
+
+/** Prompt-aware file response for deterministic E2E service simulation. */
+export function scriptedImageGenerator(
+  responseForPrompt: (prompt: string) => Buffer
+): ImageGenerator {
+  return {
+    async generate({ prompt }) {
+      return Buffer.from(responseForPrompt(prompt))
+    },
+  }
+}
+
 let tinyPng: Promise<Buffer> | undefined
 
 export function fakeImageGenerator(): ImageGenerator {

@@ -1,67 +1,41 @@
-# Change summary — feature/page-editor-ui
+# Change summary — feature/pdf-export
 
-Plan: docs/11-page-editor-ui.md
+Plan: docs/12-pdf-export.md
 
 ## What was implemented
 
-### Server — `src/server/api/routers/page.ts`
-
-- `page.update({ pageId, text?, imagePrompt?, characterIds?, steeringText? })` — validates `characterIds` against the story's characters; **persists the author's raw selection** but **returns the rule-expanded (effective) list** via `applyRulesToPage`, so the UI can show which characters a rule auto-adds. (Generation re-applies rules at render time, so storing the raw selection loses nothing.)
-- `page.add({ storyId, afterPageId? })` — creates a blank content page after the anchor via domain `insertPage`, renumbers via `PageRepo.updateOrder`.
-- `page.remove({ pageId })` — refuses the COVER, deletes, renumbers via `removePage`.
-- `page.setHidden({ pageId, hidden })`.
-- `page.reorder({ storyId, orderedPageIds })` — validates a full permutation, then delegates cover-pinning to the new domain helper `reorderPages`.
-
-### Server — `src/server/api/routers/story.ts`
-
-- `story.get` now attaches each page's `selectedImageUrl` (for grid thumbnails) using a **single batched** `pages.listImagesByStory` query (no per-page N+1). Export gating (`pagesWithImage` count) uses the shared `isPageVisible` domain predicate — visible pages with a chosen image.
-- `deleteStoryBlobs` also switched to the batched query.
-
-### Domain / ports
-
-- `src/server/domain/pageOps.ts`: added `reorderPages` and `isPageVisible` (the latter now backs `visiblePagesInOrder` too).
-- `PageRepo.listImagesByStory` added to the port and both the Prisma and in-memory adapters.
-- `src/server/domain/taskMachine.ts`: extracted the `TaskProgress` type.
-
-### Pure helpers — `src/lib/pagesEditor.ts`
-
-- `nextFocusable(pages, currentId, dir)` — focus navigation; **includes hidden pages by design** (documented; PDF export excludes them via `visiblePagesInOrder`).
-- `effectiveCharacters(page, rules, characters)` — mirrors the server rule application (imports the pure `applyRulesToPage`) for instant UI feedback.
-- `gridBadge(genState)` — grid gen-state badge descriptor.
-- `EditorPage` type (domain `Page` + `selectedImageUrl`).
-
-### Hooks — `src/hooks/`
-
-- `usePagesEditor(storyId, initialFocusedPageId?)` — orchestrator: suspense-loads `story.get`, tracks focus, composes `useBulkGeneration` + per-page grid gen-states (via the shared `pageGenStateFromTasks`) + page mutations (add/remove/hide/reorder/selectImage/setCharacters) with **optimistic hide** and invalidation.
-- `usePageForm(page)` — debounced draft state (text/imagePrompt/steering) with a dirty flag; always saves the full field snapshot so rapid multi-field edits aren't dropped.
-- `usePageGeneration.ts` refactored to export `pageGenStateFromTasks` (shared by the grid and `derivePageGenState`).
-
-### Components — `src/components/pages/` (all dumb; props in, JSX up)
-
-- `PageGrid`, `PageGridToolbar`, `AddPageButton`, `PageFocusEditor` (split into `VariantStrip`, `PageMetaForm`, `SteeringBox`), `PagesEditorScreen` (client orchestration + delete `AlertDialog` + `StoryStepsNav`), `PagesEditorSkeleton`, and a shared `FadeInImage` (skeleton-until-loaded image, used by grid/preview/variant strip).
-
-### Route
-
-- `src/app/(app)/stories/[storyId]/pages/page.tsx` — server component: `prefetch` `story.get` (+ the focused page's `page.listImages` when deep-linked via `?focus=`), wrapped in `HydrateClient` + `ErrorBoundary` + `Suspense`.
+- **PDF assembler** — `src/server/services/pdf.ts`: `assemblePdf(images: Buffer[])` builds one page per PNG, each sized to its image (points = px @ 72dpi), full-bleed, via `pdf-lib` (added as a dependency). Pure Buffers-in/Buffer-out. Test: 2 colored PNGs → 2-page `%PDF`, per-page dimensions asserted.
+- **Pure ordering domain** — `src/server/domain/pdfPlan.ts`: `planPdf(pages, imagesByPageId)` → `{ orderedImageUrls, missing }`. Cover first, then `visiblePagesInOrder`; a visible page whose selected image is absent goes to `missing`; hidden pages excluded. Unit-tested (ordering, hidden exclusion, missing/stale-selection detection).
+- **Task handler** — `src/server/inngest/functions/pdfExport.ts`: `registerTaskHandler("PDF_EXPORT", …)`. Runs `planPdf`; if anything is missing → FAILED with a readable list ("Cannot export: the cover, page 2 has no image"); else fetches buffers (parallel), `assemblePdf`, `storage.put(storyPdfKey, …, "application/pdf")`, sets `story.status = "READY"`, returns `{ url, pageCount }`. Registered via side-effect import in `functions/index.ts`.
+- **Router** — `src/server/api/routers/pdf.ts`: `pdf.export({ storyId })` (guards a second concurrent export with `hasActiveTask`, mirroring `story.parse`/`page.generate`) and `pdf.latest({ storyId })` (last SUCCEEDED export's url). Registered in `root.ts`.
+- **UI** — `src/app/(app)/stories/[storyId]/export/page.tsx` (server component: prefetch `story.get` + `pdf.latest`, `HydrateClient` + `Suspense` + `ErrorBoundary`), `ExportScreen` (wires hook → panel, renders `StoryStepsNav current="export"`), dumb `ExportPanel` (Card, Alert listing missing pages with links back to `/pages?focus=…`, Spinner while exporting, export + download-anchor buttons), `ExportSkeleton`, and `useExport` hook (suspense reads, task polling, toasts on transition). Pure client helper `src/lib/exportReadiness.ts` (`exportReadiness(pages)` → ready/missing/canExport) with unit tests.
+- **Capstone e2e** — `src/server/__tests__/e2e.int.test.ts`: full flow through tRPC callers + `immediateDispatcher` + fakes — create story → 2 characters + TOGETHER rule → parse → base image → mid-flow export fails with the missing list → bulk-generate all → hide one page → export → assert PDF starts with `%PDF`, `pageCount === 2` (cover + 1 visible; hidden excluded), story `READY`.
 
 ## What /simplify changed
 
-- **Efficiency:** replaced the per-page N+1 `listImages` loop in `story.get` (and `deleteStoryBlobs`) with a single batched `listImagesByStory` repo method.
-- **Altitude:** `page.reorder` now delegates cover-pinning to a domain `reorderPages` helper instead of hand-rolling it; `story.get`'s "visible page" predicate reuses the domain `isPageVisible` (also now backing `visiblePagesInOrder`).
-- **Reuse:** the grid's gen-state derivation now calls the shared `pageGenStateFromTasks` (was a duplicate of `derivePageGenState`'s switch); character toggling reuses `toggle` from `src/lib/selection.ts`; `PageGridToolbar` reuses the `TaskProgress` type.
-- **Simplification:** dropped the dead `page` param from `gridBadge`; extracted the thrice-duplicated image-with-skeleton idiom into `FadeInImage`.
+Four parallel review agents (reuse / simplification / efficiency / altitude); applied:
+
+- `src/lib/exportReadiness.ts` — removed the redundant `contentOrder` array and the per-iteration `pages.find`. Labels now use the already-normalized `page.position` (same number the server error uses → one algorithm across client/server, resolving the altitude finding), and URL lookup uses a prebuilt Map. Two O(n²) scans → O(n).
+- `src/server/domain/taskMachine.ts` — added `isActiveStatus(status)` (the canonical PENDING||RUNNING test); `isActiveTask` now delegates to it. Used by the new `ExportPanel` and `useExport` instead of open-coded status checks.
+- `src/server/api/routers/pdf.ts` — replaced the hand-rolled `resultJson` narrowing with a zod `safeParse`.
+- `src/hooks/useExport.ts` — dropped the unused `canExport` from the hook's return (the panel derives its own, since it also needs `busy`).
+
+Skipped (noted, not applied): extracting a shared `latestTaskOfType` across `useBaseImage`/`usePageGeneration`/`useExport` and a shared `readResultField` getter — both span pre-existing files outside this diff and are low-value; the sequential `embedPng` loop in `pdf.ts` is intentional (single shared mutable `PDFDocument`, CPU-bound).
 
 ## Notes for review
 
-- **Tests are self-sufficient by request:** `src/server/__tests__/pageOps.int.test.ts` runs the router through `createTestCaller` with **in-memory repos + fakes — no real Postgres, no external APIs** (unlike the older `*.int.test.ts` files that gate on `DATABASE_URL`). Per user direction, real-DB + real-server coverage belongs exclusively in the Playwright E2E suite (docs/13). Saved as a durable preference.
-- **`page.update` stores raw characterIds, returns effective.** This deviates slightly from a literal reading of the plan ("rules applied before save") but preserves the author's explicit selection so the "added by rule" tags work, and generation already re-applies rules. The integration test asserts both the expanded return and the raw persistence.
-- Reorder is via up/down buttons on grid cards (no dnd lib), as the plan allows.
-- `ResizablePanels` for the focus split was left out (plan marked it optional); a simple 2-col grid is used.
-- Tests: `npm run test:run` 156 pass; `npm run lint` and `tsc --noEmit` clean.
+- **Testing policy / real DB.** The plan's wording ("real test DB") and every existing `*.int.test.ts` sibling use real Postgres guarded by `skipIf(!DATABASE_URL)`, and "sign-up user" would need real Better Auth. Per explicit user direction mid-implementation ("no testing ever hits the real db"), the capstone was written entirely against `inMemoryRepos` + `inMemoryStorage` + fakes (always runs, ~0.4s, no network); "sign-up" is a constructed session user passed to `createTestCaller`. This policy was also recorded in `CLAUDE.md` (a new **# Testing** section; `AGENTS.md` is a symlink to it). The pre-existing real-DB int tests were left untouched — bringing them in line with the new policy is a separate follow-up, out of this plan's scope.
+- `src/server/inngest/functions/index.test.ts` — its "no registered handler" case used `PDF_EXPORT` as the example unhandled type; now that PDF_EXPORT is registered, it uses a cast `"UNKNOWN_TYPE"` instead.
+- `storyPdfKey` already existed in `storage-keys.ts` (defined by an earlier plan) and was reused as-is.
 
-## Judge feedback addressed (JUDGEMENT.md)
+## Judge feedback addressed
 
-- **Should-fix:** `MainImage` now renders the full-size skeleton whenever generating (`busy`), not only when a prior image exists — first-generation no longer shows the misleading "generate one" placeholder.
-- **Should-fix:** `usePageForm` now flushes a still-pending debounced save on unmount (Prev/Next, "Back to grid", delete all remount by `page.id`), so an edit made within the debounce window is no longer dropped. New unit test covers the flush + no-duplicate-save.
-- **Nit:** `page.add` now returns `BAD_REQUEST` on an unknown/cross-story `afterPageId` instead of silently prepending. New integration test covers it.
-- **Should-fix (raw vs effective characterIds persistence):** left as-is pending plan-owner sign-off — deliberate, documented above, and covered by the integration test.
+Judge verdict was **READY** (no blockers). Polish applied:
+
+- `pdfExport.ts` failure message — verb now agrees with count ("page 2 has" vs "pages 2, 3 have"), and an unresolved `pageId` falls back to "an unknown page" instead of "page undefined".
+- `docs/12-pdf-export.md` — added a note at the e2e section recording the testing-policy change (in-memory, no real DB) that supersedes the plan's original "real test DB" wording, so the doc and the test no longer diverge.
+- Skipped: the `latestExportTask` / `pdf.latest` reduce duplication (third copy) — already a documented, accepted skip (spans pre-existing files, low value).
+
+## Verification
+
+`npm run test:run` (163 passed), `npx tsc --noEmit`, `npm run lint`, `npm run build` — all green. The `/stories/[storyId]/export` route builds.

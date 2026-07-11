@@ -29,6 +29,10 @@ When implementing a plan from `docs/`, use this skill chain instead of working f
 
 The pipeline stops and asks rather than pushing past blockers it can't resolve (missing `.env` values, migrations that can't run, services needing provisioning). Nothing merges to `main` — that's always a separate, explicit action.
 
+# Testing
+
+No test may ever hit a real database, external API, or network — not unit, not integration (`*.int.test.ts`), not anything run by `npm run test:run`. Tests must be fully self-sufficient: use the in-memory repos (`inMemoryRepos`), in-memory storage (`inMemoryStorage`), and the fake text/image generators and immediate dispatcher from `src/server/services/fakes.ts`. A "sign-up user" in a test is just a constructed session user passed to `createTestCaller` — never a real Better Auth call. Real Postgres is reserved exclusively for Playwright E2E.
+
 # .env
 
 Never read, `cat`, `grep`, or otherwise inspect `.env` (or copies) — it holds secrets. Copy it between worktrees as an opaque file only. To learn which variables are required, read the code (`process.env.X` references) or a checked-in `.env.example`.

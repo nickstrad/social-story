@@ -1,14 +1,11 @@
 // @vitest-environment node
 
-import { randomUUID } from "node:crypto"
-
-import type { PrismaClient } from "@prisma/client"
-import "dotenv/config"
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { beforeAll, describe, expect, it } from "vitest"
 
 import { createTestCaller } from "@/server/api/test-utils"
 import type { Deps } from "@/server/container"
 import { getTaskHandler, registerTaskHandler } from "@/server/inngest/handlers"
+import { inMemoryRepos } from "@/server/repos/memory"
 import {
   fakeImageGenerator,
   fakeTextGenerator,
@@ -17,15 +14,16 @@ import {
 import { inMemoryStorage } from "@/server/services/memory-storage"
 import { createTask, runTask } from "@/server/services/tasks"
 
-const runIntegration = Boolean(process.env.DATABASE_URL)
+// Self-sufficient integration test: in-memory repos + fake adapters, no real
+// Postgres and no external APIs. Real-DB coverage lives in the Playwright E2E
+// suite (docs/13-e2e-playwright.md).
 
-describe.skipIf(!runIntegration)("task integration", () => {
-  let db: PrismaClient
+describe("task integration", () => {
   let deps: Deps
-  const userId = `task-test-${randomUUID()}`
-  const otherUserId = `task-test-${randomUUID()}`
-  const storyId = `task-test-${randomUUID()}`
-  const otherStoryId = `task-test-${randomUUID()}`
+  const userId = "task-user"
+  const otherUserId = "task-other-user"
+  let storyId: string
+  let otherStoryId: string
   const user = {
     id: userId,
     name: "Task Test User",
@@ -37,45 +35,25 @@ describe.skipIf(!runIntegration)("task integration", () => {
   }
 
   beforeAll(async () => {
-    const [{ db: database }, { prismaRepos }] = await Promise.all([
-      import("@/server/db"),
-      import("@/server/repos/prisma"),
-    ])
-    db = database
-    await db.user.createMany({
-      data: [
-        { id: userId, name: user.name, email: user.email },
-        {
-          id: otherUserId,
-          name: "Other User",
-          email: `${otherUserId}@example.com`,
-        },
-      ],
-    })
-    await db.story.createMany({
-      data: [
-        { id: storyId, userId, title: "Task story", script: "Script" },
-        {
-          id: otherStoryId,
-          userId: otherUserId,
-          title: "Other story",
-          script: "Script",
-        },
-      ],
-    })
     deps = {
-      repos: prismaRepos(db),
+      repos: inMemoryRepos(),
       storage: inMemoryStorage(),
       text: fakeTextGenerator({}),
       image: fakeImageGenerator(),
       dispatcher: immediateDispatcher(async () => {}),
     }
-  })
-
-  afterAll(async () => {
-    if (!db) return
-    await db.user.deleteMany({ where: { id: { in: [userId, otherUserId] } } })
-    await db.$disconnect()
+    const story = await deps.repos.stories.create({
+      userId,
+      title: "Task story",
+      script: "Script",
+    })
+    const otherStory = await deps.repos.stories.create({
+      userId: otherUserId,
+      title: "Other story",
+      script: "Script",
+    })
+    storyId = story.id
+    otherStoryId = otherStory.id
   })
 
   it("runs a created task inline through the registered handler", async () => {

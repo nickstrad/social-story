@@ -1,21 +1,21 @@
 // @vitest-environment node
 
-import { randomUUID } from "node:crypto"
-
-import type { PrismaClient } from "@prisma/client"
-import "dotenv/config"
 import sharp from "sharp"
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { beforeAll, describe, expect, it } from "vitest"
 
 import type { Deps } from "@/server/container"
 import type { ImageGenerator, ReferenceImage } from "@/server/ports/image"
+import type { Repos } from "@/server/ports/repos"
 import { runBaseImageTask } from "@/server/inngest/functions/baseImage"
-import { immediateDispatcher } from "@/server/services/fakes"
+import { inMemoryRepos } from "@/server/repos/memory"
+import { fakeTextGenerator, immediateDispatcher } from "@/server/services/fakes"
 import { inMemoryStorage } from "@/server/services/memory-storage"
 import { photoKey } from "@/server/services/storage-keys"
 import { runTask } from "@/server/services/tasks"
 
-const runIntegration = Boolean(process.env.DATABASE_URL)
+// Self-sufficient integration test: in-memory repos + fake adapters, no real
+// Postgres and no external APIs. Real-DB coverage lives in the Playwright E2E
+// suite (docs/13-e2e-playwright.md).
 
 async function tinyPng(): Promise<Buffer> {
   return sharp({
@@ -47,16 +47,14 @@ function recordingImageGenerator(
   }
 }
 
-describe.skipIf(!runIntegration)("base image integration", () => {
-  let db: PrismaClient
-  const userId = `base-test-${randomUUID()}`
-  const storyId = `base-test-${randomUUID()}`
+describe("base image integration", () => {
+  const userId = "base-user"
+  let repos: Repos
+  let storyId: string
 
-  async function baseDeps(image: ImageGenerator): Promise<Deps> {
-    const { prismaRepos } = await import("@/server/repos/prisma")
-    const { fakeTextGenerator } = await import("@/server/services/fakes")
+  function baseDeps(image: ImageGenerator): Deps {
     return {
-      repos: prismaRepos(db),
+      repos,
       storage: inMemoryStorage(),
       text: fakeTextGenerator({}),
       image,
@@ -65,20 +63,13 @@ describe.skipIf(!runIntegration)("base image integration", () => {
   }
 
   beforeAll(async () => {
-    const { db: database } = await import("@/server/db")
-    db = database
-    await db.user.create({
-      data: { id: userId, name: "Base Test", email: `${userId}@example.com` },
+    repos = inMemoryRepos()
+    const story = await repos.stories.create({
+      userId,
+      title: "Base story",
+      script: "Script",
     })
-    await db.story.create({
-      data: { id: storyId, userId, title: "Base story", script: "Script" },
-    })
-  })
-
-  afterAll(async () => {
-    if (!db) return
-    await db.user.deleteMany({ where: { id: userId } })
-    await db.$disconnect()
+    storyId = story.id
   })
 
   async function seedCharacters(deps: Deps) {
@@ -99,7 +90,7 @@ describe.skipIf(!runIntegration)("base image integration", () => {
 
   it("generates a sheet, passing photos and both names to the generator", async () => {
     const image = recordingImageGenerator(tinyPng)
-    const deps = await baseDeps(image)
+    const deps = baseDeps(image)
     const { photo } = await seedCharacters(deps)
 
     const task = await deps.repos.tasks.create({
@@ -138,7 +129,7 @@ describe.skipIf(!runIntegration)("base image integration", () => {
     const image = recordingImageGenerator(async () => {
       throw new Error("image gen boom")
     })
-    const deps = await baseDeps(image)
+    const deps = baseDeps(image)
     await deps.repos.characters.create({ storyId, name: "Cy" })
     await deps.repos.stories.update(storyId, { baseImageUrl: "keep-me" })
 

@@ -8,6 +8,7 @@ import { runTask } from "@/server/services/tasks"
 import "./baseImage"
 import "./pageImage"
 import "./parseStory"
+import "./pdfExport"
 
 export async function dispatchTask(deps: Deps, taskId: string): Promise<void> {
   const task = await deps.repos.tasks.getById(taskId)

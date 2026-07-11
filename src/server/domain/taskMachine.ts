@@ -11,8 +11,13 @@ export function canTransition(from: TaskStatus, to: TaskStatus): boolean {
   return TRANSITIONS[from].includes(to)
 }
 
+/** A task status is "active" (in flight) when it is queued or running. */
+export function isActiveStatus(status: TaskStatus | undefined): boolean {
+  return status === "PENDING" || status === "RUNNING"
+}
+
 export function isActiveTask(task: Task): boolean {
-  return task.status === "PENDING" || task.status === "RUNNING"
+  return isActiveStatus(task.status)
 }
 
 /**

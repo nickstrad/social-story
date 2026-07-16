@@ -1,5 +1,20 @@
+import { z } from "zod"
+
 import { visiblePagesInOrder } from "./pageOps"
-import type { Page, PageImage } from "./types"
+import type { Page, PageImage, Task } from "./types"
+
+const pdfResultSchema = z.object({ url: z.string().min(1) })
+
+/**
+ * The URL a finished PDF_EXPORT task produced, or null for anything else — a
+ * task still running, one that failed, or a `resultJson` whose untyped shape
+ * doesn't carry a usable url. A malformed payload degrades to "no PDF" rather
+ * than throwing, so one bad task can't blank a whole listing.
+ */
+export function pdfUrlFromTask(task: Task): string | null {
+  if (task.type !== "PDF_EXPORT" || task.status !== "SUCCEEDED") return null
+  return pdfResultSchema.safeParse(task.resultJson).data?.url ?? null
+}
 
 export interface PdfPlan {
   /** Selected-image URLs in export order: cover first, then visible pages. */

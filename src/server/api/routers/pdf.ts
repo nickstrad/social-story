@@ -3,6 +3,7 @@ import { z } from "zod"
 
 import { assertStoryOwnership } from "@/server/api/ownership"
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc"
+import { pdfUrlFromTask } from "@/server/domain/pdfPlan"
 import { hasActiveTask } from "@/server/domain/taskMachine"
 import { createTask } from "@/server/services/tasks"
 
@@ -34,27 +35,20 @@ export const pdfRouter = createTRPCRouter({
       return { taskId: task.id }
     }),
 
-  latest: protectedProcedure
-    .input(storyInput)
-    .query(async ({ ctx, input }) => {
-      await assertStoryOwnership(
-        ctx.deps.repos,
-        input.storyId,
-        ctx.session.user.id
+  latest: protectedProcedure.input(storyInput).query(async ({ ctx, input }) => {
+    await assertStoryOwnership(
+      ctx.deps.repos,
+      input.storyId,
+      ctx.session.user.id
+    )
+    const tasks = await ctx.deps.repos.tasks.listByStory(input.storyId)
+    const latest = tasks
+      .filter((task) => pdfUrlFromTask(task) !== null)
+      .reduce<(typeof tasks)[number] | undefined>(
+        (newest, task) =>
+          !newest || task.createdAt > newest.createdAt ? task : newest,
+        undefined
       )
-      const tasks = await ctx.deps.repos.tasks.listByStory(input.storyId)
-      const latest = tasks
-        .filter(
-          (task) => task.type === "PDF_EXPORT" && task.status === "SUCCEEDED"
-        )
-        .reduce<(typeof tasks)[number] | undefined>(
-          (newest, task) =>
-            !newest || task.createdAt > newest.createdAt ? task : newest,
-          undefined
-        )
-      const url =
-        z.object({ url: z.string() }).safeParse(latest?.resultJson).data?.url ??
-        null
-      return { url }
-    }),
+    return { url: latest ? pdfUrlFromTask(latest) : null }
+  }),
 })

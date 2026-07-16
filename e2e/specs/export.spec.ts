@@ -1,7 +1,10 @@
 import { test, expect } from "../support/auth"
-import { addCharacter, createStory } from "../support/story"
-
-const PHOTO = "e2e/fixtures/images/character-photo.jpg"
+import {
+  addCharacter,
+  addCharacterPhoto,
+  createStory,
+  generateBaseImage,
+} from "../support/story"
 
 test("generate all page images and export a valid PDF", async ({ page }) => {
   const storyId = await createStory(page)
@@ -10,16 +13,8 @@ test("generate all page images and export a valid PDF", async ({ page }) => {
   // then build the canned reference sheet through the normal task flow.
   await page.goto(`/stories/${storyId}/characters`)
   await addCharacter(page, "Nick")
-  await page.getByRole("button", { name: "Edit Nick" }).click()
-  await page.locator("#character-photo").setInputFiles(PHOTO)
-  await page.getByRole("button", { name: "Save character" }).click()
-  await expect(page.getByRole("img", { name: "Nick" })).toBeVisible()
-
-  await page.goto(`/stories/${storyId}/base`)
-  await page.getByRole("button", { name: "Generate base image" }).click()
-  await expect(
-    page.getByRole("img", { name: "Character reference sheet" })
-  ).toBeVisible()
+  await addCharacterPhoto(page, "Nick")
+  await generateBaseImage(page, storyId)
 
   // Parse through the real task handler using the canned LLM JSON fixture.
   await page.goto(`/stories/${storyId}/script`)

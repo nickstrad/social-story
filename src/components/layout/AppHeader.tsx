@@ -1,4 +1,7 @@
+import Link from "next/link"
+
 import { Button } from "@/components/ui/button"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Spinner } from "@/components/ui/spinner"
 
 type AppHeaderProps = {
@@ -9,11 +12,20 @@ type AppHeaderProps = {
 
 export function AppHeader({ email, isSigningOut, onSignOut }: AppHeaderProps) {
   return (
-    <header className="border-b bg-background">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <span className="font-semibold">Social Story</span>
+    // Sticky so the offcanvas sidebar, which is fixed just below it, never
+    // slides up over the brand and sign-out controls.
+    <header className="sticky top-0 z-20 h-(--header-height) shrink-0 border-b bg-background">
+      <div className="flex h-full items-center justify-between gap-4 px-6">
+        <div className="flex items-center gap-2">
+          <SidebarTrigger />
+          <Link href="/stories" className="font-semibold">
+            Social Story
+          </Link>
+        </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">{email}</span>
+          <span className="hidden text-sm text-muted-foreground sm:inline">
+            {email}
+          </span>
           <Button
             variant="outline"
             size="sm"

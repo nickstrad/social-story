@@ -18,7 +18,11 @@ test("create a story, see it in the list, then delete it", async ({ page }) => {
   await page.waitForURL(/\/stories\/[^/]+\/script$/)
 
   await page.goto("/stories")
-  await expect(page.getByRole("link", { name: "Dentist Day" })).toBeVisible()
+  // Scoped to main: the sidebar's recent-stories list carries the same title,
+  // so an unscoped locator now matches two links.
+  await expect(
+    page.getByRole("main").getByRole("link", { name: "Dentist Day" })
+  ).toBeVisible()
 
   await page.getByRole("button", { name: "Delete story" }).click()
   await page.getByRole("button", { name: "Delete", exact: true }).click()

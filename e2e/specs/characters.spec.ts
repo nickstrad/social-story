@@ -1,7 +1,5 @@
 import { test, expect } from "../support/auth"
-import { addCharacter, createStory } from "../support/story"
-
-const PHOTO = "e2e/fixtures/images/character-photo.jpg"
+import { PHOTO, addCharacter, createStory } from "../support/story"
 
 test("add, edit, and delete a character", async ({ page }) => {
   const storyId = await createStory(page)

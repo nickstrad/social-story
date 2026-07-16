@@ -1,4 +1,5 @@
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "./trpc"
+import { artifactRouter } from "./routers/artifact"
 import { characterRouter } from "./routers/character"
 import { pageRouter } from "./routers/page"
 import { pdfRouter } from "./routers/pdf"
@@ -9,6 +10,7 @@ import { taskRouter } from "./routers/task"
 export const appRouter = createTRPCRouter({
   health: publicProcedure.query(() => "ok"),
   me: protectedProcedure.query(({ ctx }) => ctx.session.user),
+  artifact: artifactRouter,
   character: characterRouter,
   page: pageRouter,
   pdf: pdfRouter,

@@ -18,6 +18,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
+import { storyTitle } from "@/server/domain/storyTitle"
 import type { Story } from "@/server/domain/types"
 
 const statusLabels: Record<Story["status"], string> = {
@@ -66,7 +67,7 @@ export function StoryList({
                 href={`/stories/${story.id}/script`}
                 className="after:absolute after:inset-0"
               >
-                {story.title.trim() || "Untitled story"}
+                {storyTitle(story)}
               </Link>
             </CardTitle>
             <CardDescription>

@@ -6,9 +6,9 @@ import { FadeInImage } from "./FadeInImage"
 import { PageMetaForm } from "./PageMetaForm"
 import { SteeringBox } from "./SteeringBox"
 import { VariantStrip } from "./VariantStrip"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { TaskStatusBadge } from "@/components/tasks/TaskStatusBadge"
 import type { Character, PageImage } from "@/server/domain/types"
 import type { EditorPage } from "@/lib/pagesEditor"
 import type { PageGenState } from "@/hooks/usePageGeneration"
@@ -47,6 +47,7 @@ export function PageFocusEditor({
   page,
   pageNumber,
   genState,
+  genError,
   currentImageUrl,
   images,
   imagesLoading,
@@ -67,6 +68,7 @@ export function PageFocusEditor({
   page: EditorPage
   pageNumber: string
   genState: PageGenState
+  genError?: string
   currentImageUrl: string | null
   images: PageImage[]
   imagesLoading: boolean
@@ -92,7 +94,7 @@ export function PageFocusEditor({
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold">{pageNumber}</h2>
           {genState === "failed" && (
-            <Badge variant="destructive">Generation failed</Badge>
+            <TaskStatusBadge status="FAILED" error={genError} />
           )}
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
@@ -117,6 +119,7 @@ export function PageFocusEditor({
             onGenerate={onGenerate}
             hasImage={Boolean(currentImageUrl)}
             busy={busy}
+            failed={genState === "failed"}
           />
         </div>
 

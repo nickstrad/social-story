@@ -22,16 +22,19 @@ import {
 } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { TaskStatusBadge } from "@/components/tasks/TaskStatusBadge"
+import { isActiveStatus } from "@/server/domain/taskMachine"
 import type { TaskStatus } from "@/server/domain/types"
 
-function isBusy(taskState?: TaskStatus): boolean {
-  return taskState === "PENDING" || taskState === "RUNNING"
+function generationLabel(taskState: TaskStatus | undefined, imageUrl?: string) {
+  if (taskState === "FAILED") return "Retry base image"
+  return imageUrl ? "Regenerate" : "Generate base image"
 }
 
 export function BaseImagePanel({
   storyId,
   imageUrl,
   taskState,
+  taskError,
   characterCount,
   canGenerate,
   onGenerate,
@@ -39,12 +42,14 @@ export function BaseImagePanel({
   storyId: string
   imageUrl?: string
   taskState?: TaskStatus
+  taskError?: string
   characterCount: number
   canGenerate: boolean
   onGenerate: () => void
 }) {
   const [imageLoading, setImageLoading] = useState(Boolean(imageUrl))
-  const busy = isBusy(taskState)
+  const busy = isActiveStatus(taskState)
+  const actionLabel = generationLabel(taskState, imageUrl)
 
   return (
     <Card className="mx-auto w-full max-w-3xl">
@@ -56,7 +61,7 @@ export function BaseImagePanel({
             everyone stays recognizable.
           </CardDescription>
         </div>
-        {taskState && <TaskStatusBadge status={taskState} />}
+        {taskState && <TaskStatusBadge status={taskState} error={taskError} />}
       </CardHeader>
       <CardContent className="grid gap-4">
         {characterCount === 0 ? (
@@ -101,7 +106,7 @@ export function BaseImagePanel({
             <div className="flex justify-end">
               <Button onClick={onGenerate} disabled={!canGenerate}>
                 <SparklesIcon />
-                {imageUrl ? "Regenerate" : "Generate base image"}
+                {actionLabel}
               </Button>
             </div>
           </>

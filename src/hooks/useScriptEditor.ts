@@ -24,10 +24,12 @@ export function useScriptEditor(storyId: string) {
   })
 
   const task = useTask(taskId).data
-  const parseState = deriveParseState(task, {
-    status: story.status,
-    pageCount: story.counts.pages,
-  })
+  const parseState = parse.isPending
+    ? { state: "parsing" as const }
+    : deriveParseState(task, {
+        status: story.status,
+        pageCount: story.counts.pages,
+      })
 
   // Refresh the persisted story once the parse task reaches a terminal state so
   // the derived page count and status reflect the freshly written pages.
@@ -77,8 +79,12 @@ export function useScriptEditor(storyId: string) {
       saves.push(updateScript.mutateAsync({ storyId, script }))
     if (title.trim() !== story.title.trim())
       saves.push(updateTitle.mutateAsync({ storyId, title: title.trim() }))
-    await Promise.all(saves)
-    parse.mutate({ storyId })
+    try {
+      await Promise.all(saves)
+      parse.mutate({ storyId })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error))
+    }
   }
 
   return {

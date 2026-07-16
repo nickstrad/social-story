@@ -11,7 +11,7 @@ import {
 } from "@/server/services/fakes"
 import { inMemoryStorage } from "@/server/services/memory-storage"
 
-import { runTask } from "./tasks"
+import { createTask, isStaleTask, listStoryTasks, runTask } from "./tasks"
 
 function makeDeps(): Deps {
   return {
@@ -32,6 +32,50 @@ async function pendingTask(deps: Deps) {
 }
 
 describe("runTask", () => {
+  it("marks a task failed when dispatch cannot queue it", async () => {
+    const deps = makeDeps()
+    deps.dispatcher = {
+      dispatch: vi.fn(async () => {
+        throw new Error("Inngest is unavailable")
+      }),
+    }
+
+    await expect(
+      createTask(deps, {
+        userId: "user-1",
+        storyId: "story-1",
+        type: "PARSE_STORY",
+      })
+    ).rejects.toThrow("Inngest is unavailable")
+
+    const [stored] = await deps.repos.tasks.listByStory("story-1")
+    expect(stored).toMatchObject({
+      status: "FAILED",
+      error: "Task could not be queued: Inngest is unavailable",
+    })
+  })
+
+  it("recovers an orphaned pending task so the workflow can retry", async () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date("2026-01-01T00:00:00Z"))
+      const deps = makeDeps()
+      const task = await pendingTask(deps)
+      vi.setSystemTime(new Date("2026-01-01T00:06:00Z"))
+
+      expect(isStaleTask(task, new Date())).toBe(true)
+      const [recovered] = await listStoryTasks(deps, task.storyId)
+      expect(recovered).toMatchObject({
+        id: task.id,
+        status: "FAILED",
+        error:
+          "This task stopped responding before it completed. Retry to continue.",
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it("runs a pending task and persists its result", async () => {
     const deps = makeDeps()
     const task = await pendingTask(deps)

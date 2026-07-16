@@ -15,7 +15,8 @@ Flow:
 2. Copy `.env` into it as-is — do not open or inspect it.
 3. Run `npm i`.
 4. Do the work.
-5. Merge back into `main` when done.
+5. Stop with the completed worktree ready for review. Never merge into `main`
+   automatically; merge only after the user gives explicit consent.
 
 Skip the Go CLI (`cli/`) in worktrees — deprecated, kept for reference only.
 

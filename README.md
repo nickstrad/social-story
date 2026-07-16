@@ -22,9 +22,26 @@ What exists at the root today:
 
 ```bash
 npm install
-npm run dev     # scaffold at http://localhost:3000
+npm run dev     # mprocs starts the app and Inngest Dev Server together
 npm test        # vitest
 ```
+
+`npm run dev` uses [`mprocs`](https://github.com/pvolok/mprocs) and
+`mprocs.yaml` to run the Next app at http://localhost:3000 and the Inngest UI at
+http://localhost:8288 in one terminal. The normal development database is the
+configured remote Postgres database, so there is no third long-running local
+process; the disposable local Postgres container is only started by
+`npm run test:e2e`.
+
+The web app dispatches parsing, image generation, and PDF export through
+Inngest. Set `INNGEST_DEV=1` (included in `.env.example`) so the SDK sends
+events to the local Dev Server; local development does not need real Inngest
+keys. Hosted environments must set `INNGEST_DEV=0` and provide both
+`INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` from the matching Inngest
+environment.
+
+To run either development process by itself, use `npm run dev:web` or
+`npm run dev:inngest`.
 
 ## End-to-end tests
 

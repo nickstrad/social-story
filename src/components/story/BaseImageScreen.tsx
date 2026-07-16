@@ -4,8 +4,14 @@ import { BaseImagePanel } from "./BaseImagePanel"
 import { useBaseImage } from "@/hooks/useBaseImage"
 
 export function BaseImageScreen({ storyId }: { storyId: string }) {
-  const { characters, imageUrl, taskState, canGenerate, onGenerate } =
-    useBaseImage(storyId)
+  const {
+    characters,
+    imageUrl,
+    taskState,
+    taskError,
+    canGenerate,
+    onGenerate,
+  } = useBaseImage(storyId)
 
   return (
     <div className="mx-auto grid max-w-3xl gap-6">
@@ -20,6 +26,7 @@ export function BaseImageScreen({ storyId }: { storyId: string }) {
         storyId={storyId}
         imageUrl={imageUrl}
         taskState={taskState}
+        taskError={taskError}
         characterCount={characters.length}
         canGenerate={canGenerate}
         onGenerate={onGenerate}

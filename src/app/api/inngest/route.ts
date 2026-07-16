@@ -1,5 +1,5 @@
 /**
- * Local development: run `npx inngest-cli dev` alongside `npm run dev`.
+ * Local development: run `npm run dev:inngest` alongside `npm run dev`.
  */
 import { serve } from "inngest/next"
 

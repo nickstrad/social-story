@@ -3,17 +3,31 @@ import { z } from "zod"
 
 import { assertStoryOwnership } from "@/server/api/ownership"
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc"
-import { createTask } from "@/server/services/tasks"
+import type { Deps } from "@/server/container"
+import type { Task } from "@/server/domain/types"
+import {
+  createTask,
+  listStoryTasks,
+  recoverStaleTask,
+} from "@/server/services/tasks"
 
 const taskIdInput = z.object({ taskId: z.string().min(1) })
 
+async function getOwnedTask(
+  deps: Deps,
+  taskId: string,
+  userId: string
+): Promise<Task> {
+  const stored = await deps.repos.tasks.getById(taskId)
+  if (!stored || stored.userId !== userId) {
+    throw new TRPCError({ code: "NOT_FOUND" })
+  }
+  return recoverStaleTask(deps, stored)
+}
+
 export const taskRouter = createTRPCRouter({
   get: protectedProcedure.input(taskIdInput).query(async ({ ctx, input }) => {
-    const task = await ctx.deps.repos.tasks.getById(input.taskId)
-    if (!task || task.userId !== ctx.session.user.id) {
-      throw new TRPCError({ code: "NOT_FOUND" })
-    }
-    return task
+    return getOwnedTask(ctx.deps, input.taskId, ctx.session.user.id)
   }),
 
   listForStory: protectedProcedure
@@ -29,7 +43,7 @@ export const taskRouter = createTRPCRouter({
         input.storyId,
         ctx.session.user.id
       )
-      const tasks = await ctx.deps.repos.tasks.listByStory(input.storyId)
+      const tasks = await listStoryTasks(ctx.deps, input.storyId)
       return input.activeOnly
         ? tasks.filter(
             (task) => task.status === "PENDING" || task.status === "RUNNING"
@@ -40,10 +54,11 @@ export const taskRouter = createTRPCRouter({
   retry: protectedProcedure
     .input(taskIdInput)
     .mutation(async ({ ctx, input }) => {
-      const task = await ctx.deps.repos.tasks.getById(input.taskId)
-      if (!task || task.userId !== ctx.session.user.id) {
-        throw new TRPCError({ code: "NOT_FOUND" })
-      }
+      const task = await getOwnedTask(
+        ctx.deps,
+        input.taskId,
+        ctx.session.user.id
+      )
       if (task.status !== "FAILED") {
         throw new TRPCError({
           code: "BAD_REQUEST",

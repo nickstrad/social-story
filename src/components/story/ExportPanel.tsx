@@ -18,11 +18,17 @@ import type { ExportPageRef } from "@/lib/exportReadiness"
 import { isActiveStatus } from "@/server/domain/taskMachine"
 import type { TaskStatus } from "@/server/domain/types"
 
+function exportLabel(taskState: TaskStatus | undefined, pdfUrl?: string) {
+  if (taskState === "FAILED") return "Retry export"
+  return pdfUrl ? "Re-export" : "Export PDF"
+}
+
 export function ExportPanel({
   storyId,
   readyPages,
   missingPages,
   taskState,
+  taskError,
   pdfUrl,
   onExport,
 }: {
@@ -30,11 +36,13 @@ export function ExportPanel({
   readyPages: ExportPageRef[]
   missingPages: ExportPageRef[]
   taskState?: TaskStatus
+  taskError?: string
   pdfUrl?: string
   onExport: () => void
 }) {
   const busy = isActiveStatus(taskState)
   const canExport = missingPages.length === 0 && readyPages.length > 0 && !busy
+  const actionLabel = exportLabel(taskState, pdfUrl)
 
   return (
     <Card className="mx-auto w-full max-w-3xl">
@@ -46,7 +54,7 @@ export function ExportPanel({
             PDF to download.
           </CardDescription>
         </div>
-        {taskState && <TaskStatusBadge status={taskState} />}
+        {taskState && <TaskStatusBadge status={taskState} error={taskError} />}
       </CardHeader>
       <CardContent className="grid gap-4">
         {missingPages.length > 0 ? (
@@ -74,8 +82,8 @@ export function ExportPanel({
           </Alert>
         ) : (
           <p className="text-sm text-muted-foreground">
-            {readyPages.length} page{readyPages.length === 1 ? "" : "s"} ready to
-            export.
+            {readyPages.length} page{readyPages.length === 1 ? "" : "s"} ready
+            to export.
           </p>
         )}
 
@@ -99,7 +107,7 @@ export function ExportPanel({
           )}
           <Button onClick={onExport} disabled={!canExport}>
             <FileTextIcon />
-            {pdfUrl ? "Re-export" : "Export PDF"}
+            {actionLabel}
           </Button>
         </div>
       </CardContent>

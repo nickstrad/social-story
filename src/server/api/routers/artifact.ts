@@ -1,10 +1,23 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc"
-import type { Deps } from "@/server/container"
 import {
   collectArtifacts,
   type StoryArtifactSources,
 } from "@/server/domain/artifacts"
-import type { Story } from "@/server/domain/types"
+
+function groupBy<T>(
+  values: T[],
+  keyFor: (value: T) => string | undefined
+): Map<string, T[]> {
+  const groups = new Map<string, T[]>()
+  for (const value of values) {
+    const key = keyFor(value)
+    if (key === undefined) continue
+    const group = groups.get(key)
+    if (group) group.push(value)
+    else groups.set(key, [value])
+  }
+  return groups
+}
 
 export const artifactRouter = createTRPCRouter({
   /**
@@ -14,22 +27,31 @@ export const artifactRouter = createTRPCRouter({
    */
   list: protectedProcedure.query(async ({ ctx }) => {
     const stories = await ctx.deps.repos.stories.listByUser(ctx.session.user.id)
-    const sources = await Promise.all(
-      stories.map((story) => loadStorySources(ctx.deps, story))
+    const storyIds = stories.map((story) => story.id)
+    const [characters, pages, pageImages, tasks] = await Promise.all([
+      ctx.deps.repos.characters.listByStoryIds(storyIds),
+      ctx.deps.repos.pages.listByStoryIds(storyIds),
+      ctx.deps.repos.pages.listImagesByStoryIds(storyIds),
+      ctx.deps.repos.tasks.listByStoryIds(storyIds),
+    ])
+
+    const storyIdByPageId = new Map(
+      pages.map((page) => [page.id, page.storyId])
     )
+    const charactersByStory = groupBy(characters, (item) => item.storyId)
+    const pagesByStory = groupBy(pages, (item) => item.storyId)
+    const imagesByStory = groupBy(pageImages, (item) =>
+      storyIdByPageId.get(item.pageId)
+    )
+    const tasksByStory = groupBy(tasks, (item) => item.storyId)
+
+    const sources: StoryArtifactSources[] = stories.map((story) => ({
+      story,
+      characters: charactersByStory.get(story.id) ?? [],
+      pages: pagesByStory.get(story.id) ?? [],
+      pageImages: imagesByStory.get(story.id) ?? [],
+      tasks: tasksByStory.get(story.id) ?? [],
+    }))
     return collectArtifacts(sources)
   }),
 })
-
-async function loadStorySources(
-  deps: Deps,
-  story: Story
-): Promise<StoryArtifactSources> {
-  const [characters, pages, pageImages, tasks] = await Promise.all([
-    deps.repos.characters.listByStory(story.id),
-    deps.repos.pages.listByStory(story.id),
-    deps.repos.pages.listImagesByStory(story.id),
-    deps.repos.tasks.listByStory(story.id),
-  ])
-  return { story, characters, pages, pageImages, tasks }
-}

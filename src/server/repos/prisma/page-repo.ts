@@ -2,11 +2,23 @@ import type { PrismaClient } from "@prisma/client"
 
 import type { PageRepo } from "../../ports/repos"
 
+const listPagesByStoryIds = (db: PrismaClient, storyIds: string[]) =>
+  db.page.findMany({
+    where: { storyId: { in: storyIds } },
+    orderBy: { position: "asc" },
+  })
+
+const listPageImagesByStoryIds = (db: PrismaClient, storyIds: string[]) =>
+  db.pageImage.findMany({
+    where: { page: { storyId: { in: storyIds } } },
+    orderBy: { variant: "asc" },
+  })
+
 export const prismaPageRepo = (db: PrismaClient): PageRepo => ({
   create: (data) => db.page.create({ data }),
   getById: (id) => db.page.findUnique({ where: { id } }),
-  listByStory: (storyId) =>
-    db.page.findMany({ where: { storyId }, orderBy: { position: "asc" } }),
+  listByStory: (storyId) => listPagesByStoryIds(db, [storyId]),
+  listByStoryIds: (storyIds) => listPagesByStoryIds(db, storyIds),
   async replaceAll(storyId, pages) {
     // Re-parse is destructive: drop existing pages and recreate from scratch.
     // Callers guard against clobbering pages that already have generated art.
@@ -37,9 +49,6 @@ export const prismaPageRepo = (db: PrismaClient): PageRepo => ({
   addImage: (data) => db.pageImage.create({ data }),
   listImages: (pageId) =>
     db.pageImage.findMany({ where: { pageId }, orderBy: { variant: "asc" } }),
-  listImagesByStory: (storyId) =>
-    db.pageImage.findMany({
-      where: { page: { storyId } },
-      orderBy: { variant: "asc" },
-    }),
+  listImagesByStory: (storyId) => listPageImagesByStoryIds(db, [storyId]),
+  listImagesByStoryIds: (storyIds) => listPageImagesByStoryIds(db, storyIds),
 })

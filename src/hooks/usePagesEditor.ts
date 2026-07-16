@@ -123,6 +123,7 @@ export function usePagesEditor(
     selectAll: bulk.selectAll,
     selectNone: bulk.selectNone,
     bulkProgress: bulk.progress,
+    bulkGenerating: bulk.isGenerating,
     generateSelected: bulk.generate,
 
     // Focus / navigation (includes hidden pages by design).

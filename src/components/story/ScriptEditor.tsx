@@ -22,6 +22,11 @@ const badgeStatus: Record<Exclude<ParseState, "idle">, TaskStatus> = {
   error: "FAILED",
 }
 
+function parseButtonLabel(parseState: ParseState, parsed: boolean) {
+  if (parseState === "error") return "Retry parsing"
+  return parsed ? "Re-parse into pages" : "Parse into pages"
+}
+
 export function ScriptEditor({
   title,
   script,
@@ -45,6 +50,7 @@ export function ScriptEditor({
 }) {
   const isParsing = parseState === "parsing"
   const parsed = parseState === "done"
+  const parseLabel = parseButtonLabel(parseState, parsed)
 
   return (
     <div className="mx-auto grid max-w-3xl gap-6">
@@ -93,7 +99,7 @@ export function ScriptEditor({
           disabled={!script.trim() || isParsing || (parsed && !canReparse)}
         >
           <SparklesIcon />
-          {parsed ? "Re-parse into pages" : "Parse into pages"}
+          {parseLabel}
         </Button>
         {parseState !== "idle" && (
           <TaskStatusBadge status={badgeStatus[parseState]} error={error} />

@@ -72,6 +72,7 @@ function FocusEditor({
       page={page}
       pageNumber={pageLabel(page, editor.pages)}
       genState={generation.state}
+      genError={generation.error}
       currentImageUrl={currentImageUrl}
       images={images}
       imagesLoading={imagesQuery.isLoading}
@@ -139,6 +140,7 @@ export function PagesEditorScreen({
             selectedCount={editor.selection.size}
             isAllSelected={editor.isAllSelected}
             progress={editor.bulkProgress}
+            busy={editor.bulkGenerating}
             onSelectAll={editor.selectAll}
             onSelectNone={editor.selectNone}
             onGenerate={editor.generateSelected}

@@ -10,15 +10,40 @@ const toDomain = (
   resultJson: task.resultJson as Task["resultJson"],
 })
 
+const toPrismaJson = (value: Task["resultJson"] | undefined) =>
+  value === null ? Prisma.JsonNull : value
+
 const createData = (input: CreateTask): Prisma.TaskUncheckedCreateInput => ({
   ...input,
-  resultJson: input.resultJson === null ? Prisma.JsonNull : input.resultJson,
+  resultJson: toPrismaJson(input.resultJson ?? null),
 })
 
 const updateData = (input: UpdateTask): Prisma.TaskUncheckedUpdateInput => ({
   ...input,
-  resultJson: input.resultJson === null ? Prisma.JsonNull : input.resultJson,
+  resultJson:
+    input.resultJson === undefined ? undefined : toPrismaJson(input.resultJson),
 })
+
+async function changedTask(
+  db: PrismaClient,
+  id: string,
+  count: number
+): Promise<Task | null> {
+  if (count === 0) return null
+  return toDomain(await db.task.findUniqueOrThrow({ where: { id } }))
+}
+
+async function listTasksByStoryIds(
+  db: PrismaClient,
+  storyIds: string[]
+): Promise<Task[]> {
+  return (
+    await db.task.findMany({
+      where: { storyId: { in: storyIds } },
+      orderBy: { createdAt: "desc" },
+    })
+  ).map(toDomain)
+}
 
 export const prismaTaskRepo = (db: PrismaClient): TaskRepo => ({
   async create(input) {
@@ -28,21 +53,32 @@ export const prismaTaskRepo = (db: PrismaClient): TaskRepo => ({
     const task = await db.task.findUnique({ where: { id } })
     return task ? toDomain(task) : null
   },
-  async listByStory(storyId) {
-    return (
-      await db.task.findMany({
-        where: { storyId },
-        orderBy: { createdAt: "desc" },
-      })
-    ).map(toDomain)
-  },
+  listByStory: (storyId) => listTasksByStoryIds(db, [storyId]),
+  listByStoryIds: (storyIds) => listTasksByStoryIds(db, storyIds),
   async claimPending(id, startedAt) {
     const claimed = await db.task.updateMany({
       where: { id, status: "PENDING" },
       data: { status: "RUNNING", startedAt },
     })
-    if (claimed.count === 0) return null
-    return toDomain(await db.task.findUniqueOrThrow({ where: { id } }))
+    return changedTask(db, id, claimed.count)
+  },
+  async completeRunning(id, input) {
+    const completed = await db.task.updateMany({
+      where: { id, status: "RUNNING" },
+      data: {
+        status: "SUCCEEDED",
+        resultJson: toPrismaJson(input.resultJson),
+        finishedAt: input.finishedAt,
+      },
+    })
+    return changedTask(db, id, completed.count)
+  },
+  async failActive(id, error, finishedAt) {
+    const failed = await db.task.updateMany({
+      where: { id, status: { in: ["PENDING", "RUNNING"] } },
+      data: { status: "FAILED", error, finishedAt },
+    })
+    return changedTask(db, id, failed.count)
   },
   async update(id, input) {
     return toDomain(

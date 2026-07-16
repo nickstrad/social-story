@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react"
 import { toast } from "sonner"
 
-import { isActiveStatus } from "@/server/domain/taskMachine"
+import { isActiveStatus, latestTask } from "@/server/domain/taskMachine"
 import type { Task } from "@/server/domain/types"
 import { exportReadiness } from "@/lib/exportReadiness"
 import { trpc } from "@/lib/trpc"
@@ -12,13 +12,7 @@ import { useStoryTasks } from "@/hooks/useTaskPolling"
 // The most recently created PDF_EXPORT task, whatever its status. Derived from
 // the story's task list so an in-flight export survives a full page reload.
 export function latestExportTask(tasks: Task[]): Task | undefined {
-  return tasks
-    .filter((task) => task.type === "PDF_EXPORT")
-    .reduce<Task | undefined>(
-      (latest, task) =>
-        !latest || task.createdAt > latest.createdAt ? task : latest,
-      undefined
-    )
+  return latestTask(tasks, (task) => task.type === "PDF_EXPORT")
 }
 
 export function useExport(storyId: string) {
@@ -64,7 +58,8 @@ export function useExport(storyId: string) {
   return {
     readyPages: readiness.ready,
     missingPages: readiness.missing,
-    taskState: status,
+    taskState: exportMutation.isPending ? ("PENDING" as const) : status,
+    taskError: activeTask?.error ?? undefined,
     pdfUrl: latest.url ?? undefined,
     onExport: () => exportMutation.mutate({ storyId }),
   }

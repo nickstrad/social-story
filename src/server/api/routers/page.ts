@@ -9,7 +9,7 @@ import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc"
 import { insertPage, removePage, reorderPages } from "@/server/domain/pageOps"
 import { applyRulesToPage } from "@/server/domain/rules"
 import { hasActiveTask } from "@/server/domain/taskMachine"
-import { createTask } from "@/server/services/tasks"
+import { createTask, listStoryTasks } from "@/server/services/tasks"
 
 const pageIdInput = z.object({ pageId: z.string().min(1) })
 const steeringSchema = z.string().trim().max(2_000)
@@ -35,7 +35,7 @@ export const pageRouter = createTRPCRouter({
 
       // Refuse a second render while one is already queued/running for this
       // page — variants would race and the user cannot tell them apart.
-      const tasks = await ctx.deps.repos.tasks.listByStory(page.storyId)
+      const tasks = await listStoryTasks(ctx.deps, page.storyId)
       if (hasActiveTask(tasks, { type: "PAGE_IMAGE", pageId: page.id })) {
         throw new TRPCError({
           code: "CONFLICT",
@@ -67,7 +67,7 @@ export const pageRouter = createTRPCRouter({
       )
       const [pages, existingTasks] = await Promise.all([
         ctx.deps.repos.pages.listByStory(input.storyId),
-        ctx.deps.repos.tasks.listByStory(input.storyId),
+        listStoryTasks(ctx.deps, input.storyId),
       ])
       const validIds = new Set(pages.map((page) => page.id))
       if (!input.pageIds.every((id) => validIds.has(id))) {

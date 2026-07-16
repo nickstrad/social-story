@@ -15,6 +15,14 @@ const required = <T>(value: T | undefined, label: string): T => {
   return value
 }
 
+function byStoryIds<T extends { storyId: string }>(
+  values: Iterable<T>,
+  storyIds: string[]
+): T[] {
+  const wanted = new Set(storyIds)
+  return [...values].filter((value) => wanted.has(value.storyId))
+}
+
 export function inMemoryRepos(): Repos {
   const stories = new Map<string, Story>()
   const characters = new Map<string, Character>()
@@ -22,6 +30,14 @@ export function inMemoryRepos(): Repos {
   const pages = new Map<string, Page>()
   const images = new Map<string, PageImage>()
   const tasks = new Map<string, Task>()
+  const pagesByStoryIds = (storyIds: string[]) =>
+    byStoryIds(pages.values(), storyIds).sort((a, b) => a.position - b.position)
+  const pageImagesByStoryIds = (storyIds: string[]) => {
+    const pageIds = new Set(pagesByStoryIds(storyIds).map((page) => page.id))
+    return [...images.values()]
+      .filter((image) => pageIds.has(image.pageId))
+      .sort((a, b) => a.variant - b.variant)
+  }
 
   return {
     stories: {
@@ -87,9 +103,10 @@ export function inMemoryRepos(): Repos {
         return characters.get(id) ?? null
       },
       async listByStory(storyId) {
-        return [...characters.values()].filter(
-          (item) => item.storyId === storyId
-        )
+        return byStoryIds(characters.values(), [storyId])
+      },
+      async listByStoryIds(storyIds) {
+        return byStoryIds(characters.values(), storyIds)
       },
       async update(id, input) {
         const value = {
@@ -154,9 +171,10 @@ export function inMemoryRepos(): Repos {
         return pages.get(id) ?? null
       },
       async listByStory(storyId) {
-        return [...pages.values()]
-          .filter((item) => item.storyId === storyId)
-          .sort((a, b) => a.position - b.position)
+        return pagesByStoryIds([storyId])
+      },
+      async listByStoryIds(storyIds) {
+        return pagesByStoryIds(storyIds)
       },
       async replaceAll(storyId, newPages) {
         for (const [key, value] of pages)
@@ -175,9 +193,7 @@ export function inMemoryRepos(): Repos {
           }
           pages.set(value.id, value)
         }
-        return [...pages.values()]
-          .filter((item) => item.storyId === storyId)
-          .sort((a, b) => a.position - b.position)
+        return pagesByStoryIds([storyId])
       },
       async update(id, input) {
         const value = {
@@ -194,9 +210,7 @@ export function inMemoryRepos(): Repos {
           if (page?.storyId === storyId)
             pages.set(id, { ...page, position, updatedAt: now() })
         })
-        return [...pages.values()]
-          .filter((item) => item.storyId === storyId)
-          .sort((a, b) => a.position - b.position)
+        return pagesByStoryIds([storyId])
       },
       async delete(id) {
         pages.delete(id)
@@ -221,14 +235,10 @@ export function inMemoryRepos(): Repos {
           .sort((a, b) => a.variant - b.variant)
       },
       async listImagesByStory(storyId) {
-        const storyPageIds = new Set(
-          [...pages.values()]
-            .filter((page) => page.storyId === storyId)
-            .map((page) => page.id)
-        )
-        return [...images.values()]
-          .filter((item) => storyPageIds.has(item.pageId))
-          .sort((a, b) => a.variant - b.variant)
+        return pageImagesByStoryIds([storyId])
+      },
+      async listImagesByStoryIds(storyIds) {
+        return pageImagesByStoryIds(storyIds)
       },
     },
     tasks: {
@@ -253,7 +263,10 @@ export function inMemoryRepos(): Repos {
         return tasks.get(id) ?? null
       },
       async listByStory(storyId) {
-        return [...tasks.values()].filter((item) => item.storyId === storyId)
+        return byStoryIds(tasks.values(), [storyId])
+      },
+      async listByStoryIds(storyIds) {
+        return byStoryIds(tasks.values(), storyIds)
       },
       async claimPending(id, startedAt) {
         const task = tasks.get(id)
@@ -262,6 +275,33 @@ export function inMemoryRepos(): Repos {
           ...task,
           status: "RUNNING",
           startedAt,
+          updatedAt: now(),
+        }
+        tasks.set(id, value)
+        return value
+      },
+      async completeRunning(id, input) {
+        const task = tasks.get(id)
+        if (!task || task.status !== "RUNNING") return null
+        const value: Task = {
+          ...task,
+          ...input,
+          status: "SUCCEEDED",
+          updatedAt: now(),
+        }
+        tasks.set(id, value)
+        return value
+      },
+      async failActive(id, error, finishedAt) {
+        const task = tasks.get(id)
+        if (!task || (task.status !== "PENDING" && task.status !== "RUNNING")) {
+          return null
+        }
+        const value: Task = {
+          ...task,
+          status: "FAILED",
+          error,
+          finishedAt,
           updatedAt: now(),
         }
         tasks.set(id, value)

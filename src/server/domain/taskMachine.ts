@@ -20,6 +20,16 @@ export function isActiveTask(task: Task): boolean {
   return isActiveStatus(task.status)
 }
 
+export function latestTask(
+  tasks: Task[],
+  matches: (task: Task) => boolean = () => true
+): Task | undefined {
+  return tasks.reduce<Task | undefined>((latest, task) => {
+    if (!matches(task)) return latest
+    return !latest || task.createdAt > latest.createdAt ? task : latest
+  }, undefined)
+}
+
 /**
  * True when a task of the given type is already queued or running. Pass a
  * `pageId` to scope the check to one page (page renders), or omit it for

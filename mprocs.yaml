@@ -1,0 +1,5 @@
+procs:
+  web:
+    shell: "npm run dev:web"
+  inngest:
+    shell: "npm run dev:inngest"

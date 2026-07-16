@@ -42,7 +42,9 @@ export function useBulkGeneration(storyId: string, pageIds: string[]) {
     selectAll: () => setSelected(selectAll(pageIds)),
     selectNone: () => setSelected(selectNone()),
     progress,
+    isGenerating: mutation.isPending,
     generate: () => {
+      if (mutation.isPending) return
       const ids = pageIds.filter((id) => selected.has(id))
       if (ids.length > 0) mutation.mutate({ storyId, pageIds: ids })
     },

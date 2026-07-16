@@ -32,6 +32,30 @@ const deps = (): Deps => ({
   dispatcher: immediateDispatcher(async () => {}),
 })
 
+async function addSelectedPageImage(
+  services: Deps,
+  storyId: string,
+  url: string
+) {
+  const [page] = await services.repos.pages.replaceAll(storyId, [
+    {
+      kind: "PAGE",
+      position: 0,
+      text: "Page one",
+      imagePrompt: "a prompt",
+      characterIds: [],
+    },
+  ])
+  const image = await services.repos.pages.addImage({
+    pageId: page.id,
+    url,
+    promptUsed: "a prompt",
+    variant: 0,
+  })
+  await services.repos.pages.update(page.id, { selectedImageId: image.id })
+  return page
+}
+
 describe("artifact router", () => {
   it("collects every blob kind for the owner and hides other users' work", async () => {
     const services = deps()
@@ -48,21 +72,11 @@ describe("artifact router", () => {
       name: "Nick",
       photoUrl: "https://blob.test/nick.jpg",
     })
-    const [page] = await services.repos.pages.replaceAll(story.id, [
-      {
-        kind: "PAGE",
-        position: 0,
-        text: "Page one",
-        imagePrompt: "a prompt",
-        characterIds: [],
-      },
-    ])
-    const selected = await services.repos.pages.addImage({
-      pageId: page.id,
-      url: "https://blob.test/page-1.png",
-      promptUsed: "a prompt",
-      variant: 0,
-    })
+    const page = await addSelectedPageImage(
+      services,
+      story.id,
+      "https://blob.test/page-1.png"
+    )
     // A second variant that was never selected must stay out of the feed.
     await services.repos.pages.addImage({
       pageId: page.id,
@@ -70,7 +84,6 @@ describe("artifact router", () => {
       promptUsed: "a prompt",
       variant: 1,
     })
-    await services.repos.pages.update(page.id, { selectedImageId: selected.id })
     await services.repos.tasks.create({
       userId: user.id,
       storyId: story.id,
@@ -120,6 +133,56 @@ describe("artifact router", () => {
       script: "Just a draft",
     })
     expect(await caller.artifact.list()).toEqual([])
+  })
+
+  it("groups batched relations under the correct story", async () => {
+    const services = deps()
+    const caller = createTestCaller({ user, deps: services })
+    const first = await services.repos.stories.create({
+      userId: user.id,
+      title: "First",
+      script: "First story",
+    })
+    const second = await services.repos.stories.create({
+      userId: user.id,
+      title: "Second",
+      script: "Second story",
+    })
+
+    await services.repos.characters.create({
+      storyId: first.id,
+      name: "First character",
+      photoUrl: "https://blob.test/first-character.jpg",
+    })
+    await services.repos.tasks.create({
+      userId: user.id,
+      storyId: first.id,
+      type: "PDF_EXPORT",
+      status: "SUCCEEDED",
+      resultJson: { url: "https://blob.test/first.pdf" },
+    })
+
+    await addSelectedPageImage(
+      services,
+      second.id,
+      "https://blob.test/second-page.png"
+    )
+
+    const artifacts = await caller.artifact.list()
+    expect(
+      Object.fromEntries(
+        artifacts.map((artifact) => [artifact.url, artifact.storyTitle])
+      )
+    ).toEqual({
+      "https://blob.test/first-character.jpg": "First",
+      "https://blob.test/first.pdf": "First",
+      "https://blob.test/second-page.png": "Second",
+    })
+    expect(
+      artifacts.find(
+        (artifact) => artifact.url === "https://blob.test/second-page.png"
+      )?.storyId
+    ).toBe(second.id)
   })
 
   it("skips a failed or malformed PDF task rather than throwing", async () => {

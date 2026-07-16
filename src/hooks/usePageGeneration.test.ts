@@ -23,6 +23,7 @@ describe("derivePageGenState", () => {
     expect(derivePageGenState([], [])).toEqual({
       state: "idle",
       latestImageUrl: undefined,
+      error: undefined,
     })
   })
 
@@ -32,7 +33,12 @@ describe("derivePageGenState", () => {
   })
 
   it("maps FAILED to failed", () => {
-    expect(derivePageGenState([task("FAILED")], []).state).toBe("failed")
+    expect(
+      derivePageGenState(
+        [task("FAILED", { error: "provider unavailable" })],
+        []
+      )
+    ).toMatchObject({ state: "failed", error: "provider unavailable" })
   })
 
   it("is done when a variant exists and no task is active", () => {

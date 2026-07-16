@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import { toast } from "sonner"
 
+import { isActiveStatus, latestTask } from "@/server/domain/taskMachine"
 import type { Character, Story, Task } from "@/server/domain/types"
 import { trpc } from "@/lib/trpc"
 import { useStoryTasks } from "@/hooks/useTaskPolling"
@@ -12,28 +13,16 @@ export function canGenerateBase(
   characters: Character[],
   activeTask: Task | undefined
 ): boolean {
-  if (!story) return false
-  if (characters.length === 0) return false
-  if (
-    activeTask &&
-    (activeTask.status === "PENDING" || activeTask.status === "RUNNING")
-  ) {
-    return false
-  }
-  return true
+  return Boolean(
+    story && characters.length > 0 && !isActiveStatus(activeTask?.status)
+  )
 }
 
 // The most recently created BASE_IMAGE task, whatever its status. Deriving this
 // from the story's task list (rather than a mutation-scoped id) means an
 // in-flight generation is still reflected after a full page reload.
 export function latestBaseImageTask(tasks: Task[]): Task | undefined {
-  return tasks
-    .filter((task) => task.type === "BASE_IMAGE")
-    .reduce<Task | undefined>(
-      (latest, task) =>
-        !latest || task.createdAt > latest.createdAt ? task : latest,
-      undefined
-    )
+  return latestTask(tasks, (task) => task.type === "BASE_IMAGE")
 }
 
 export function useBaseImage(storyId: string) {
@@ -63,9 +52,7 @@ export function useBaseImage(storyId: string) {
   // already terminal on mount (e.g. after reload) doesn't re-toast history.
   const previousStatus = useRef(status)
   useEffect(() => {
-    const wasActive =
-      previousStatus.current === "PENDING" ||
-      previousStatus.current === "RUNNING"
+    const wasActive = isActiveStatus(previousStatus.current)
     previousStatus.current = status
     if (!wasActive) return
     if (status === "SUCCEEDED") {
@@ -81,8 +68,10 @@ export function useBaseImage(storyId: string) {
   return {
     characters,
     imageUrl: story.baseImageUrl ?? undefined,
-    taskState: status,
-    canGenerate: canGenerateBase(story, characters, activeTask),
+    taskState: generate.isPending ? ("PENDING" as const) : status,
+    taskError: activeTask?.error ?? undefined,
+    canGenerate:
+      !generate.isPending && canGenerateBase(story, characters, activeTask),
     onGenerate: () => generate.mutate({ storyId }),
   }
 }

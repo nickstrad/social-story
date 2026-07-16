@@ -8,7 +8,7 @@ import { useExport } from "@/hooks/useExport"
 
 export function ExportScreen({ storyId }: { storyId: string }) {
   const [story] = trpc.story.get.useSuspenseQuery({ storyId })
-  const { readyPages, missingPages, taskState, pdfUrl, onExport } =
+  const { readyPages, missingPages, taskState, taskError, pdfUrl, onExport } =
     useExport(storyId)
 
   const steps = deriveStepStates({
@@ -34,6 +34,7 @@ export function ExportScreen({ storyId }: { storyId: string }) {
         readyPages={readyPages}
         missingPages={missingPages}
         taskState={taskState}
+        taskError={taskError}
         pdfUrl={pdfUrl}
         onExport={onExport}
       />

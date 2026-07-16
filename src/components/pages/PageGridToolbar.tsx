@@ -11,6 +11,7 @@ export function PageGridToolbar({
   selectedCount,
   isAllSelected,
   progress,
+  busy,
   onSelectAll,
   onSelectNone,
   onGenerate,
@@ -19,6 +20,7 @@ export function PageGridToolbar({
   selectedCount: number
   isAllSelected: boolean
   progress: TaskProgress
+  busy: boolean
   onSelectAll: () => void
   onSelectNone: () => void
   onGenerate: () => void
@@ -43,9 +45,13 @@ export function PageGridToolbar({
         </span>
         <div className="ml-auto flex items-center gap-2">
           <AddPageButton onAdd={onAddPage} />
-          <Button size="sm" disabled={selectedCount === 0} onClick={onGenerate}>
+          <Button
+            size="sm"
+            disabled={selectedCount === 0 || busy}
+            onClick={onGenerate}
+          >
             <SparklesIcon />
-            Generate selected ({selectedCount})
+            {busy ? "Queueing…" : `Generate selected (${selectedCount})`}
           </Button>
         </div>
       </div>

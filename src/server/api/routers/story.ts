@@ -7,7 +7,7 @@ import type { Deps } from "@/server/container"
 import { isPageVisible } from "@/server/domain/pageOps"
 import { hasActiveTask } from "@/server/domain/taskMachine"
 import type { Story } from "@/server/domain/types"
-import { createTask } from "@/server/services/tasks"
+import { createTask, listStoryTasks } from "@/server/services/tasks"
 
 const storyInput = z.object({ storyId: z.string().min(1) })
 const scriptSchema = z.string().trim().min(1).max(50_000)
@@ -133,7 +133,7 @@ export const storyRouter = createTRPCRouter({
       )
       // Guard against two destructive re-parses racing on the same story: both
       // would call replaceAll and interleave their page/title/status writes.
-      const tasks = await ctx.deps.repos.tasks.listByStory(story.id)
+      const tasks = await listStoryTasks(ctx.deps, story.id)
       if (hasActiveTask(tasks, { type: "PARSE_STORY" })) {
         throw new TRPCError({
           code: "CONFLICT",
@@ -163,6 +163,13 @@ export const storyRouter = createTRPCRouter({
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Add at least one character before generating a base image",
+        })
+      }
+      const tasks = await listStoryTasks(ctx.deps, input.storyId)
+      if (hasActiveTask(tasks, { type: "BASE_IMAGE" })) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "A base image is already generating for this story",
         })
       }
       return createTask(ctx.deps, {

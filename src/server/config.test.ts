@@ -20,7 +20,63 @@ describe("parseConfig", () => {
   it("applies optional defaults", () => {
     expect(parseConfig(validEnv)).toMatchObject({
       openai: { chatModel: "gpt-5.5", imageModel: "gpt-image-2" },
+      inngest: { isDev: true },
       env: "development",
+    })
+  })
+
+  it("requires Inngest keys in production", () => {
+    expect(() =>
+      parseConfig({ ...validEnv, NODE_ENV: "production", INNGEST_DEV: "0" })
+    ).toThrow(/INNGEST_EVENT_KEY.*INNGEST_SIGNING_KEY/)
+  })
+
+  it("defaults production to hosted Inngest and requires keys", () => {
+    expect(() => parseConfig({ ...validEnv, NODE_ENV: "production" })).toThrow(
+      /INNGEST_EVENT_KEY.*INNGEST_SIGNING_KEY/
+    )
+  })
+
+  it("defers hosted key validation during a Next production build", () => {
+    expect(
+      parseConfig({
+        ...validEnv,
+        NODE_ENV: "production",
+        NEXT_PHASE: "phase-production-build",
+      }).inngest.isDev
+    ).toBe(false)
+  })
+
+  it("does not require real keys for the local Inngest Dev Server", () => {
+    expect(
+      parseConfig({
+        ...validEnv,
+        INNGEST_DEV: "1",
+        INNGEST_EVENT_KEY: "",
+        INNGEST_SIGNING_KEY: "",
+      }).inngest
+    ).toEqual({
+      isDev: true,
+      eventKey: undefined,
+      signingKey: undefined,
+      signingKeyFallback: undefined,
+    })
+  })
+
+  it("accepts hosted Inngest configuration in production", () => {
+    expect(
+      parseConfig({
+        ...validEnv,
+        NODE_ENV: "production",
+        INNGEST_DEV: "0",
+        INNGEST_EVENT_KEY: "event-key",
+        INNGEST_SIGNING_KEY: "signing-key",
+      }).inngest
+    ).toEqual({
+      isDev: false,
+      eventKey: "event-key",
+      signingKey: "signing-key",
+      signingKeyFallback: undefined,
     })
   })
 

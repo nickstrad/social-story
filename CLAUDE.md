@@ -40,6 +40,36 @@ but OpenAI, Vercel Blob, Inngest, and other external services must remain behind
 deterministic fakes. Every new UI flow must include an E2E spec, and every new
 external service port must include a deterministic fake.
 
+## E2E must own its own app server (this has been violated before)
+
+The fakes are wired by **environment**, not by the test code: `E2E_FAKES=1`
+routes `createDeps` down `createE2eDeps` (`src/server/container.ts`), swapping in
+`staticTextGenerator`, `scriptedImageGenerator`, `e2eStorage`, and the inline
+dispatcher. That env lives in `serverEnv` (`e2e/support/constants.ts`) and is
+applied **only** to the server Playwright starts itself. A server the suite did
+not start has none of it — it holds the real `.env`, so the specs drive real
+OpenAI, real Vercel Blob, and the dev database.
+
+This actually happened: the harness pointed at `http://localhost:3000` with
+`reuseExistingServer: !process.env.CI`. With a `next dev` already on :3000,
+Playwright saw the URL answering, skipped its own build, and silently ran the
+entire suite against the dev server — real API calls, dev DB writes, and
+`E2E_FAKES` never set. It surfaced as task specs hanging on "Complete" (the real
+`inngestDispatcher` with no Inngest running never finishes a task), which reads
+like a UI bug and sends you chasing the wrong thing.
+
+Rules, therefore:
+
+- E2E runs on its **own port (3100)**, never the dev port. `scripts/e2e.sh`
+  aborts if that port is occupied.
+- `reuseExistingServer` stays **`false`**. Never re-enable it, and never "fix" a
+  port-in-use error by pointing `BASE_URL` at a running server.
+- Anything external gets a fake behind a port + `serverEnv` entry. Never a live
+  token, not even a read-only one.
+- Task specs hanging on "Complete", or an unexplained error toast on a generate
+  button, means the app under test is probably not running the fakes. Check
+  which process owns the port before debugging the UI.
+
 # .env
 
 Never read, `cat`, `grep`, or otherwise inspect `.env` (or copies) — it holds secrets. Copy it between worktrees as an opaque file only. To learn which variables are required, read the code (`process.env.X` references) or a checked-in `.env.example`.

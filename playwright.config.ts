@@ -32,7 +32,12 @@ export default defineConfig({
     command: "npm run build && npm run start",
     url: BASE_URL,
     env: serverEnv,
-    reuseExistingServer: !process.env.CI,
+    // Never adopt a server this config did not start. Reuse is what let a
+    // `next dev` on the old port hijack the suite: Playwright saw the URL
+    // answering, skipped its own build, and every spec then ran against a
+    // process holding the real `.env` — real OpenAI, real Blob, the dev DB.
+    // Refusing to reuse turns that into a loud port-in-use error instead.
+    reuseExistingServer: false,
     timeout: 180_000,
     stdout: "pipe",
     stderr: "pipe",

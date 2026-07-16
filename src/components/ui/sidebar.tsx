@@ -611,10 +611,17 @@ function SidebarMenuSkeleton({
 }: React.ComponentProps<"div"> & {
   showIcon?: boolean
 }) {
-  // Random width between 50 to 90%.
-  const [width] = React.useState(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
-  })
+  // Width varies between 50 and 90% so stacked skeletons look like ragged text.
+  // It must be derived from useId rather than Math.random: this renders during
+  // SSR, and a random width hydrates to a different value than it served.
+  const id = React.useId()
+  const width = React.useMemo(() => {
+    let hash = 0
+    for (let i = 0; i < id.length; i++) {
+      hash = (hash * 31 + id.charCodeAt(i)) | 0
+    }
+    return `${(Math.abs(hash) % 41) + 50}%`
+  }, [id])
 
   return (
     <div

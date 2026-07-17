@@ -2,7 +2,11 @@
 
 import { useEffect, useState, type FormEvent } from "react"
 import { toast } from "sonner"
-import { characterInputSchema } from "@/server/domain/schemas"
+import {
+  characterInputSchema,
+  characterPhotoAutofillSchema,
+} from "@/server/domain/schemas"
+import { validateUpload } from "@/server/domain/upload"
 import type { ClientCharacter as Character } from "@/server/domain/types"
 import { useCharacters } from "./useCharacters"
 
@@ -14,7 +18,7 @@ export type CharacterValues = {
   photoDescription: string
 }
 export type CharacterErrors = Partial<
-  Record<keyof CharacterValues | "form", string>
+  Record<keyof CharacterValues | "form" | "photo", string>
 >
 const emptyValues: CharacterValues = {
   name: "",
@@ -23,19 +27,45 @@ const emptyValues: CharacterValues = {
   appearance: "",
   photoDescription: "",
 }
+const AUTOFILL_ERROR = "Could not auto-fill from this photo"
+
+function valuesFor(character?: Character): CharacterValues {
+  if (!character) return emptyValues
+  return {
+    name: character.name,
+    role: character.role ?? "",
+    age: character.age ?? "",
+    appearance: character.appearance ?? "",
+    photoDescription: character.photoDescription ?? "",
+  }
+}
+
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback
+}
+
+function apiError(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== "object" || !("error" in payload)) return
+  return typeof payload.error === "string" ? payload.error : undefined
+}
+
+async function postMultipart(
+  url: string,
+  fields: Record<string, string | File>,
+  fallbackError: string
+): Promise<unknown> {
+  const body = new FormData()
+  for (const [key, value] of Object.entries(fields)) body.set(key, value)
+  const response = await fetch(url, { method: "POST", body })
+  const payload: unknown = await response.json()
+  if (!response.ok) throw new Error(apiError(payload) ?? fallbackError)
+  return payload
+}
 
 export function useCharacterForm(storyId: string, character?: Character) {
   const { create, update, invalidate } = useCharacters(storyId)
   const [values, setValues] = useState<CharacterValues>(() =>
-    character
-      ? {
-          name: character.name,
-          role: character.role ?? "",
-          age: character.age ?? "",
-          appearance: character.appearance ?? "",
-          photoDescription: character.photoDescription ?? "",
-        }
-      : emptyValues
+    valuesFor(character)
   )
   const [errors, setErrors] = useState<CharacterErrors>({})
   const [file, setFile] = useState<File>()
@@ -44,6 +74,9 @@ export function useCharacterForm(storyId: string, character?: Character) {
   )
   const [uploadState, setUploadState] = useState<
     "idle" | "uploading" | "error"
+  >("idle")
+  const [autofillState, setAutofillState] = useState<
+    "idle" | "loading" | "error"
   >("idle")
 
   useEffect(
@@ -62,10 +95,45 @@ export function useCharacterForm(storyId: string, character?: Character) {
     }))
   }
   const onPickFile = (picked: File) => {
+    const validation = validateUpload({
+      mimeType: picked.type,
+      size: picked.size,
+    })
+    if (!validation.valid) {
+      setErrors((current) => ({
+        ...current,
+        photo: validation.error,
+      }))
+      return
+    }
     if (photoPreviewUrl.startsWith("blob:"))
       URL.revokeObjectURL(photoPreviewUrl)
     setFile(picked)
     setPhotoPreviewUrl(URL.createObjectURL(picked))
+    setAutofillState("idle")
+    setErrors((current) => ({ ...current, photo: undefined, form: undefined }))
+  }
+  async function onAutofill() {
+    if (!file || autofillState === "loading") return
+    setAutofillState("loading")
+    setErrors((current) => ({ ...current, photo: undefined, form: undefined }))
+    try {
+      const payload = await postMultipart(
+        "/api/describe/photo",
+        { storyId, file },
+        AUTOFILL_ERROR
+      )
+      const details = characterPhotoAutofillSchema.parse(payload)
+      setValues((current) => ({ ...current, ...details }))
+      setAutofillState("idle")
+      toast.success("Appearance details added — review them before saving")
+    } catch (cause) {
+      setAutofillState("error")
+      setErrors((current) => ({
+        ...current,
+        photo: errorMessage(cause, AUTOFILL_ERROR),
+      }))
+    }
   }
   async function onSubmit(event?: FormEvent) {
     event?.preventDefault()
@@ -89,18 +157,11 @@ export function useCharacterForm(storyId: string, character?: Character) {
         : await create.mutateAsync({ storyId, character: parsed.data })
       if (file) {
         setUploadState("uploading")
-        const body = new FormData()
-        body.set("storyId", storyId)
-        body.set("characterId", saved.id)
-        body.set("file", file)
-        const response = await fetch("/api/upload/photo", {
-          method: "POST",
-          body,
-        })
-        if (!response.ok)
-          throw new Error(
-            (await response.json()).error ?? "Photo upload failed"
-          )
+        await postMultipart(
+          "/api/upload/photo",
+          { storyId, characterId: saved.id, file },
+          "Photo upload failed"
+        )
         await invalidate()
       }
       setUploadState("idle")
@@ -109,8 +170,7 @@ export function useCharacterForm(storyId: string, character?: Character) {
     } catch (cause) {
       setUploadState("error")
       setErrors({
-        form:
-          cause instanceof Error ? cause.message : "Could not save character",
+        form: errorMessage(cause, "Could not save character"),
       })
     }
   }
@@ -119,10 +179,13 @@ export function useCharacterForm(storyId: string, character?: Character) {
     errors,
     photoPreviewUrl,
     uploadState,
+    autofillState,
+    canAutofill: Boolean(file) && autofillState !== "loading",
     isSubmitting:
       create.isPending || update.isPending || uploadState === "uploading",
     onChange,
     onPickFile,
+    onAutofill,
     onSubmit,
   }
 }

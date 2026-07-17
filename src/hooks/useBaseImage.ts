@@ -70,6 +70,7 @@ export function useBaseImage(storyId: string) {
   }, [status])
 
   return {
+    story,
     characters,
     imageUrl: story.baseImageUrl ?? undefined,
     taskState: generate.isPending ? ("PENDING" as const) : status,

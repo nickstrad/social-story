@@ -1,6 +1,7 @@
 "use client"
 
 import { ExportPanel } from "./ExportPanel"
+import { StoryFlowFooter } from "./StoryFlowFooter"
 import { StoryStepsNav } from "./StoryStepsNav"
 import { PageHeader } from "@/components/layout/PageHeader"
 import { PageLayout } from "@/components/layout/PageLayout"
@@ -38,6 +39,7 @@ export function ExportScreen({ storyId }: { storyId: string }) {
         pdfUrl={pdfUrl}
         onExport={onExport}
       />
+      <StoryFlowFooter storyId={storyId} steps={steps} current="export" />
     </PageLayout>
   )
 }

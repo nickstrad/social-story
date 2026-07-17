@@ -35,7 +35,6 @@ function editBody(
   body.set("model", config.imageModel)
   body.set("prompt", prompt)
   body.set("size", imageSize)
-  body.set("response_format", "b64_json")
   images.forEach((image, index) => {
     const blob = new Blob([new Uint8Array(image.data)], {
       type: image.mimeType,
@@ -83,7 +82,6 @@ export function openAIImageGenerator(config: OpenAIConfig): ImageGenerator {
             model: config.imageModel,
             prompt,
             size: imageSize,
-            response_format: "b64_json",
           }),
         },
       ])

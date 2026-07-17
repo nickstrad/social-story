@@ -75,8 +75,40 @@ export async function createTask(
 
 export type TaskHandler = (
   task: Task,
-  deps: Deps
+  deps: Deps,
+  steps?: TaskStepRunner
 ) => Promise<JsonValue | undefined>
+
+export interface TaskStepRunner {
+  run<T extends JsonValue | undefined>(
+    name: string,
+    operation: () => Promise<T>
+  ): Promise<T>
+}
+
+/** Run inline for tests/E2E, or as a durable named step inside Inngest. */
+export function runTaskStep<T extends JsonValue | undefined>(
+  steps: TaskStepRunner | undefined,
+  name: string,
+  operation: () => Promise<T>
+): Promise<T> {
+  return steps ? steps.run(name, operation) : operation()
+}
+
+type TracedTaskResult = {
+  request: JsonValue
+  response: JsonValue
+  result: JsonValue
+}
+
+/** Run a traced task step while exposing only its durable task result. */
+export async function runTaskResultStep<T extends TracedTaskResult>(
+  steps: TaskStepRunner | undefined,
+  name: string,
+  operation: () => Promise<T>
+): Promise<T["result"]> {
+  return (await runTaskStep(steps, name, operation)).result
+}
 
 export async function claimTask(
   deps: Deps,

@@ -37,10 +37,28 @@ test("parsing the script reaches DONE and reports the page count", async ({
   await expect(page.getByText(/Parsed into \d+ pages/)).toBeVisible()
 })
 
+test("the footer shows artifacts and continues to characters", async ({
+  page,
+}) => {
+  const storyId = await createStory(page)
+  await page.getByRole("button", { name: "Parse into pages" }).click()
+  await expect(page.getByText("Complete")).toBeVisible()
+
+  await page.getByRole("button", { name: "View artifacts" }).click()
+  const artifacts = page.getByRole("dialog", { name: "Story artifacts" })
+  await expect(artifacts).toBeVisible()
+  await expect(artifacts.getByText("Story script")).toBeVisible()
+  await expect(artifacts.getByText(/Story pages · \d+/)).toBeVisible()
+  await page.keyboard.press("Escape")
+
+  await page.getByRole("link", { name: "Continue to Characters" }).click()
+  await expect(page).toHaveURL(`/stories/${storyId}/characters`)
+})
+
 test("the characters step is reachable once the script has content", async ({
   page,
 }) => {
   await createStory(page)
   // A story always starts with a non-empty script, so Characters is enabled.
-  await expect(page.getByRole("link", { name: "Characters" })).toBeVisible()
+  await expect(page.getByRole("link", { name: /^2 Characters$/ })).toBeVisible()
 })

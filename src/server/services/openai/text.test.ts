@@ -52,4 +52,46 @@ describe("openAITextGenerator", () => {
       })
     ).rejects.toThrow("did not match the requested schema")
   })
+
+  it("sends an image data URL with a structured multimodal request", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({
+        choices: [
+          {
+            message: {
+              content:
+                '{"appearance":"dark hair","photoDescription":"outdoors"}',
+            },
+          },
+        ],
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const result = await openAITextGenerator(config).generateJsonWithImage({
+      system: "family friendly",
+      user: "describe visible details",
+      image: { data: Buffer.from("photo"), mimeType: "image/png" },
+      schema: z.object({
+        appearance: z.string(),
+        photoDescription: z.string(),
+      }),
+      schemaName: "photo_details",
+    })
+
+    expect(result.appearance).toBe("dark hair")
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit
+    const body = JSON.parse(String(init.body))
+    expect(body.messages[1].content).toEqual([
+      { type: "text", text: "describe visible details" },
+      {
+        type: "image_url",
+        image_url: {
+          url: `data:image/png;base64,${Buffer.from("photo").toString("base64")}`,
+          detail: "high",
+        },
+      },
+    ])
+    expect(body.response_format.json_schema.name).toBe("photo_details")
+  })
 })

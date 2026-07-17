@@ -1,11 +1,11 @@
 import { headers } from "next/headers"
-import sharp from "sharp"
 
 import { assertStoryOwnership } from "@/server/api/ownership"
 import { getServerSession } from "@/server/auth-session"
 import { getDeps } from "@/server/container"
 import { validateUpload } from "@/server/domain/upload"
 import { assetUrl, replaceCharacterPhotoAsset } from "@/server/services/assets"
+import { normalizeReferencePhoto } from "@/server/services/photo"
 import { photoKey } from "@/server/services/storage-keys"
 
 const error = (message: string, status: number) =>
@@ -41,16 +41,9 @@ export async function POST(request: Request) {
   if (!character || character.storyId !== storyId)
     return error("Not found", 404)
 
-  const png = await sharp(Buffer.from(await file.arrayBuffer()))
-    .rotate()
-    .resize({
-      width: 1024,
-      height: 1024,
-      fit: "inside",
-      withoutEnlargement: true,
-    })
-    .png()
-    .toBuffer()
+  const png = await normalizeReferencePhoto(
+    Buffer.from(await file.arrayBuffer())
+  )
   const asset = await replaceCharacterPhotoAsset(
     deps,
     story,

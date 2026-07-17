@@ -1,8 +1,18 @@
+import { z } from "zod"
+
+import { assertStoryOwnership } from "@/server/api/ownership"
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc"
 import {
   collectArtifacts,
   type StoryArtifactSources,
 } from "@/server/domain/artifacts"
+import {
+  assetUrl,
+  clientCharacter,
+  clientStory,
+} from "@/server/services/assets"
+import type { Story } from "@/server/domain/types"
+import type { Repos } from "@/server/ports/repos"
 
 function groupBy<T>(
   values: T[],
@@ -19,7 +29,52 @@ function groupBy<T>(
   return groups
 }
 
+async function storyArtifactSnapshot(repos: Repos, story: Story) {
+  const [characters, rules, pages, pageImages, tasks, assets] =
+    await Promise.all([
+      repos.characters.listByStory(story.id),
+      repos.rules.listByStory(story.id),
+      repos.pages.listByStory(story.id),
+      repos.pages.listImagesByStory(story.id),
+      repos.tasks.listByStory(story.id),
+      repos.assets.listByStory(story.id),
+    ])
+  const assetIdByImageId = new Map(
+    pageImages.map((image) => [image.id, image.imageAssetId])
+  )
+  const pagesWithImages = pages.map((page) => {
+    const assetId = page.selectedImageId
+      ? assetIdByImageId.get(page.selectedImageId)
+      : undefined
+    return {
+      ...page,
+      selectedImageUrl: assetId ? assetUrl(assetId) : null,
+    }
+  })
+  return {
+    story: clientStory(story),
+    characters: characters.map(clientCharacter),
+    rules,
+    pages: pagesWithImages,
+    generated: collectArtifacts([
+      { story, characters, pages, pageImages, tasks, assets },
+    ]),
+  }
+}
+
 export const artifactRouter = createTRPCRouter({
+  /** A cumulative, story-scoped snapshot for the in-flow artifacts drawer. */
+  forStory: protectedProcedure
+    .input(z.object({ storyId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const story = await assertStoryOwnership(
+        ctx.deps.repos,
+        input.storyId,
+        ctx.session.user.id
+      )
+      return storyArtifactSnapshot(ctx.deps.repos, story)
+    }),
+
   /**
    * Every generated blob the signed-in user owns, newest first. Scoped by
    * listByUser, so ownership is enforced by construction — there is no

@@ -8,6 +8,7 @@ import { PageGridToolbar } from "./PageGridToolbar"
 import { PageHeader } from "@/components/layout/PageHeader"
 import { PageLayout } from "@/components/layout/PageLayout"
 import { StoryStepsNav } from "@/components/story/StoryStepsNav"
+import { StoryFlowFooter } from "@/components/story/StoryFlowFooter"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -156,6 +157,8 @@ export function PagesEditorScreen({
           />
         </div>
       )}
+
+      <StoryFlowFooter storyId={storyId} steps={steps} current="pages" />
 
       <AlertDialog
         open={deleteTarget !== null}

@@ -7,4 +7,11 @@ export interface TextGenerator {
     schema: ZodType<T>
     schemaName?: string
   }): Promise<T>
+  generateJsonWithImage<T>(args: {
+    system: string
+    user: string
+    image: { data: Buffer; mimeType: string }
+    schema: ZodType<T>
+    schemaName?: string
+  }): Promise<T>
 }

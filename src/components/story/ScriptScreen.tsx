@@ -1,6 +1,7 @@
 "use client"
 
 import { ScriptEditor } from "./ScriptEditor"
+import { StoryFlowFooter } from "./StoryFlowFooter"
 import { StoryStepsNav } from "./StoryStepsNav"
 import { deriveStepStates } from "@/lib/steps"
 import { trpc } from "@/lib/trpc"
@@ -34,6 +35,7 @@ export function ScriptScreen({ storyId }: { storyId: string }) {
         onChangeScript={editor.onChangeScript}
         onParse={editor.onParse}
       />
+      <StoryFlowFooter storyId={storyId} steps={steps} current="script" />
     </div>
   )
 }

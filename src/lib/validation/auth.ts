@@ -7,18 +7,31 @@ export const passwordSchema = z
 export const nameSchema = z.string().trim().min(1, "Enter your name")
 
 export type AuthMode = "signin" | "signup"
-export type AuthValues = { name: string; email: string; password: string }
+export type AuthValues = {
+  name: string
+  email: string
+  password: string
+  confirmPassword: string
+}
 export type AuthErrors = Partial<Record<keyof AuthValues | "form", string>>
 
 export function validateAuthInput(
   values: AuthValues,
   mode: AuthMode
 ): AuthErrors {
-  const schema = z.object({
+  const base = z.object({
     name: mode === "signup" ? nameSchema : z.string(),
     email: emailSchema,
     password: passwordSchema,
+    confirmPassword: z.string(),
   })
+  const schema =
+    mode === "signup"
+      ? base.refine((v) => v.password === v.confirmPassword, {
+          message: "Passwords do not match",
+          path: ["confirmPassword"],
+        })
+      : base
   const result = schema.safeParse(values)
 
   if (result.success) return {}

@@ -11,11 +11,20 @@ import {
   type AuthValues,
 } from "@/lib/validation/auth"
 
-const initialValues: AuthValues = { name: "", email: "", password: "" }
+const initialValues: AuthValues = {
+  name: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+}
 
 function authenticate(values: AuthValues, mode: AuthMode) {
   return mode === "signup"
-    ? signUp.email(values)
+    ? signUp.email({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+      })
     : signIn.email({ email: values.email, password: values.password })
 }
 

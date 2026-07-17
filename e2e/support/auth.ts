@@ -19,7 +19,9 @@ export async function signUp(page: Page, user: TestUser): Promise<void> {
   await page.goto("/signup")
   await page.getByLabel("Name").fill(user.name)
   await page.getByLabel("Email").fill(user.email)
-  await page.getByLabel("Password").fill(user.password)
+  // Exact match: the signup form also has a "Confirm password" field.
+  await page.getByLabel("Password", { exact: true }).fill(user.password)
+  await page.getByLabel("Confirm password").fill(user.password)
   await page.getByRole("button", { name: "Create account" }).click()
   await page.waitForURL("**/stories")
   // The app redirects client-side after Better Auth returns. Waiting for the

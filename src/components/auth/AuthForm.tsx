@@ -90,6 +90,24 @@ export function AuthForm({
               />
               <FieldError>{errors.password}</FieldError>
             </Field>
+            {isSignUp && (
+              <Field data-invalid={Boolean(errors.confirmPassword)}>
+                <FieldLabel htmlFor="confirmPassword">
+                  Confirm password
+                </FieldLabel>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  value={values.confirmPassword}
+                  onChange={(event) =>
+                    onChange("confirmPassword", event.target.value)
+                  }
+                  aria-invalid={Boolean(errors.confirmPassword)}
+                />
+                <FieldError>{errors.confirmPassword}</FieldError>
+              </Field>
+            )}
             {errors.form && (
               <Alert variant="destructive">
                 <AlertDescription>{errors.form}</AlertDescription>

@@ -12,7 +12,7 @@ import { inMemoryStorage } from "@/server/services/memory-storage"
 
 // Self-sufficient integration test: in-memory repos + fake adapters, no real
 // Postgres and no external APIs. Real-DB coverage lives in the Playwright E2E
-// suite (docs/13-e2e-playwright.md).
+// suite (docs/plans/completed/13-e2e-playwright.md).
 
 const user = {
   id: "owner",

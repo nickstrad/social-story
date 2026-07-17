@@ -34,9 +34,10 @@ Server component per the Suspense/hydration pattern (plan 03): `prefetch` `story
 > **Testing-policy update (supersedes the "real test DB" wording below).** Per
 > the project rule in `CLAUDE.md` (§ Testing), no test may touch a real DB or
 > external API — the capstone runs entirely on `inMemoryRepos` + `inMemoryStorage`
-> + fakes, and "sign-up user" is a constructed session user passed to
-> `createTestCaller`. Real Postgres is reserved for the Playwright E2E suite
-> (plan 13).
+>
+> - fakes, and "sign-up user" is a constructed session user passed to
+>   `createTestCaller`. Real Postgres is reserved for the Playwright E2E suite
+>   (plan 13).
 
 The capstone merge test, all through tRPC callers + `immediateDispatcher` + fakes (TextGenerator canned parse, fake ImageGenerator, in-memory storage, in-memory repos):
 sign-up user → create story → add 2 characters + TOGETHER rule → parse → base image → bulk generate all pages → hide one page → export PDF → assert PDF buffer starts with `%PDF`, page count = visible pages (cover included, hidden excluded), and a mid-flow export before images fails with the missing list.

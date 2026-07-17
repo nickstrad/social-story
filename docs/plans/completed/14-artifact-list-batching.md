@@ -120,7 +120,7 @@ already takes `StoryArtifactSources[]`.
 
 ## Ownership
 
-Do not lose the current guarantee. Ownership holds *by construction*: every id
+Do not lose the current guarantee. Ownership holds _by construction_: every id
 in `storyIds` came from `stories.listByUser(session.user.id)`, so the `in`
 filters cannot reach another user's rows. There is deliberately no
 `assertStoryOwnership` per story, and none should be added — that would

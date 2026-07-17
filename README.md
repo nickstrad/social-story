@@ -11,7 +11,7 @@ This repo is mid-conversion from a Go CLI to a web app:
 
 The planned UX: sign in, paste a social-story script, upload photos of the people who should appear (with metadata and rules like "the siblings always appear together"), generate a character reference sheet for visual consistency, then generate an illustration per page — with editable text, extra steering prompts, regeneration variants, and add/remove/hide/reorder — before exporting the finished book as a PDF. Image generation runs as background tasks so the UI never blocks.
 
-The build is specified as self-contained plans in [`docs/`](docs/): start with [`docs/00-overview.md`](docs/00-overview.md) (architecture, conventions, dependency graph), then plans `01`–`12` in dependency order. Planned stack: Next.js 16 (App Router), tRPC v11, Prisma → Neon Postgres, Better Auth, Vercel Blob, Inngest, sharp, pdf-lib.
+The build is specified as self-contained plans in [`docs/plans/`](docs/plans/): start with [`docs/plans/completed/00-overview.md`](docs/plans/completed/00-overview.md) (architecture, conventions, dependency graph), then plans `01`–`12` in dependency order. Planned stack: Next.js 16 (App Router), tRPC v11, Prisma → Neon Postgres, Better Auth, Vercel Blob, Inngest, sharp, pdf-lib.
 
 What exists at the root today:
 

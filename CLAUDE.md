@@ -76,3 +76,24 @@ Rules, therefore:
 Never read, `cat`, `grep`, or otherwise inspect `.env.local` (or copies) — it holds secrets. Copy it between worktrees as an opaque file only. To learn which variables are required, read the code (`process.env.X` references) or a checked-in `.env.example`.
 
 The config module (wherever env vars are read in code) is the source of truth for what variables exist and how they're used. Give config values sane defaults where possible, so `.env.local` only carries real secrets and environment-specific overrides. Keeping `.env.local` in sync with the config module is the user's job — don't try to infer or validate its contents.
+
+# Database operations
+
+For manual development or production database work, use the guarded root
+`Makefile`/`scripts/db.mjs` interface documented in `docs/database.md`. Always
+pass `TARGET=dev` or `TARGET=prod` plus an explicit `DB_URL` or `DB_ENV_FILE`;
+never rely on an implicitly loaded env file. Do not inspect an env file while
+using it.
+
+Create migrations with `db-migrate` against development only. Apply reviewed,
+checked-in migrations with `db-deploy` in production. Database resets require a
+matching database-name confirmation, and production reset/push require their
+additional explicit opt-in flags. A database reset does not remove Vercel Blob
+objects or other external-service data.
+
+To source Production variables from Vercel, use `make vercel-env-pull-prod` to
+write the ignored `.env.production` file, then pass it explicitly as
+`DB_ENV_FILE=.env.production`. Linking, pulling, and database mutation remain
+separate steps. Never inspect or print the pulled file. Use
+`vercel-env-pull-prod-force` only when overwriting the local file without a
+prompt is intentional.

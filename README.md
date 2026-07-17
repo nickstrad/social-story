@@ -59,6 +59,45 @@ environment.
 To run either development process by itself, use `npm run dev:web` or
 `npm run dev:inngest`.
 
+## Database operations
+
+Use the root `Makefile` or `npm run db` for explicit database maintenance. These
+commands never load `.env` or `.env.local` automatically: identify the target as
+`dev` or `prod`, then provide either a URL or a dotenv file containing
+`DATABASE_URL`. See [`docs/database.md`](docs/database.md) for the full migration
+workflow, command reference, and safety behavior.
+
+```bash
+# Inspect a pasted development URL.
+make db-status TARGET=dev DB_URL='postgresql://user:password@host/database'
+
+# Apply checked-in migrations to production using a local, untracked env file.
+make db-deploy TARGET=prod DB_ENV_FILE=.env.production
+
+# Create and apply a development migration.
+make db-migrate TARGET=dev DB_ENV_FILE=.env.local NAME=add_story_index
+
+# Wipe a disposable development database and replay all migrations. The
+# confirmation must exactly match the database name in DATABASE_URL.
+make db-reset TARGET=dev DB_ENV_FILE=.env.local CONFIRM=database
+```
+
+Run `make help` for the full command list. Prefer an env file when possible so
+credentials are not retained in shell history.
+
+To populate `.env.production` from the linked Vercel project, authenticate with
+the Vercel CLI and run:
+
+```bash
+make vercel-link          # one-time project linking
+make vercel-env-list-prod
+make vercel-env-pull-prod
+```
+
+The pull command does not run a database operation. See
+[`docs/database.md`](docs/database.md#loading-production-variables-from-vercel)
+for overwrite behavior and the production migration workflow.
+
 ## End-to-end tests
 
 The Playwright suite runs against a production Next.js build and a disposable

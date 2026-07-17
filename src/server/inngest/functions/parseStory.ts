@@ -1,8 +1,8 @@
-import { parsedStorySchema, type ParsedStory } from "@/server/domain/schemas"
+import type { ParsedStory } from "@/server/domain/schemas"
 import { parsedStoryToPages } from "@/server/domain/pageOps"
-import { buildParseSystemPrompt } from "@/server/domain/prompts"
 import { applyRulesToStory } from "@/server/domain/rules"
 import type { CreatePage, Page, Task, UpdateStory } from "@/server/domain/types"
+import { toCharacterContext, toRuleContext } from "@/server/ai"
 import { registerTaskHandler } from "@/server/inngest/handlers"
 import type { Deps } from "@/server/container"
 import {
@@ -53,10 +53,10 @@ async function convertStoryToJson(
   context: StoryContext,
   deps: Deps
 ): Promise<ParsedStory> {
-  return deps.text.generateJson({
-    system: buildParseSystemPrompt(context.characters, context.rules),
-    user: context.story.script,
-    schema: parsedStorySchema,
+  return deps.ai.storyToData.convert({
+    script: context.story.script,
+    characters: context.characters.map(toCharacterContext),
+    rules: context.rules.map(toRuleContext),
   })
 }
 

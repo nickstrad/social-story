@@ -3,12 +3,9 @@
 import { beforeEach, describe, expect, it } from "vitest"
 
 import { createTestCaller } from "@/server/api/test-utils"
+import { createFakeAiActions } from "@/server/ai/testing/fakes"
 import type { Deps } from "@/server/container"
-import {
-  fakeImageGenerator,
-  fakeTextGenerator,
-  immediateDispatcher,
-} from "@/server/services/fakes"
+import { immediateDispatcher } from "@/server/services/fakes"
 import { inMemoryRepos } from "@/server/repos/memory"
 import { inMemoryStorage } from "@/server/services/memory-storage"
 
@@ -38,8 +35,7 @@ describe("page ops through the router", () => {
     deps = {
       repos: inMemoryRepos(),
       storage: inMemoryStorage(),
-      text: fakeTextGenerator({}),
-      image: fakeImageGenerator(),
+      ai: createFakeAiActions(),
       dispatcher: immediateDispatcher(async () => {}),
     }
     const story = await deps.repos.stories.create({

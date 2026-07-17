@@ -1,5 +1,5 @@
 import type { Deps } from "@/server/container"
-import type { ReferenceImage } from "@/server/ports/image"
+import type { InputImage } from "@/server/ai"
 
 /**
  * Load a stored blob as a PNG reference image. The upload route re-encodes every
@@ -9,11 +9,11 @@ import type { ReferenceImage } from "@/server/ports/image"
 export async function toReferenceImage(
   deps: Deps,
   assetId: string
-): Promise<ReferenceImage> {
+): Promise<InputImage> {
   const asset = await deps.repos.assets.getById(assetId)
   if (!asset) throw new Error(`Reference asset not found: ${assetId}`)
   return {
     data: await deps.storage.fetchBuffer(asset.storageLocator),
-    mimeType: asset.contentType,
+    mediaType: asset.contentType,
   }
 }

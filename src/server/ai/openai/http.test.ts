@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { computeBackoff, requestWithRetry } from "./http"
+import { computeBackoff, OpenAIHttpError, requestWithRetry } from "./http"
 
 describe("computeBackoff", () => {
   it("doubles from one second", () => {
@@ -11,11 +11,8 @@ describe("computeBackoff", () => {
     ])
   })
 
-  it("prefers Retry-After seconds", () => {
+  it("prefers Retry-After seconds and caps excessive delays", () => {
     expect(computeBackoff(2, "7")).toBe(7_000)
-  })
-
-  it("caps excessive server-directed delays", () => {
     expect(computeBackoff(0, "300")).toBe(30_000)
   })
 })
@@ -41,15 +38,16 @@ describe("requestWithRetry", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
-  it("fails fast on a non-retryable client error", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(new Response("bad", { status: 400 }))
-    vi.stubGlobal("fetch", fetchMock)
-
-    await expect(requestWithRetry(["https://example.test"])).rejects.toThrow(
-      "OpenAI request failed (400): bad"
+  it("fails fast with private diagnostic detail on a client error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response("private body", { status: 400 }))
     )
-    expect(fetchMock).toHaveBeenCalledOnce()
+
+    const error = await requestWithRetry(["https://example.test"]).catch(
+      (caught: unknown) => caught
+    )
+    expect(error).toBeInstanceOf(OpenAIHttpError)
+    expect(error).toMatchObject({ status: 400, responseBody: "private body" })
   })
 })

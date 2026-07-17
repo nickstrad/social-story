@@ -35,14 +35,18 @@ function readImage(name: string): Buffer {
  * real task handler. Unknown prompts fail loudly so new image flows cannot
  * silently receive an unrelated fixture.
  */
-export function imageFixture(prompt: string): Buffer {
-  if (prompt.includes("CHARACTER REFERENCE SHEET"))
-    return readImage("base-image.png")
-  if (prompt.includes("BOOK COVER")) return readImage("cover.png")
-  if (prompt.includes("sits calmly in the dental chair"))
+export function baseImageFixture(): Buffer {
+  return readImage("base-image.png")
+}
+
+export function coverImageFixture(): Buffer {
+  return readImage("cover.png")
+}
+
+export function pageImageFixture(scene: string): Buffer {
+  if (scene.includes("sits calmly in the dental chair"))
     return readImage("page-1.png")
-  if (prompt.includes("dentist gently counts")) return readImage("page-2.png")
-  if (prompt.includes("leaves the dental clinic"))
-    return readImage("page-3.png")
-  throw new Error(`No E2E image fixture matches prompt: ${prompt}`)
+  if (scene.includes("dentist gently counts")) return readImage("page-2.png")
+  if (scene.includes("leaves the dental clinic")) return readImage("page-3.png")
+  throw new Error(`No E2E page image fixture matches scene: ${scene}`)
 }

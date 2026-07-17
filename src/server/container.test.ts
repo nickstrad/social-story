@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest"
 
+import { createFakeAiActions } from "./ai/testing/fakes"
 import { parseConfig } from "./config"
 import { createDeps } from "./container"
 import { inMemoryRepos } from "./repos/memory"
 import { inMemoryStorage } from "./services/memory-storage"
-import { fakeImageGenerator, fakeTextGenerator } from "./services/fakes"
 import type { Deps } from "./container"
 import { immediateDispatcher } from "./services/fakes"
 
@@ -13,14 +13,16 @@ describe("Deps", () => {
     const deps: Deps = {
       repos: inMemoryRepos(),
       storage: inMemoryStorage(),
-      text: fakeTextGenerator({}),
-      image: fakeImageGenerator(),
+      ai: createFakeAiActions(),
       dispatcher: immediateDispatcher(async () => {}),
     }
     expect(deps.repos.stories).toBeDefined()
     expect(deps.storage.put).toBeTypeOf("function")
-    expect(deps.text.generateJson).toBeTypeOf("function")
-    expect(deps.image.generate).toBeTypeOf("function")
+    expect(deps.ai.storyToData.convert).toBeTypeOf("function")
+    expect(deps.ai.characterPhotoAutofill.suggest).toBeTypeOf("function")
+    expect(deps.ai.baseImage.generate).toBeTypeOf("function")
+    expect(deps.ai.pageImage.generate).toBeTypeOf("function")
+    expect(deps.ai.coverImage.generate).toBeTypeOf("function")
     expect(deps.dispatcher.dispatch).toBeTypeOf("function")
   })
 
@@ -36,7 +38,7 @@ describe("Deps", () => {
     const deps = createDeps(config)
     expect(deps.repos.pages.listByStory).toBeTypeOf("function")
     expect(deps.storage.fetchBuffer).toBeTypeOf("function")
-    expect(deps.text.generateJson).toBeTypeOf("function")
-    expect(deps.image.generate).toBeTypeOf("function")
+    expect(deps.ai.storyToData.convert).toBeTypeOf("function")
+    expect(deps.ai.baseImage.generate).toBeTypeOf("function")
   })
 })

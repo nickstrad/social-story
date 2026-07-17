@@ -26,10 +26,18 @@ function isRetryableStatus(status: number): boolean {
   return status === 429 || status >= 500
 }
 
+export class OpenAIHttpError extends Error {
+  constructor(
+    readonly status: number,
+    readonly responseBody: string
+  ) {
+    super(`OpenAI request failed (${status})`)
+    this.name = "OpenAIHttpError"
+  }
+}
+
 async function errorFromResponse(response: Response): Promise<Error> {
-  const body = await response.text()
-  const detail = body ? `: ${body}` : ""
-  return new Error(`OpenAI request failed (${response.status})${detail}`)
+  return new OpenAIHttpError(response.status, await response.text())
 }
 
 export async function requestWithRetry(

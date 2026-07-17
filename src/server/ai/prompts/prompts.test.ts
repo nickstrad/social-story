@@ -1,15 +1,17 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vitest"
-import { character, rule } from "./testFactories"
+
+import { character, rule } from "@/server/domain/testFactories"
+
 import {
   buildBaseSheetPrompt,
   buildCastDescription,
   buildCoverPrompt,
   buildImagePrompt,
-  buildParseSystemPrompt,
   buildStyleContext,
-} from "./prompts"
+} from "./illustration"
+import { buildParseSystemPrompt } from "./story-to-data"
 
 const allison = {
   ...character("a", "Allison"),
@@ -19,7 +21,7 @@ const allison = {
 }
 const ezra = character("e", "Ezra")
 
-describe("prompt builders", () => {
+describe("AI prompt policies", () => {
   it("uses default and custom reader context", () => {
     expect(buildStyleContext()).toContain(
       "calm, clear children's social-story style"

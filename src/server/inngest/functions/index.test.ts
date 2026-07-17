@@ -2,14 +2,11 @@
 
 import { describe, expect, it } from "vitest"
 
+import { createFakeAiActions } from "@/server/ai/testing/fakes"
 import type { Deps } from "@/server/container"
 import type { TaskType } from "@/server/domain/types"
 import { inMemoryRepos } from "@/server/repos/memory"
-import {
-  fakeImageGenerator,
-  fakeTextGenerator,
-  immediateDispatcher,
-} from "@/server/services/fakes"
+import { immediateDispatcher } from "@/server/services/fakes"
 import { inMemoryStorage } from "@/server/services/memory-storage"
 
 import { dispatchTask } from "./index"
@@ -18,8 +15,7 @@ function makeDeps(): Deps {
   return {
     repos: inMemoryRepos(),
     storage: inMemoryStorage(),
-    text: fakeTextGenerator({}),
-    image: fakeImageGenerator(),
+    ai: createFakeAiActions(),
     dispatcher: immediateDispatcher(async () => {}),
   }
 }

@@ -19,10 +19,56 @@ describe("parseConfig", () => {
 
   it("applies optional defaults", () => {
     expect(parseConfig(validEnv)).toMatchObject({
-      openai: { chatModel: "gpt-5.5", imageModel: "gpt-image-2" },
+      openai: { token: "openai-token" },
+      ai: {
+        storyToData: { provider: "openai", model: "gpt-5.5" },
+        characterPhotoAutofill: { provider: "openai", model: "gpt-5.5" },
+        baseImage: { provider: "openai", model: "gpt-image-2" },
+        pageImage: { provider: "openai", model: "gpt-image-2" },
+        coverImage: { provider: "openai", model: "gpt-image-2" },
+      },
       inngest: { isDev: true },
       env: "development",
     })
+  })
+
+  it("configures each AI action independently", () => {
+    expect(
+      parseConfig({
+        ...validEnv,
+        AI_STORY_TO_DATA_MODEL: "story-model",
+        AI_CHARACTER_PHOTO_AUTOFILL_MODEL: "vision-model",
+        AI_BASE_IMAGE_MODEL: "base-model",
+        AI_PAGE_IMAGE_MODEL: "page-model",
+        AI_COVER_IMAGE_MODEL: "cover-model",
+      }).ai
+    ).toEqual({
+      storyToData: { provider: "openai", model: "story-model" },
+      characterPhotoAutofill: { provider: "openai", model: "vision-model" },
+      baseImage: { provider: "openai", model: "base-model" },
+      pageImage: { provider: "openai", model: "page-model" },
+      coverImage: { provider: "openai", model: "cover-model" },
+    })
+  })
+
+  it("uses legacy OpenAI models only as fallbacks", () => {
+    const config = parseConfig({
+      ...validEnv,
+      OPENAI_CHAT_MODEL: "legacy-chat",
+      OPENAI_IMAGE_MODEL: "legacy-image",
+      AI_STORY_TO_DATA_MODEL: "specific-story",
+    })
+    expect(config.ai.storyToData.model).toBe("specific-story")
+    expect(config.ai.characterPhotoAutofill.model).toBe("legacy-chat")
+    expect(config.ai.baseImage.model).toBe("legacy-image")
+    expect(config.ai.pageImage.model).toBe("legacy-image")
+    expect(config.ai.coverImage.model).toBe("legacy-image")
+  })
+
+  it("rejects unsupported providers at startup", () => {
+    expect(() =>
+      parseConfig({ ...validEnv, AI_PAGE_IMAGE_PROVIDER: "openrouter" })
+    ).toThrow(/AI_PAGE_IMAGE_PROVIDER/)
   })
 
   it("prefers a complete OIDC pair without passing the static token", () => {

@@ -2,17 +2,15 @@
 
 import { beforeAll, describe, expect, it } from "vitest"
 
+import type { StoryToData } from "@/server/ai"
 import { createTestCaller } from "@/server/api/test-utils"
+import { createFakeAiActions } from "@/server/ai/testing/fakes"
 import type { Deps } from "@/server/container"
 import type { ParsedStory } from "@/server/domain/schemas"
 import { getTaskHandler } from "@/server/inngest/handlers"
 import { runParseStoryTask } from "@/server/inngest/functions/parseStory"
 import { inMemoryRepos } from "@/server/repos/memory"
-import {
-  fakeImageGenerator,
-  fakeTextGenerator,
-  immediateDispatcher,
-} from "@/server/services/fakes"
+import { immediateDispatcher } from "@/server/services/fakes"
 import { inMemoryStorage } from "@/server/services/memory-storage"
 import { runTask, type TaskStepRunner } from "@/server/services/tasks"
 
@@ -46,6 +44,8 @@ const parsed: ParsedStory = {
   ],
 }
 
+const storyToDataInputs: Parameters<StoryToData["convert"]>[0][] = []
+
 describe("parse integration", () => {
   let deps: Deps
   const userId = "parse-user"
@@ -64,8 +64,12 @@ describe("parse integration", () => {
     deps = {
       repos,
       storage: inMemoryStorage(),
-      text: fakeTextGenerator({ [SCRIPT]: parsed }),
-      image: fakeImageGenerator(),
+      ai: createFakeAiActions({
+        storyToData: async (input) => {
+          storyToDataInputs.push(input)
+          return parsed
+        },
+      }),
       dispatcher: immediateDispatcher(async (taskId) => {
         const task = await repos.tasks.getById(taskId)
         const handler = task && getTaskHandler(task.type)
@@ -133,6 +137,16 @@ describe("parse integration", () => {
     expect(visibleTrace).not.toContain(parsed.title)
     expect(visibleTrace).not.toContain("Sam")
     expect(visibleTrace).not.toContain("Mia")
+    expect(storyToDataInputs.at(-1)?.characters[0]).toEqual({
+      name: "Sam",
+      role: null,
+      age: null,
+      appearance: null,
+    })
+    expect(storyToDataInputs.at(-1)?.rules[0]).toEqual({
+      kind: "TOGETHER",
+      text: "Sam and Mia always appear together",
+    })
   })
 
   it("refuses to re-parse when a page already has a generated image", async () => {

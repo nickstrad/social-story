@@ -2,10 +2,8 @@
 
 import { useEffect, useState, type FormEvent } from "react"
 import { toast } from "sonner"
-import {
-  characterInputSchema,
-  characterPhotoAutofillSchema,
-} from "@/server/domain/schemas"
+import { characterPhotoAutofillSchema } from "@/server/ai"
+import { characterInputSchema } from "@/server/domain/schemas"
 import { validateUpload } from "@/server/domain/upload"
 import type { ClientCharacter as Character } from "@/server/domain/types"
 import { useCharacters } from "./useCharacters"

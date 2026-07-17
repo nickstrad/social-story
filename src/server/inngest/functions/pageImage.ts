@@ -1,6 +1,6 @@
 import type { Deps } from "@/server/container"
+import { toCharacterContext, toRuleContext } from "@/server/ai"
 import { pickReferencePhoto } from "@/server/domain/photoPick"
-import { buildCoverPrompt, buildImagePrompt } from "@/server/domain/prompts"
 import { applyRulesToPage } from "@/server/domain/rules"
 import { nextVariant } from "@/server/domain/taskMachine"
 import type { Character, Page, Rule, Story, Task } from "@/server/domain/types"
@@ -36,21 +36,7 @@ function buildGenerationContext(
   const isCover = page.kind === "COVER"
   const anchored =
     (isCover || pageCharacters.length > 0) && Boolean(story.baseImageAssetId)
-  const prompt = isCover
-    ? buildCoverPrompt({
-        title: story.title,
-        characters,
-        note: story.coverNote ?? undefined,
-      })
-    : buildImagePrompt({
-        scene: page.imagePrompt,
-        characters: pageCharacters,
-        allCharacters: characters,
-        anchored,
-        steeringText: page.steeringText ?? undefined,
-        rules,
-      })
-  return { anchored, isCover, pageCharacters, prompt }
+  return { anchored, isCover, pageCharacters }
 }
 
 async function loadReferenceImages(
@@ -63,13 +49,15 @@ async function loadReferenceImages(
     pageCharacters,
     hasAnchor: anchored,
   })
-  const assetIds = [
-    ...(anchored && story.baseImageAssetId ? [story.baseImageAssetId] : []),
-    ...(photo?.photoAssetId ? [photo.photoAssetId] : []),
-  ]
-  // The character sheet remains first because the prompt identifies the first
-  // reference as the visual anchor.
-  return Promise.all(assetIds.map((assetId) => toReferenceImage(deps, assetId)))
+  const [anchorImage, characterPhoto] = await Promise.all([
+    anchored && story.baseImageAssetId
+      ? toReferenceImage(deps, story.baseImageAssetId)
+      : undefined,
+    photo?.photoAssetId
+      ? toReferenceImage(deps, photo.photoAssetId)
+      : undefined,
+  ])
+  return { anchorImage, characterPhoto }
 }
 
 export async function runPageImageTask(
@@ -91,25 +79,43 @@ export async function runPageImageTask(
         deps.repos.characters.listByStory(task.storyId),
         deps.repos.rules.listByStory(task.storyId),
       ])
-      const { anchored, isCover, pageCharacters, prompt } =
-        buildGenerationContext(page, story, characters, rules)
-      const referenceImages = await loadReferenceImages(
+      const { anchored, isCover, pageCharacters } = buildGenerationContext(
+        page,
+        story,
+        characters,
+        rules
+      )
+      const references = await loadReferenceImages(
         deps,
         story,
         pageCharacters,
         anchored
       )
+      const cast = characters.map(toCharacterContext)
+      const selectedCharacters = pageCharacters.map(toCharacterContext)
 
       // The variant read doesn't depend on the (multi-second) render, so overlap it.
-      const [raw, existing] = await Promise.all([
-        deps.image.generate({
-          prompt,
-          referenceImages,
-          width: IMAGE_SIZE,
-          height: IMAGE_SIZE,
-        }),
+      const [artwork, existing] = await Promise.all([
+        isCover
+          ? deps.ai.coverImage.generate({
+              title: story.title,
+              cast,
+              note: story.coverNote ?? undefined,
+              ...references,
+              dimensions: { width: IMAGE_SIZE, height: IMAGE_SIZE },
+            })
+          : deps.ai.pageImage.generate({
+              scene: page.imagePrompt,
+              pageCharacters: selectedCharacters,
+              cast,
+              rules: rules.map(toRuleContext),
+              steeringText: page.steeringText ?? undefined,
+              ...references,
+              dimensions: { width: IMAGE_SIZE, height: IMAGE_SIZE },
+            }),
         deps.repos.pages.listImages(page.id),
       ])
+      const { png: raw, promptUsed } = artwork
       const variant = nextVariant(existing.map((image) => image.variant))
 
       // Captioning is not idempotent, so it always runs against the raw source; the
@@ -122,7 +128,7 @@ export async function runPageImageTask(
         userId: story.userId,
         storyId: story.id,
         pageId: page.id,
-        promptUsed: prompt,
+        promptUsed,
         variant,
         raw,
         captioned,
@@ -134,7 +140,10 @@ export async function runPageImageTask(
         request: {
           pageKind: page.kind,
           characterCount: pageCharacters.length,
-          referenceImageCount: referenceImages.length,
+          referenceImageCount: [
+            references.anchorImage,
+            references.characterPhoto,
+          ].filter(Boolean).length,
           anchoredToCharacterSheet: anchored,
           outputSize: `${IMAGE_SIZE}x${IMAGE_SIZE}`,
         },

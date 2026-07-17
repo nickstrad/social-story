@@ -38,11 +38,6 @@ export const characterInputSchema = z.object({
   photoDescription: z.string().trim().max(2_000).nullable().optional(),
 })
 
-export const characterPhotoAutofillSchema = z.object({
-  appearance: requiredText.max(2_000),
-  photoDescription: requiredText.max(2_000),
-})
-
 type RuleKind = "TOGETHER" | "ALWAYS_INCLUDE" | "NEVER_INCLUDE" | "FREEFORM"
 
 export const minCharacterIds = (kind: RuleKind) =>

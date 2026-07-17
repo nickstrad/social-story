@@ -1,13 +1,10 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest"
+import { createFakeAiActions } from "@/server/ai/testing/fakes"
 import type { Deps } from "@/server/container"
 import { createTestCaller } from "@/server/api/test-utils"
 import { inMemoryRepos } from "@/server/repos/memory"
-import {
-  fakeImageGenerator,
-  fakeTextGenerator,
-  immediateDispatcher,
-} from "@/server/services/fakes"
+import { immediateDispatcher } from "@/server/services/fakes"
 import { inMemoryStorage } from "@/server/services/memory-storage"
 
 // Self-sufficient integration test: in-memory repos + fake adapters, no real
@@ -31,8 +28,7 @@ const other = {
 const deps = (): Deps => ({
   repos: inMemoryRepos(),
   storage: inMemoryStorage(),
-  text: fakeTextGenerator({}),
-  image: fakeImageGenerator(),
+  ai: createFakeAiActions(),
   dispatcher: immediateDispatcher(async () => {}),
 })
 

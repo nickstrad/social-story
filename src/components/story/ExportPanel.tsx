@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -45,16 +46,18 @@ export function ExportPanel({
   const actionLabel = exportLabel(taskState, pdfUrl)
 
   return (
-    <Card className="mx-auto w-full max-w-3xl">
-      <CardHeader className="flex-row items-start justify-between gap-4">
-        <div className="grid gap-1">
-          <CardTitle>Export PDF</CardTitle>
-          <CardDescription>
-            Assemble the cover and every visible page — in order — into a single
-            PDF to download.
-          </CardDescription>
-        </div>
-        {taskState && <TaskStatusBadge status={taskState} error={taskError} />}
+    <Card className="mx-auto w-full max-w-form">
+      <CardHeader>
+        <CardTitle>Export PDF</CardTitle>
+        <CardDescription>
+          Assemble the cover and every visible page — in order — into a single
+          PDF to download.
+        </CardDescription>
+        {taskState && (
+          <CardAction>
+            <TaskStatusBadge status={taskState} error={taskError} />
+          </CardAction>
+        )}
       </CardHeader>
       <CardContent className="grid gap-4">
         {missingPages.length > 0 ? (

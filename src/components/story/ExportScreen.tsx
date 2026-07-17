@@ -2,6 +2,8 @@
 
 import { ExportPanel } from "./ExportPanel"
 import { StoryStepsNav } from "./StoryStepsNav"
+import { PageHeader } from "@/components/layout/PageHeader"
+import { PageLayout } from "@/components/layout/PageLayout"
 import { deriveStepStates } from "@/lib/steps"
 import { trpc } from "@/lib/trpc"
 import { useExport } from "@/hooks/useExport"
@@ -21,14 +23,12 @@ export function ExportScreen({ storyId }: { storyId: string }) {
   })
 
   return (
-    <div className="mx-auto grid max-w-3xl gap-8">
+    <PageLayout width="form" spacing="relaxed">
       <StoryStepsNav storyId={storyId} steps={steps} current="export" />
-      <div className="grid gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight">Export</h1>
-        <p className="text-muted-foreground">
-          Turn your finished story into a downloadable PDF.
-        </p>
-      </div>
+      <PageHeader
+        title="Export"
+        description="Turn your finished story into a downloadable PDF."
+      />
       <ExportPanel
         storyId={storyId}
         readyPages={readyPages}
@@ -38,6 +38,6 @@ export function ExportScreen({ storyId }: { storyId: string }) {
         pdfUrl={pdfUrl}
         onExport={onExport}
       />
-    </div>
+    </PageLayout>
   )
 }

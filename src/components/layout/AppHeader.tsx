@@ -14,8 +14,8 @@ export function AppHeader({ email, isSigningOut, onSignOut }: AppHeaderProps) {
   return (
     // Sticky so the offcanvas sidebar, which is fixed just below it, never
     // slides up over the brand and sign-out controls.
-    <header className="sticky top-0 z-20 h-(--header-height) shrink-0 border-b bg-background">
-      <div className="flex h-full items-center justify-between gap-4 px-6">
+    <header className="sticky top-0 z-20 h-app-header shrink-0 border-b bg-background">
+      <div className="flex h-full items-center justify-between gap-4 px-app-gutter">
         <div className="flex items-center gap-2">
           <SidebarTrigger />
           <Link href="/stories" className="font-semibold">

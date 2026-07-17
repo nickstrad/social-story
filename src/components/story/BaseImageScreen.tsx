@@ -1,6 +1,8 @@
 "use client"
 
 import { BaseImagePanel } from "./BaseImagePanel"
+import { PageHeader } from "@/components/layout/PageHeader"
+import { PageLayout } from "@/components/layout/PageLayout"
 import { useBaseImage } from "@/hooks/useBaseImage"
 
 export function BaseImageScreen({ storyId }: { storyId: string }) {
@@ -14,14 +16,11 @@ export function BaseImageScreen({ storyId }: { storyId: string }) {
   } = useBaseImage(storyId)
 
   return (
-    <div className="mx-auto grid max-w-3xl gap-6">
-      <div className="grid gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight">Base image</h1>
-        <p className="text-muted-foreground">
-          Generate the reference sheet that keeps your characters consistent
-          across every page.
-        </p>
-      </div>
+    <PageLayout width="form">
+      <PageHeader
+        title="Base image"
+        description="Generate the reference sheet that keeps your characters consistent across every page."
+      />
       <BaseImagePanel
         storyId={storyId}
         imageUrl={imageUrl}
@@ -31,6 +30,6 @@ export function BaseImageScreen({ storyId }: { storyId: string }) {
         canGenerate={canGenerate}
         onGenerate={onGenerate}
       />
-    </div>
+    </PageLayout>
   )
 }

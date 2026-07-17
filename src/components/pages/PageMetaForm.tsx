@@ -5,7 +5,12 @@ import { ChevronLeftIcon, ChevronRightIcon, Trash2Icon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+  FieldTitle,
+} from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import type { ClientCharacter as Character } from "@/server/domain/types"
@@ -61,42 +66,39 @@ export function PageMetaForm({
         </Button>
       </div>
 
-      <div className="grid gap-2">
-        <Label htmlFor="page-text">Page text</Label>
+      <Field>
+        <FieldLabel htmlFor="page-text">Page text</FieldLabel>
         <Textarea
           id="page-text"
           rows={3}
           value={text}
           onChange={(event) => onChangeText(event.target.value)}
         />
-      </div>
+      </Field>
 
-      <div className="grid gap-2">
-        <Label htmlFor="page-prompt">Image prompt</Label>
+      <Field>
+        <FieldLabel htmlFor="page-prompt">Image prompt</FieldLabel>
         <Textarea
           id="page-prompt"
           rows={4}
           value={imagePrompt}
           onChange={(event) => onChangeImagePrompt(event.target.value)}
         />
-      </div>
+      </Field>
 
-      <div className="grid gap-2">
-        <Label>Characters</Label>
+      <Field>
+        <FieldTitle>Characters</FieldTitle>
         {characters.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
+          <FieldDescription>
             No characters yet — add them in the Characters step.
-          </p>
+          </FieldDescription>
         ) : (
-          <div className="grid gap-2">
+          <div className="grid gap-field">
             {characters.map((character) => {
               const byRule =
                 !selected.has(character.id) && effective.has(character.id)
               return (
-                <label
-                  key={character.id}
-                  className="flex items-center gap-2 text-sm"
-                >
+                <FieldLabel key={character.id} className="font-normal">
                   <Checkbox
                     checked={selected.has(character.id)}
                     onCheckedChange={() => onToggleCharacter(character.id)}
@@ -107,19 +109,19 @@ export function PageMetaForm({
                       added by rule
                     </Badge>
                   )}
-                </label>
+                </FieldLabel>
               )
             })}
           </div>
         )}
-      </div>
+      </Field>
 
       {!isCover && (
         <div className="flex items-center justify-between border-t pt-4">
-          <label className="flex items-center gap-2 text-sm">
+          <FieldLabel className="font-normal">
             <Switch checked={hidden} onCheckedChange={onToggleHidden} />
             Hidden from export
-          </label>
+          </FieldLabel>
           <Button variant="ghost" size="sm" onClick={onDelete}>
             <Trash2Icon />
             Delete

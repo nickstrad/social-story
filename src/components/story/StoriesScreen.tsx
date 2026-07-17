@@ -4,6 +4,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { PlusIcon } from "lucide-react"
 import { StoryList } from "./StoryList"
+import { PageHeader } from "@/components/layout/PageHeader"
+import { PageLayout } from "@/components/layout/PageLayout"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,21 +26,17 @@ export function StoriesScreen() {
   const [deleteTarget, setDeleteTarget] = useState<Story>()
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-6">
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Your stories
-          </h1>
-          <p className="text-muted-foreground">
-            Turn a social-story script into an illustrated picture book.
-          </p>
-        </div>
-        <Button onClick={() => router.push("/stories/new")}>
-          <PlusIcon />
-          New story
-        </Button>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Your stories"
+        description="Turn a social-story script into an illustrated picture book."
+        actions={
+          <Button onClick={() => router.push("/stories/new")}>
+            <PlusIcon />
+            New story
+          </Button>
+        }
+      />
 
       <StoryList
         stories={stories}
@@ -75,6 +73,6 @@ export function StoriesScreen() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageLayout>
   )
 }

@@ -2,7 +2,10 @@
 
 import { useState } from "react"
 import { ArrowRightIcon } from "lucide-react"
+import { PageHeader } from "@/components/layout/PageHeader"
+import { pageLayoutVariants } from "@/components/layout/PageLayout"
 import { Button } from "@/components/ui/button"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useStories } from "@/hooks/useStories"
@@ -13,25 +16,25 @@ export function NewStoryScreen() {
   const [script, setScript] = useState("")
 
   return (
+    // The page frame is itself the form element, so this takes the variants
+    // directly rather than nesting a PageLayout div inside a <form>.
     <form
-      className="mx-auto grid max-w-3xl gap-6"
+      className={pageLayoutVariants({ width: "form" })}
       onSubmit={(event) => {
         event.preventDefault()
         if (!script.trim()) return
         create.mutate({ title: title.trim() || undefined, script })
       }}
     >
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">New story</h1>
-        <p className="text-muted-foreground">
-          Paste your social-story script to get started.
-        </p>
-      </div>
+      <PageHeader
+        title="New story"
+        description="Paste your social-story script to get started."
+      />
 
-      <div className="grid gap-2">
-        <label className="text-sm font-medium" htmlFor="new-title">
+      <Field>
+        <FieldLabel htmlFor="new-title">
           Title <span className="text-muted-foreground">(optional)</span>
-        </label>
+        </FieldLabel>
         <Input
           id="new-title"
           value={title}
@@ -39,13 +42,11 @@ export function NewStoryScreen() {
           maxLength={200}
           onChange={(event) => setTitle(event.target.value)}
         />
-      </div>
+      </Field>
 
-      <div className="grid gap-2">
+      <Field>
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium" htmlFor="new-script">
-            Story script
-          </label>
+          <FieldLabel htmlFor="new-script">Story script</FieldLabel>
           <span className="text-xs text-muted-foreground tabular-nums">
             {script.length.toLocaleString()} / 50,000
           </span>
@@ -58,7 +59,7 @@ export function NewStoryScreen() {
           placeholder="Write the story in plain language…"
           onChange={(event) => setScript(event.target.value)}
         />
-      </div>
+      </Field>
 
       <div>
         <Button type="submit" disabled={!script.trim() || create.isPending}>

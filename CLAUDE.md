@@ -5,6 +5,13 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+# UI styling
+
+Read `docs/styling.md` before changing any CSS, Tailwind class, or UI component.
+It defines the three seams: project-wide values live in `src/styles/theme.css`, a
+component family's geometry lives in its CVA primitive, and one-off layout stays as
+colocated Tailwind. `docs/index.md` maps the rest of `docs/`.
+
 # Worktree workflow
 
 New features go in a new git worktree branched off `main` — never directly on `main` unless explicitly told to. If unsure which applies, ask.

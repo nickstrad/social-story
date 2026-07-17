@@ -12,7 +12,7 @@ import {
 // the identically-named links rendered by the story list and steps nav.
 const sidebar = (page: Page) => page.getByRole("navigation", { name: "Main" })
 
-test("sidebar links reach stories, new story, and artifacts", async ({
+test("sidebar links reach stories, new story, artifacts, and settings", async ({
   page,
 }) => {
   const nav = sidebar(page)
@@ -24,6 +24,12 @@ test("sidebar links reach stories, new story, and artifacts", async ({
 
   await nav.getByRole("link", { name: "New story" }).click()
   await page.waitForURL("**/stories/new")
+
+  await nav.getByRole("link", { name: "Settings" }).click()
+  await page.waitForURL("**/settings")
+  await expect(
+    page.getByRole("heading", { name: "Settings", level: 1 })
+  ).toBeVisible()
 
   await nav.getByRole("link", { name: "All stories" }).click()
   await page.waitForURL("**/stories")

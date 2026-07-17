@@ -1,6 +1,16 @@
 import Link from "next/link"
+import { LogOutIcon, SettingsIcon, UserRoundIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Spinner } from "@/components/ui/spinner"
 
@@ -8,6 +18,44 @@ type AppHeaderProps = {
   email: string
   isSigningOut: boolean
   onSignOut: () => void
+}
+
+function AccountMenu({ email, isSigningOut, onSignOut }: AppHeaderProps) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={isSigningOut}
+            aria-label="Open account menu"
+          />
+        }
+      >
+        {isSigningOut ? <Spinner /> : <UserRoundIcon />}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="grid gap-0.5 py-1.5">
+            <span>Signed in as</span>
+            <span className="truncate text-sm font-normal text-popover-foreground">
+              {email}
+            </span>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem render={<Link href="/settings" />}>
+          <SettingsIcon />
+          Settings
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={isSigningOut} onClick={onSignOut}>
+          {isSigningOut ? <Spinner /> : <LogOutIcon />}
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 }
 
 export function AppHeader({ email, isSigningOut, onSignOut }: AppHeaderProps) {
@@ -22,20 +70,11 @@ export function AppHeader({ email, isSigningOut, onSignOut }: AppHeaderProps) {
             Social Story
           </Link>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="hidden text-sm text-muted-foreground sm:inline">
-            {email}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isSigningOut}
-            onClick={onSignOut}
-          >
-            {isSigningOut && <Spinner />}
-            Sign out
-          </Button>
-        </div>
+        <AccountMenu
+          email={email}
+          isSigningOut={isSigningOut}
+          onSignOut={onSignOut}
+        />
       </div>
     </header>
   )

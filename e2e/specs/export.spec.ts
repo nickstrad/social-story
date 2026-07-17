@@ -1,4 +1,4 @@
-import { expect, makeUser, signUp, test } from "../support/auth"
+import { expect, makeUser, signOut, signUp, test } from "../support/auth"
 import {
   addCharacter,
   addCharacterPhoto,
@@ -60,8 +60,7 @@ test("generate all page images and export a valid PDF", async ({ page }) => {
   expect(cachedImageResponse.status()).toBe(304)
   expect(cachedImageResponse.headers().etag).toBe(etag)
 
-  await page.getByRole("button", { name: "Sign out" }).click()
-  await page.waitForURL("**/signin")
+  await signOut(page)
   expect((await page.request.get(href!)).status()).toBe(401)
   expect((await page.request.get(imageUrl!)).status()).toBe(401)
 

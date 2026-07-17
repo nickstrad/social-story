@@ -32,6 +32,25 @@ export async function signUp(page: Page, user: TestUser): Promise<void> {
   await expect(page.getByText("No stories yet")).toBeVisible()
 }
 
+/** Drive the real sign-in form; lands authenticated on /stories. */
+export async function signIn(page: Page, user: TestUser): Promise<void> {
+  await page.goto("/signin")
+  await page.getByLabel("Email").fill(user.email)
+  await page.getByLabel("Password").fill(user.password)
+  await page.getByRole("button", { name: "Sign in" }).click()
+  await page.waitForURL("**/stories")
+  await expect(
+    page.getByRole("heading", { name: "Your stories" })
+  ).toBeVisible()
+}
+
+/** Sign out through the shared account menu and wait for the public route. */
+export async function signOut(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Open account menu" }).click()
+  await page.getByRole("menuitem", { name: "Sign out" }).click()
+  await page.waitForURL("**/signin")
+}
+
 // `user` fixture signs a fresh account in before the test body and exposes its
 // credentials (some specs re-sign-in with them). Each test gets its own browser
 // context, so being authenticated here carries through the whole test.

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BookOpenIcon, ImagesIcon, PlusIcon } from "lucide-react"
+import { BookOpenIcon, ImagesIcon, PlusIcon, SettingsIcon } from "lucide-react"
 
 import {
   Sidebar,
@@ -23,7 +23,24 @@ const NAV = [
   { href: "/stories/new", icon: PlusIcon, label: "New story" },
   { href: "/stories", icon: BookOpenIcon, label: "All stories" },
   { href: "/artifacts", icon: ImagesIcon, label: "Artifacts" },
+  {
+    href: "/settings",
+    icon: SettingsIcon,
+    label: "Settings",
+    includeChildren: true,
+  },
 ]
+
+function isNavActive(
+  pathname: string,
+  href: string,
+  includeChildren?: boolean
+) {
+  return (
+    pathname === href ||
+    (includeChildren === true && pathname.startsWith(`${href}/`))
+  )
+}
 
 /** Stories shown inline; the rest live behind "All stories". */
 const RECENT_LIMIT = 8
@@ -56,11 +73,11 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {NAV.map(({ href, icon: Icon, label }) => (
+              {NAV.map(({ href, icon: Icon, label, includeChildren }) => (
                 <SidebarMenuItem key={href}>
                   <SidebarMenuButton
                     render={<Link href={href} />}
-                    isActive={pathname === href}
+                    isActive={isNavActive(pathname, href, includeChildren)}
                     onClick={closeOnMobile}
                   >
                     <Icon />

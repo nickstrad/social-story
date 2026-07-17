@@ -22,6 +22,13 @@ describe("validateAuthInput", () => {
     ).toBeTruthy()
   })
 
+  it("rejects a password longer than the provider maximum", () => {
+    expect(
+      validateAuthInput({ ...valid, password: "a".repeat(129) }, "signup")
+        .password
+    ).toBeTruthy()
+  })
+
   it("rejects a mismatched confirmation on sign-up", () => {
     expect(
       validateAuthInput({ ...valid, confirmPassword: "different1" }, "signup")

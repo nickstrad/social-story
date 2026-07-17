@@ -41,6 +41,23 @@ The pipeline stops and asks rather than pushing past blockers it can't resolve (
 
 No test may ever hit a real database, external API, or network — not unit, not integration (`*.int.test.ts`), not anything run by `npm run test:run`. Tests must be fully self-sufficient: use the in-memory repos (`inMemoryRepos`), in-memory storage (`inMemoryStorage`), and the fake text/image generators and immediate dispatcher from `src/server/services/fakes.ts`. A "sign-up user" in a test is just a constructed session user passed to `createTestCaller` — never a real Better Auth call. Real Postgres is reserved exclusively for Playwright E2E.
 
+## Server test config env (`vitest.setup.server.ts`)
+
+`src/server/config.ts` validates env at import time (`auth.ts` calls `getConfig()`
+at module load), so any server test that transitively imports it needs the config
+vars set. Vitest does **not** load `.env.local`, and the suite must never run
+against real secrets, so the fake, non-secret values live in `testConfigEnv()` in
+`config.ts` (right next to the schema they satisfy) and `vitest.setup.server.ts`
+applies them to `process.env` unconditionally — a real `.env` (e.g. one copied
+into a worktree) is deliberately overridden. This is why `npm run test:run` is
+green in any checkout with no env file at all.
+
+**When you add or change env logic in `config.ts`** — a new required var, or new
+branching that reads one (another storage/credential path, etc.) — update
+`testConfigEnv()` in the same file and change (add the fake value, or neutralize
+the branch as the blob OIDC pair is), or the entire server suite will fail to
+import.
+
 Playwright E2E requires Docker and a one-time `npx playwright install chromium`.
 Run it with `npm run test:e2e`; the runner owns its disposable Postgres container
 and volume and tears them down on every exit. E2E may use that local Postgres,

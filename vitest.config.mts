@@ -12,7 +12,7 @@ export default defineConfig({
           name: "server",
           include: ["src/server/**/*.test.ts"],
           environment: "node",
-          setupFiles: ["./vitest.setup.ts"],
+          setupFiles: ["./vitest.setup.server.ts", "./vitest.setup.ts"],
         },
       },
       {

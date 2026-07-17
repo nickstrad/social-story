@@ -5,6 +5,9 @@ const optionalNonEmptyString = z.preprocess(
   z.string().min(1).optional()
 )
 
+// When you add a required var or new branching here, mirror it in
+// `testConfigEnv()` below (fake value, or neutralized branch) or the server
+// test suite will fail to import. See the Testing section of the root CLAUDE.md.
 const envSchema = z
   .object({
     DATABASE_URL: z.string().url(),
@@ -119,4 +122,24 @@ let config: Config | undefined
 export function getConfig(): Config {
   config ??= parseConfig(process.env)
   return config
+}
+
+// Fake, non-secret env that satisfies `envSchema`, for the server test suite.
+// Lives next to the schema so a new required var is added here in the same
+// change. Applied to `process.env` by `vitest.setup.server.ts` before any
+// server module imports — tests never run against real credentials, so a real
+// `.env` (e.g. one copied into a worktree) is deliberately overridden. These
+// are never real values; keep it that way.
+export function testConfigEnv(): Record<string, string> {
+  return {
+    DATABASE_URL: "postgres://test:test@localhost:5432/test",
+    OPENAI_TOKEN: "test-openai-token",
+    BETTER_AUTH_SECRET: "test-better-auth-secret",
+    BETTER_AUTH_URL: "http://localhost:3000",
+    // config prefers the OIDC pair (BLOB_STORE_ID + VERCEL_OIDC_TOKEN) over
+    // BLOB_READ_WRITE_TOKEN, so clear the pair and force the token path.
+    BLOB_STORE_ID: "",
+    VERCEL_OIDC_TOKEN: "",
+    BLOB_READ_WRITE_TOKEN: "test-blob-token",
+  }
 }

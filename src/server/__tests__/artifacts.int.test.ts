@@ -198,4 +198,41 @@ describe("artifact router", () => {
     })
     expect(await caller.artifact.list()).toEqual([])
   })
+
+  it("returns a cumulative story snapshot without exposing another user's story", async () => {
+    const services = deps()
+    const caller = createTestCaller({ user, deps: services })
+    const story = await services.repos.stories.create({
+      userId: user.id,
+      title: "Snapshot",
+      script: "First the story begins.",
+    })
+    await services.repos.characters.create({
+      storyId: story.id,
+      name: "Sam",
+      appearance: "Short dark hair",
+    })
+    await services.repos.pages.replaceAll(story.id, [
+      {
+        kind: "PAGE",
+        position: 1,
+        text: "Sam gets ready.",
+        imagePrompt: "Sam by the door",
+        characterIds: [],
+      },
+    ])
+
+    const snapshot = await caller.artifact.forStory({ storyId: story.id })
+    expect(snapshot.story.script).toBe("First the story begins.")
+    expect(snapshot.characters[0]?.name).toBe("Sam")
+    expect(snapshot.pages[0]).toMatchObject({
+      text: "Sam gets ready.",
+      selectedImageUrl: null,
+    })
+
+    const otherCaller = createTestCaller({ user: other, deps: services })
+    await expect(
+      otherCaller.artifact.forStory({ storyId: story.id })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" })
+  })
 })

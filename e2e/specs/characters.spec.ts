@@ -55,6 +55,29 @@ test("upload a character photo through the real upload route", async ({
   await expect(photo).toBeVisible()
 })
 
+test("auto-fill becomes available after attaching a photo", async ({
+  page,
+}) => {
+  const storyId = await createStory(page)
+  await page.goto(`/stories/${storyId}/characters`)
+  await page.getByRole("button", { name: "Add character" }).click()
+
+  await expect(page.getByText("Start with a clear photo")).toBeVisible()
+  const autofill = page.getByRole("button", { name: "Auto-fill from photo" })
+  await expect(autofill).toBeDisabled()
+
+  await page.locator("#character-photo").setInputFiles(PHOTO)
+  await expect(autofill).toBeEnabled()
+  await autofill.click()
+
+  await expect(page.locator("#character-appearance")).toHaveValue(
+    "Short dark hair and a bright blue shirt"
+  )
+  await expect(page.locator("#character-photoDescription")).toHaveValue(
+    "A smiling person outdoors, wearing a bright blue shirt."
+  )
+})
+
 test("the base image step unlocks once a character exists", async ({
   page,
 }) => {
@@ -65,5 +88,5 @@ test("the base image step unlocks once a character exists", async ({
   await expect(page.getByRole("link", { name: "Base image" })).toHaveCount(0)
 
   await addCharacter(page, "Sam")
-  await expect(page.getByRole("link", { name: "Base image" })).toBeVisible()
+  await expect(page.getByRole("link", { name: /^3 Base image$/ })).toBeVisible()
 })

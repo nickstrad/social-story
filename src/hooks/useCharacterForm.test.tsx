@@ -49,4 +49,34 @@ describe("useCharacterForm", () => {
     )
     expect(result.current.photoPreviewUrl).toBe("blob:preview")
   })
+
+  it("enables photo autofill after selection and applies the suggestions", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        appearance: "Long dark hair and round glasses",
+        photoDescription: "Standing outside in a yellow jacket.",
+      }),
+    } as Response)
+    const { result } = renderHook(() => useCharacterForm("story"))
+
+    expect(result.current.canAutofill).toBe(false)
+    act(() => {
+      result.current.onPickFile(
+        new File(["photo"], "photo.png", { type: "image/png" })
+      )
+    })
+    expect(result.current.canAutofill).toBe(true)
+
+    await act(() => result.current.onAutofill())
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/describe/photo",
+      expect.objectContaining({ method: "POST" })
+    )
+    expect(result.current.values).toMatchObject({
+      appearance: "Long dark hair and round glasses",
+      photoDescription: "Standing outside in a yellow jacket.",
+    })
+  })
 })

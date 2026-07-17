@@ -26,6 +26,7 @@ describe("openAIImageGenerator", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toContain("/images/generations")
     const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))
     expect(body.size).toBe("1024x1024")
+    expect(body).not.toHaveProperty("response_format")
   })
 
   it("uses repeated image fields for edits and preserves MIME types", async () => {
@@ -53,5 +54,6 @@ describe("openAIImageGenerator", () => {
       "image/jpeg",
     ])
     expect(body.get("size")).toBe("1024x1536")
+    expect(body.has("response_format")).toBe(false)
   })
 })

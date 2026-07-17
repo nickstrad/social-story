@@ -6,8 +6,7 @@ import { createTestCaller } from "@/server/api/test-utils"
 import type { Deps } from "@/server/container"
 import type { ParsedStory } from "@/server/domain/schemas"
 import { getTaskHandler } from "@/server/inngest/handlers"
-// Import for side effects: registers the PARSE_STORY handler.
-import "@/server/inngest/functions/parseStory"
+import { runParseStoryTask } from "@/server/inngest/functions/parseStory"
 import { inMemoryRepos } from "@/server/repos/memory"
 import {
   fakeImageGenerator,
@@ -15,7 +14,7 @@ import {
   immediateDispatcher,
 } from "@/server/services/fakes"
 import { inMemoryStorage } from "@/server/services/memory-storage"
-import { runTask } from "@/server/services/tasks"
+import { runTask, type TaskStepRunner } from "@/server/services/tasks"
 
 // Self-sufficient integration test: in-memory repos + fake adapters, no real
 // Postgres and no external APIs. Real-DB coverage lives in the Playwright E2E
@@ -114,6 +113,26 @@ describe("parse integration", () => {
 
     const refreshed = await deps.repos.stories.getById(story.id)
     expect(refreshed).toMatchObject({ status: "PARSED", title: parsed.title })
+
+    const trace: Array<{ name: string; output: unknown }> = []
+    const recordingSteps: TaskStepRunner = {
+      async run(name, operation) {
+        const output = await operation()
+        trace.push({ name, output })
+        return output
+      },
+    }
+    if (!task) throw new Error("Expected parse task")
+    await runParseStoryTask(task, deps, recordingSteps)
+
+    const visibleTrace = JSON.stringify(trace)
+    expect(visibleTrace).toContain("request")
+    expect(visibleTrace).toContain("response")
+    expect(visibleTrace).toContain("scriptCharacterCount")
+    expect(visibleTrace).not.toContain(SCRIPT)
+    expect(visibleTrace).not.toContain(parsed.title)
+    expect(visibleTrace).not.toContain("Sam")
+    expect(visibleTrace).not.toContain("Mia")
   })
 
   it("refuses to re-parse when a page already has a generated image", async () => {

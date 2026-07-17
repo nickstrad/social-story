@@ -9,6 +9,7 @@ import { RuleList } from "./RuleList"
 import { PageHeader } from "@/components/layout/PageHeader"
 import { PageLayout } from "@/components/layout/PageLayout"
 import { StoryStepsNav } from "@/components/story/StoryStepsNav"
+import { StoryFlowFooter } from "@/components/story/StoryFlowFooter"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -189,13 +190,14 @@ export function CharactersScreen({ storyId }: { storyId: string }) {
           }
         />
       </section>
+      <StoryFlowFooter storyId={storyId} steps={steps} current="characters" />
       <Dialog
         open={editingCharacter !== undefined}
         onOpenChange={(open) => {
           if (!open) setEditingCharacter(undefined)
         }}
       >
-        <DialogContent>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>
               {editingCharacter

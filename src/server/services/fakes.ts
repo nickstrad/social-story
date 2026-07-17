@@ -4,6 +4,11 @@ import type { ImageGenerator } from "../ports/image"
 import type { TextGenerator } from "../ports/text"
 import type { TaskDispatcher } from "../ports/dispatcher"
 
+const PHOTO_DETAILS = {
+  appearance: "Short dark hair and a bright blue shirt",
+  photoDescription: "A smiling person outdoors, wearing a bright blue shirt.",
+}
+
 export function immediateDispatcher(
   runner: (taskId: string) => Promise<void>
 ): TaskDispatcher {
@@ -20,6 +25,9 @@ export function fakeTextGenerator(
       }
       return schema.parse(cannedByPrompt[user])
     },
+    async generateJsonWithImage({ schema }) {
+      return schema.parse(PHOTO_DETAILS)
+    },
   }
 }
 
@@ -30,6 +38,9 @@ export function staticTextGenerator(canned: unknown): TextGenerator {
   return {
     async generateJson({ schema }) {
       return schema.parse(canned)
+    },
+    async generateJsonWithImage({ schema }) {
+      return schema.parse(PHOTO_DETAILS)
     },
   }
 }

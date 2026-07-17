@@ -5,6 +5,7 @@ import { registerTaskHandler } from "@/server/inngest/handlers"
 import { replaceStoryBaseAsset } from "@/server/services/assets"
 import { toReferenceImage } from "@/server/services/references"
 import { baseImageKey } from "@/server/services/storage-keys"
+import { runTaskResultStep, type TaskStepRunner } from "@/server/services/tasks"
 
 async function loadReferenceImages(deps: Deps, characters: Character[]) {
   const withPhotos = characters.filter(
@@ -18,26 +19,44 @@ async function loadReferenceImages(deps: Deps, characters: Character[]) {
   )
 }
 
-export async function runBaseImageTask(task: Task, deps: Deps) {
-  const characters = await deps.repos.characters.listByStory(task.storyId)
-  const referenceImages = await loadReferenceImages(deps, characters)
+export async function runBaseImageTask(
+  task: Task,
+  deps: Deps,
+  steps?: TaskStepRunner
+) {
+  return runTaskResultStep(
+    steps,
+    "Generate and save character reference sheet with AI",
+    async () => {
+      const characters = await deps.repos.characters.listByStory(task.storyId)
+      const referenceImages = await loadReferenceImages(deps, characters)
 
-  const png = await deps.image.generate({
-    prompt: buildBaseSheetPrompt(characters),
-    referenceImages,
-    width: 1024,
-    height: 1024,
-  })
+      const png = await deps.image.generate({
+        prompt: buildBaseSheetPrompt(characters),
+        referenceImages,
+        width: 1024,
+        height: 1024,
+      })
 
-  const story = await deps.repos.stories.getById(task.storyId)
-  if (!story) throw new Error("Story not found")
-  const asset = await replaceStoryBaseAsset(
-    deps,
-    story,
-    png,
-    baseImageKey(task.storyId)
+      const story = await deps.repos.stories.getById(task.storyId)
+      if (!story) throw new Error("Story not found")
+      const asset = await replaceStoryBaseAsset(
+        deps,
+        story,
+        png,
+        baseImageKey(task.storyId)
+      )
+      return {
+        request: {
+          characterCount: characters.length,
+          referencePhotoCount: referenceImages.length,
+          outputSize: "1024x1024",
+        },
+        response: { assetId: asset.id, imageBytes: png.byteLength },
+        result: { assetId: asset.id },
+      }
+    }
   )
-  return { assetId: asset.id }
 }
 
 registerTaskHandler("BASE_IMAGE", runBaseImageTask)

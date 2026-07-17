@@ -1,93 +1,110 @@
 "use client"
 
-import type { FormEvent } from "react"
+import { type ChangeEvent, type FormEvent } from "react"
+import { InfoIcon } from "lucide-react"
+import { CharacterPhotoField } from "./CharacterPhotoField"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from "@/components/ui/field"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import type { CharacterErrors, CharacterValues } from "@/hooks/useCharacterForm"
 
-export function CharacterForm(props: {
+interface CharacterFormProps {
   values: CharacterValues
   errors: CharacterErrors
   photoPreviewUrl: string
   uploadState: "idle" | "uploading" | "error"
+  autofillState: "idle" | "loading" | "error"
+  canAutofill: boolean
   isSubmitting?: boolean
   onChange: (field: keyof CharacterValues, value: string) => void
   onPickFile: (file: File) => void
+  onAutofill: () => void
   onSubmit: (event: FormEvent) => void
+}
+
+function CharacterTextField({
+  name,
+  label,
+  multiline = false,
+  values,
+  errors,
+  onChange,
+}: Pick<CharacterFormProps, "values" | "errors" | "onChange"> & {
+  name: keyof CharacterValues
+  label: string
+  multiline?: boolean
 }) {
-  const field = (
-    name: keyof CharacterValues,
-    label: string,
-    multiline = false
-  ) => (
+  const id = `character-${name}`
+  const controlProps = {
+    id,
+    value: values[name],
+    onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      onChange(name, event.target.value),
+  }
+  return (
     <Field>
-      <FieldLabel htmlFor={`character-${name}`}>{label}</FieldLabel>
-      {multiline ? (
-        <Textarea
-          id={`character-${name}`}
-          value={props.values[name]}
-          onChange={(event) => props.onChange(name, event.target.value)}
-        />
-      ) : (
-        <Input
-          id={`character-${name}`}
-          value={props.values[name]}
-          onChange={(event) => props.onChange(name, event.target.value)}
-        />
-      )}
-      <FieldError>{props.errors[name]}</FieldError>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      {multiline ? <Textarea {...controlProps} /> : <Input {...controlProps} />}
+      <FieldError>{errors[name]}</FieldError>
     </Field>
   )
+}
+
+export function CharacterForm({
+  values,
+  errors,
+  photoPreviewUrl,
+  uploadState,
+  autofillState,
+  canAutofill,
+  isSubmitting,
+  onChange,
+  onPickFile,
+  onAutofill,
+  onSubmit,
+}: CharacterFormProps) {
+  const fieldProps = { values, errors, onChange }
   return (
-    <form className="grid gap-4" onSubmit={props.onSubmit}>
-      {field("name", "Name")}
+    <form className="grid gap-4" onSubmit={onSubmit}>
+      <Alert>
+        <InfoIcon />
+        <AlertTitle>Start with a clear photo</AlertTitle>
+        <AlertDescription>
+          Attach or drop a photo, then choose Auto-fill from photo. We’ll
+          suggest neutral appearance and photo details for you to review before
+          saving.
+        </AlertDescription>
+      </Alert>
+      <CharacterTextField {...fieldProps} name="name" label="Name" />
       <div className="grid grid-cols-2 gap-3">
-        {field("role", "Role")}
-        {field("age", "Age")}
+        <CharacterTextField {...fieldProps} name="role" label="Role" />
+        <CharacterTextField {...fieldProps} name="age" label="Age" />
       </div>
-      {field("appearance", "Appearance", true)}
-      {field("photoDescription", "Photo description", true)}
-      <Field>
-        <FieldLabel htmlFor="character-photo">Photo</FieldLabel>
-        <div className="flex items-center gap-3">
-          <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-muted">
-            {props.photoPreviewUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- blob: preview URLs aren't served by next/image
-              <img
-                src={props.photoPreviewUrl}
-                alt="Selected photo preview"
-                className="size-full object-cover"
-              />
-            ) : (
-              <div className="flex size-full items-center justify-center text-xs text-muted-foreground">
-                No photo
-              </div>
-            )}
-          </div>
-          <Input
-            id="character-photo"
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            onChange={(event) => {
-              const file = event.target.files?.[0]
-              if (file) props.onPickFile(file)
-            }}
-          />
-        </div>
-        <FieldDescription>PNG, JPEG, or WebP up to 8 MB.</FieldDescription>
-      </Field>
-      <FieldError>{props.errors.form}</FieldError>
-      <Button type="submit" disabled={props.isSubmitting}>
-        {props.uploadState === "uploading"
-          ? "Uploading photo…"
-          : "Save character"}
+      <CharacterTextField
+        {...fieldProps}
+        name="appearance"
+        label="Appearance"
+        multiline
+      />
+      <CharacterTextField
+        {...fieldProps}
+        name="photoDescription"
+        label="Photo description"
+        multiline
+      />
+      <CharacterPhotoField
+        photoPreviewUrl={photoPreviewUrl}
+        autofillState={autofillState}
+        canAutofill={canAutofill}
+        error={errors.photo}
+        onPickFile={onPickFile}
+        onAutofill={onAutofill}
+      />
+      <FieldError>{errors.form}</FieldError>
+      <Button type="submit" disabled={isSubmitting}>
+        {uploadState === "uploading" ? "Uploading photo…" : "Save character"}
       </Button>
     </form>
   )

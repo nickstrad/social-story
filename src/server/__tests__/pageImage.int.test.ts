@@ -3,21 +3,18 @@
 import sharp from "sharp"
 import { beforeAll, describe, expect, it } from "vitest"
 
+import type { CoverImageGenerator, PageImageGenerator } from "@/server/ai"
+import { createFakeAiActions, fakeArtwork } from "@/server/ai/testing/fakes"
 import { createTestCaller } from "@/server/api/test-utils"
 import type { Deps } from "@/server/container"
 import type { CreatePage, PageKind } from "@/server/domain/types"
-import type { ImageGenerator, ReferenceImage } from "@/server/ports/image"
 import type { Repos } from "@/server/ports/repos"
 import { runPageImageTask } from "@/server/inngest/functions/pageImage"
 import { inMemoryRepos } from "@/server/repos/memory"
-import {
-  fakeImageGenerator,
-  fakeTextGenerator,
-  immediateDispatcher,
-} from "@/server/services/fakes"
+import { immediateDispatcher } from "@/server/services/fakes"
 import { inMemoryStorage } from "@/server/services/memory-storage"
 import { baseImageKey, photoKey } from "@/server/services/storage-keys"
-import { runTask } from "@/server/services/tasks"
+import { runTask, type TaskStepRunner } from "@/server/services/tasks"
 
 // Self-sufficient integration test: in-memory repos + fake adapters, no real
 // Postgres and no external APIs. Real-DB coverage lives in the Playwright E2E
@@ -36,19 +33,28 @@ async function coloredPng(r: number, g: number, b: number): Promise<Buffer> {
     .toBuffer()
 }
 
-interface RecordingImageGenerator extends ImageGenerator {
-  calls: { prompt: string; referenceImages?: ReferenceImage[] }[]
+interface RecordingImageActions {
+  pageCalls: Parameters<PageImageGenerator["generate"]>[0][]
+  coverCalls: Parameters<CoverImageGenerator["generate"]>[0][]
+  pageImage: PageImageGenerator["generate"]
+  coverImage: CoverImageGenerator["generate"]
 }
 
-function recordingImageGenerator(
+function recordingImageActions(
   behavior: () => Promise<Buffer>
-): RecordingImageGenerator {
-  const calls: RecordingImageGenerator["calls"] = []
+): RecordingImageActions {
+  const pageCalls: RecordingImageActions["pageCalls"] = []
+  const coverCalls: RecordingImageActions["coverCalls"] = []
   return {
-    calls,
-    async generate(args) {
-      calls.push({ prompt: args.prompt, referenceImages: args.referenceImages })
-      return behavior()
+    pageCalls,
+    coverCalls,
+    async pageImage(input) {
+      pageCalls.push(input)
+      return { png: await behavior(), promptUsed: "recorded page image" }
+    },
+    async coverImage(input) {
+      coverCalls.push(input)
+      return { png: await behavior(), promptUsed: "recorded cover image" }
     },
   }
 }
@@ -68,12 +74,14 @@ describe("page image integration", () => {
     image: null,
   }
 
-  function depsWith(image: ImageGenerator): Deps {
+  function depsWith(image?: RecordingImageActions): Deps {
     return {
       repos,
       storage: inMemoryStorage(),
-      text: fakeTextGenerator({}),
-      image,
+      ai: createFakeAiActions({
+        pageImage: image?.pageImage ?? (async () => fakeArtwork()),
+        coverImage: image?.coverImage ?? (async () => fakeArtwork()),
+      }),
       dispatcher: immediateDispatcher(async () => {}),
     }
   }
@@ -135,7 +143,7 @@ describe("page image integration", () => {
   })
 
   it("renders a peopled page: enforces TOGETHER, anchor-first refs, v1 selected, taller caption", async () => {
-    const image = recordingImageGenerator(() => coloredPng(200, 100, 50))
+    const image = recordingImageActions(() => coloredPng(200, 100, 50))
     const deps = depsWith(image)
 
     const ava = await deps.repos.characters.create({ storyId, name: "Ava" })
@@ -169,11 +177,21 @@ describe("page image integration", () => {
     const finished = await runFor(deps, page.id)
 
     expect(finished?.status).toBe("SUCCEEDED")
-    const call = image.calls.at(-1)!
-    expect(call.prompt).toContain("Ava")
-    expect(call.prompt).toContain("Bo")
+    const call = image.pageCalls.at(-1)!
+    expect(call.pageCharacters.map(({ name }) => name)).toEqual(["Ava", "Bo"])
+    expect(call.pageCharacters[0]).toEqual({
+      name: "Ava",
+      role: null,
+      age: null,
+      appearance: null,
+    })
+    expect(call.rules[0]).toEqual({
+      kind: "TOGETHER",
+      text: "Ava and Bo appear together",
+    })
     // Anchor present → exactly one reference (the sheet), no character photo.
-    expect(call.referenceImages).toHaveLength(1)
+    expect(call.anchorImage).toBeDefined()
+    expect(call.characterPhoto).toBeUndefined()
 
     const images = await deps.repos.pages.listImages(page.id)
     expect(images).toHaveLength(1)
@@ -205,6 +223,40 @@ describe("page image integration", () => {
     const v2 = afterSecond.find((i) => i.variant === 2)!
     expect(reloaded2?.selectedImageId).toBe(v2.id)
 
+    const trace: Array<{ name: string; output: unknown }> = []
+    const steps: TaskStepRunner = {
+      async run(name, operation) {
+        const output = await operation()
+        trace.push({ name, output })
+        return output
+      },
+    }
+    const tracedTask = await deps.repos.tasks.create({
+      userId,
+      storyId,
+      pageId: page.id,
+      type: "PAGE_IMAGE",
+    })
+    await runPageImageTask(tracedTask, deps, steps)
+    expect(trace[0].name).toBe("Generate and save page illustration with AI")
+    expect(trace[0].output).toMatchObject({
+      request: {
+        pageKind: "PAGE",
+        characterCount: 2,
+        referenceImageCount: 1,
+      },
+      response: {
+        pageImageId: expect.any(String),
+        rawImageBytes: expect.any(Number),
+        captionedImageBytes: expect.any(Number),
+      },
+    })
+    const visibleTrace = JSON.stringify(trace)
+    expect(visibleTrace).not.toContain("Ava")
+    expect(visibleTrace).not.toContain("Bo")
+    expect(visibleTrace).not.toContain("Ava waving in a park")
+    expect(visibleTrace).not.toContain("recorded page image")
+
     await deps.repos.stories.update(storyId, { baseImageAssetId: null })
     for (const character of await deps.repos.characters.listByStory(storyId)) {
       await deps.repos.characters.delete(character.id)
@@ -215,20 +267,21 @@ describe("page image integration", () => {
   })
 
   it("renders a scene-only page: NO-people line and no references", async () => {
-    const image = recordingImageGenerator(() => coloredPng(10, 20, 30))
+    const image = recordingImageActions(() => coloredPng(10, 20, 30))
     const deps = depsWith(image)
 
     const page = await makePage(deps, { kind: "PAGE", characterIds: [] })
     const finished = await runFor(deps, page.id)
 
     expect(finished?.status).toBe("SUCCEEDED")
-    const call = image.calls.at(-1)!
-    expect(call.prompt).toContain("NO people")
-    expect(call.referenceImages ?? []).toHaveLength(0)
+    const call = image.pageCalls.at(-1)!
+    expect(call.pageCharacters).toHaveLength(0)
+    expect(call.anchorImage).toBeUndefined()
+    expect(call.characterPhoto).toBeUndefined()
   })
 
   it("renders a cover: title caption, coverNote in prompt, anchor attached", async () => {
-    const image = recordingImageGenerator(() => coloredPng(40, 50, 60))
+    const image = recordingImageActions(() => coloredPng(40, 50, 60))
     const deps = depsWith(image)
     // A cover counts as peopled, so a present base sheet is attached as a ref.
     const base = await storeAsset(
@@ -250,10 +303,11 @@ describe("page image integration", () => {
     const finished = await runFor(deps, cover.id)
 
     expect(finished?.status).toBe("SUCCEEDED")
-    const call = image.calls.at(-1)!
-    expect(call.prompt).toContain("My Story")
-    expect(call.prompt).toContain("a gentle sunrise")
-    expect(call.referenceImages).toHaveLength(1)
+    const call = image.coverCalls.at(-1)!
+    expect(call.title).toBe("My Story")
+    expect(call.note).toBe("a gentle sunrise")
+    expect(call.anchorImage).toBeDefined()
+    expect(image.pageCalls).toHaveLength(0)
 
     await deps.repos.stories.update(storyId, {
       coverNote: null,
@@ -262,7 +316,7 @@ describe("page image integration", () => {
   })
 
   it("fails the task and writes no PageImage when the generator throws", async () => {
-    const image = recordingImageGenerator(async () => {
+    const image = recordingImageActions(async () => {
       throw new Error("image gen boom")
     })
     const deps = depsWith(image)
@@ -276,7 +330,7 @@ describe("page image integration", () => {
 
   it("rejects page.generate while a PAGE_IMAGE task is already active", async () => {
     // Never runs the task, so the manually-created task stays PENDING.
-    const deps = depsWith(fakeImageGenerator())
+    const deps = depsWith()
     const page = await makePage(deps, { kind: "PAGE", characterIds: [] })
     await deps.repos.tasks.create({
       userId,
@@ -293,7 +347,7 @@ describe("page image integration", () => {
   })
 
   it("generateBulk skips pages that already have an active task", async () => {
-    const deps = depsWith(fakeImageGenerator())
+    const deps = depsWith()
     const busy = await makePage(deps, { kind: "PAGE", characterIds: [] })
     const free = await makePage(deps, { kind: "PAGE", characterIds: [] })
     await deps.repos.tasks.create({

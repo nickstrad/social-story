@@ -8,6 +8,7 @@ docs/
 ├── CLAUDE.md         # agent instructions for this folder (AGENTS.md symlinks here)
 ├── styling.md        # UI styling & theme standards — read before touching CSS/UI
 ├── database.md       # guarded Prisma/Postgres operations & migration workflow
+├── ai.md             # AI actions, providers, bindings, prompts, fakes & extension rules
 └── plans/
     ├── completed/    # implemented plans, numbered in build order
     └── open/         # plans not yet implemented
@@ -21,6 +22,8 @@ Living standards. Keep these current as the code changes.
   where a visual change belongs.
 - [database.md](database.md) — guarded Prisma/Postgres operations, migration
   workflow, resets, and explicit dev/production targeting.
+- [ai.md](ai.md) — source of truth for semantic AI actions, provider adapters,
+  per-action bindings, prompt ownership, deterministic fakes, and extension rules.
 
 ## Plans
 

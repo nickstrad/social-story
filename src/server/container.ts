@@ -1,26 +1,26 @@
 import type { PrismaClient } from "@/generated/prisma"
 
+import type { AiActions } from "./ai"
+import { createAi } from "./ai/create-ai"
+import { createE2eAiActions } from "./ai/testing/fakes"
 import type { Config } from "./config"
 import { getConfig } from "./config"
 import { db } from "./db"
 import type { Repos } from "./ports/repos"
 import type { Storage } from "./ports/storage"
-import type { ImageGenerator } from "./ports/image"
-import type { TextGenerator } from "./ports/text"
 import type { TaskDispatcher } from "./ports/dispatcher"
 import { inngestDispatcher } from "./inngest/dispatcher"
 import { getTaskHandler } from "./inngest/handlers"
 import { prismaRepos } from "./repos/prisma"
 import { createVercelBlobStorage } from "./services/vercel-blob-storage"
 import { e2eStorage } from "./services/e2e-storage"
-import { imageFixture, parseFixture } from "./services/e2e-fixtures"
 import {
-  immediateDispatcher,
-  scriptedImageGenerator,
-  staticTextGenerator,
-} from "./services/fakes"
-import { openAIImageGenerator } from "./services/openai/image"
-import { openAITextGenerator } from "./services/openai/text"
+  baseImageFixture,
+  coverImageFixture,
+  pageImageFixture,
+  parseFixture,
+} from "./services/e2e-fixtures"
+import { immediateDispatcher } from "./services/fakes"
 import { runTask } from "./services/tasks"
 // Side-effect import: registers every concrete task handler (PARSE_STORY,
 // BASE_IMAGE, …) so the inline E2E dispatcher can resolve them by type.
@@ -29,8 +29,7 @@ import "./inngest/functions"
 export interface Deps {
   storage: Storage
   repos: Repos
-  text: TextGenerator
-  image: ImageGenerator
+  ai: AiActions
   dispatcher: TaskDispatcher
 }
 
@@ -42,8 +41,7 @@ export function createDeps(config: Config, client: PrismaClient = db): Deps {
   return {
     storage: createVercelBlobStorage(config.blob),
     repos,
-    text: openAITextGenerator(config.openai),
-    image: openAIImageGenerator(config.openai),
+    ai: createAi(config),
     dispatcher: inngestDispatcher(repos),
   }
 }
@@ -56,8 +54,12 @@ function createE2eDeps(repos: Repos): Deps {
   const e2eDeps: Deps = {
     repos,
     storage: e2eStorage(),
-    text: staticTextGenerator(parseFixture()),
-    image: scriptedImageGenerator(imageFixture),
+    ai: createE2eAiActions({
+      parsedStory: parseFixture(),
+      baseImage: baseImageFixture,
+      pageImage: pageImageFixture,
+      coverImage: coverImageFixture,
+    }),
     dispatcher: immediateDispatcher(async (taskId) => {
       const task = await repos.tasks.getById(taskId)
       const handler = task && getTaskHandler(task.type)

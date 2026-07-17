@@ -19,6 +19,16 @@ const envSchema = z
     BETTER_AUTH_URL: z.string().url(),
     OPENAI_CHAT_MODEL: z.string().default("gpt-5.5"),
     OPENAI_IMAGE_MODEL: z.string().default("gpt-image-2"),
+    AI_STORY_TO_DATA_PROVIDER: z.enum(["openai"]).default("openai"),
+    AI_STORY_TO_DATA_MODEL: optionalNonEmptyString,
+    AI_CHARACTER_PHOTO_AUTOFILL_PROVIDER: z.enum(["openai"]).default("openai"),
+    AI_CHARACTER_PHOTO_AUTOFILL_MODEL: optionalNonEmptyString,
+    AI_BASE_IMAGE_PROVIDER: z.enum(["openai"]).default("openai"),
+    AI_BASE_IMAGE_MODEL: optionalNonEmptyString,
+    AI_PAGE_IMAGE_PROVIDER: z.enum(["openai"]).default("openai"),
+    AI_PAGE_IMAGE_MODEL: optionalNonEmptyString,
+    AI_COVER_IMAGE_PROVIDER: z.enum(["openai"]).default("openai"),
+    AI_COVER_IMAGE_MODEL: optionalNonEmptyString,
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -47,7 +57,14 @@ const envSchema = z
 
 export type Config = Readonly<{
   db: Readonly<{ url: string }>
-  openai: Readonly<{ token: string; chatModel: string; imageModel: string }>
+  openai: Readonly<{ token: string }>
+  ai: Readonly<{
+    storyToData: AiActionBinding
+    characterPhotoAutofill: AiActionBinding
+    baseImage: AiActionBinding
+    pageImage: AiActionBinding
+    coverImage: AiActionBinding
+  }>
   blob: Readonly<{ storeId: string; oidcToken: string } | { token: string }>
   auth: Readonly<{ secret: string; url: string }>
   inngest: Readonly<{
@@ -58,6 +75,11 @@ export type Config = Readonly<{
   }>
   env: "development" | "test" | "production"
   e2eFakes: boolean
+}>
+
+export type AiActionBinding = Readonly<{
+  provider: "openai"
+  model: string
 }>
 
 export function parseConfig(env: Record<string, string | undefined>): Config {
@@ -93,10 +115,29 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
   }
   return {
     db: { url: value.DATABASE_URL },
-    openai: {
-      token: value.OPENAI_TOKEN,
-      chatModel: value.OPENAI_CHAT_MODEL,
-      imageModel: value.OPENAI_IMAGE_MODEL,
+    openai: { token: value.OPENAI_TOKEN },
+    ai: {
+      storyToData: {
+        provider: value.AI_STORY_TO_DATA_PROVIDER,
+        model: value.AI_STORY_TO_DATA_MODEL ?? value.OPENAI_CHAT_MODEL,
+      },
+      characterPhotoAutofill: {
+        provider: value.AI_CHARACTER_PHOTO_AUTOFILL_PROVIDER,
+        model:
+          value.AI_CHARACTER_PHOTO_AUTOFILL_MODEL ?? value.OPENAI_CHAT_MODEL,
+      },
+      baseImage: {
+        provider: value.AI_BASE_IMAGE_PROVIDER,
+        model: value.AI_BASE_IMAGE_MODEL ?? value.OPENAI_IMAGE_MODEL,
+      },
+      pageImage: {
+        provider: value.AI_PAGE_IMAGE_PROVIDER,
+        model: value.AI_PAGE_IMAGE_MODEL ?? value.OPENAI_IMAGE_MODEL,
+      },
+      coverImage: {
+        provider: value.AI_COVER_IMAGE_PROVIDER,
+        model: value.AI_COVER_IMAGE_MODEL ?? value.OPENAI_IMAGE_MODEL,
+      },
     },
     blob:
       value.BLOB_STORE_ID && value.VERCEL_OIDC_TOKEN

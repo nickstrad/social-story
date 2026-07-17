@@ -1,18 +1,9 @@
-import type { Character, Rule } from "./types"
+import type { CharacterContext, RuleContext } from "../types"
 
 const DEFAULT_READER_DESCRIPTION =
   "a child who benefits from a calm, clear children's social-story style"
 
 const BASE_SHEET_INSTRUCTION = `A character reference sheet is attached as the FIRST image. It shows the established look of the characters. Match each character's face, hair, skin tone, body proportions, age, and gender to that sheet so they stay consistent with the rest of the book. You MAY change their clothing, pose, and the setting to fit this page's scene — only their identity and art style must match the sheet.`
-
-export const CHARACTER_PHOTO_AUTOFILL_SYSTEM_PROMPT = `You help an author create a respectful character reference for a family-friendly children's social story.
-Describe only visible details that will help an illustrator keep the person recognizable, using calm, neutral, age-appropriate language.
-Do not identify the person. Do not infer ethnicity, nationality, religion, disability, medical conditions, gender identity, personality, socioeconomic status, or an exact age. Do not use sexual, violent, frightening, diagnostic, or judgmental wording.
-You may neutrally describe visible hair, skin tone, face shape, eyewear, clothing, accessories, pose, expression, and setting. Omit anything uncertain.
-Return concise JSON matching the requested schema.`
-
-export const CHARACTER_PHOTO_AUTOFILL_USER_PROMPT =
-  "Fill appearance with reusable physical details for consistent illustration. Fill photoDescription with a simple description of this specific photo, including clothing, pose, and setting."
 
 export function buildStyleContext({
   readerDescription = DEFAULT_READER_DESCRIPTION,
@@ -23,14 +14,16 @@ Consistent art style across all pages.
 Many pages show only a place, object, or activity with NO people in them — that is expected and good. Only include people when this page's scene specifically calls for them, and never add extra characters that were not asked for.`
 }
 
-function describeCharacter(character: Character): string {
+export function describeCharacter(character: CharacterContext): string {
   const details = [character.role, character.age, character.appearance].filter(
     (value): value is string => Boolean(value?.trim())
   )
   return `- ${character.name}: ${details.join(", ") || "recurring character"}.`
 }
 
-export function buildCastDescription(characters: Character[]): string {
+export function buildCastDescription(
+  characters: readonly CharacterContext[]
+): string {
   if (characters.length === 0) return ""
   return `Keep these characters exact and consistent every time:
 ${characters.map(describeCharacter).join("\n")}
@@ -46,11 +39,11 @@ export function buildImagePrompt({
   rules = [],
 }: {
   scene: string
-  characters: Character[]
-  allCharacters: Character[]
+  characters: readonly CharacterContext[]
+  allCharacters: readonly CharacterContext[]
   anchored: boolean
   steeringText?: string
-  rules?: Rule[]
+  rules?: readonly RuleContext[]
 }): string {
   const parts = [buildStyleContext(), `Scene for this page: ${scene.trim()}`]
 
@@ -79,7 +72,9 @@ export function buildImagePrompt({
   return parts.filter(Boolean).join("\n\n")
 }
 
-export function buildBaseSheetPrompt(characters: Character[]): string {
+export function buildBaseSheetPrompt(
+  characters: readonly CharacterContext[]
+): string {
   return [
     buildStyleContext(),
     buildCastDescription(characters),
@@ -95,7 +90,7 @@ export function buildCoverPrompt({
   note,
 }: {
   title: string
-  characters: Character[]
+  characters: readonly CharacterContext[]
   note?: string
 }): string {
   const subjects =
@@ -113,26 +108,4 @@ export function buildCoverPrompt({
     )
   }
   return parts.filter(Boolean).join("\n\n")
-}
-
-export function buildParseSystemPrompt(
-  characters: Character[],
-  rules: Rule[]
-): string {
-  const roster =
-    characters.length === 0
-      ? "No recurring characters have been defined. Use an empty characterNames array."
-      : `The available recurring characters are:\n${characters.map(describeCharacter).join("\n")}\nUse only these exact names.`
-  const ruleText = rules.map((rule) => `- ${rule.text}`).join("\n")
-
-  return `You convert a social story into a structured, illustrated picture book.
-Split the story into pages a child can follow (usually 1-3 sentences each). Aim for ABOUT 20 pages total (roughly 18-22); do not exceed about 24. Group closely related sentences onto the same page rather than splitting every sentence.
-
-For every page provide its 1-based page number, the exact simple and reassuring words to print, a concrete visual description of one scene without art-style instructions, and a characterNames array.
-
-${roster}
-
-Do NOT put people on every page. Use an empty characterNames array for scene-only pages. Only include characters when the page is specifically about a person doing something, and keep the group small.
-${ruleText ? `\nFollow these author rules verbatim when assigning characters and describing scenes:\n${ruleText}\n` : ""}
-Respond ONLY with JSON matching the requested schema.`
 }

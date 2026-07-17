@@ -9,6 +9,9 @@ See `index.md` for the full map. In short:
   Tailwind class, or UI component**, and keep it current when the system changes.
 - `database.md` — manual Prisma/Postgres operations, migration workflow, and
   destructive-operation safeguards.
+- `ai.md` — living source of truth for semantic AI actions, provider adapters,
+  per-action bindings, prompt ownership, deterministic fakes, and extension
+  rules. Read and update it for any AI subsystem change.
 - `plans/completed/` — implemented plans, numbered in build order
   (`00-overview.md` is the architecture map; the rest are one plan per feature).
   Read these to understand how an existing subsystem was built.
@@ -16,8 +19,9 @@ See `index.md` for the full map. In short:
   merged to `main`.
 
 Plans are pre-implementation specs and are not updated afterwards — for current
-behavior, read the code. Reference docs (`styling.md`) are living and should be
-kept accurate.
+behavior, read the code. Reference docs (`styling.md`, `database.md`, and
+`ai.md`) are living and should be kept accurate. In particular, do not use a
+historical AI plan as the current action/provider map; maintain `ai.md` instead.
 
 `AGENTS.md` in this folder is a symlink to this file; edit only `CLAUDE.md`.
 

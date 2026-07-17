@@ -3,15 +3,16 @@
 import sharp from "sharp"
 import { beforeAll, describe, expect, it } from "vitest"
 
+import type { BaseImageGenerator } from "@/server/ai"
+import { createFakeAiActions } from "@/server/ai/testing/fakes"
 import type { Deps } from "@/server/container"
-import type { ImageGenerator, ReferenceImage } from "@/server/ports/image"
 import type { Repos } from "@/server/ports/repos"
 import { runBaseImageTask } from "@/server/inngest/functions/baseImage"
 import { inMemoryRepos } from "@/server/repos/memory"
-import { fakeTextGenerator, immediateDispatcher } from "@/server/services/fakes"
+import { immediateDispatcher } from "@/server/services/fakes"
 import { inMemoryStorage } from "@/server/services/memory-storage"
 import { photoKey } from "@/server/services/storage-keys"
-import { runTask } from "@/server/services/tasks"
+import { runTask, type TaskStepRunner } from "@/server/services/tasks"
 
 // Self-sufficient integration test: in-memory repos + fake adapters, no real
 // Postgres and no external APIs. Real-DB coverage lives in the Playwright E2E
@@ -30,19 +31,19 @@ async function tinyPng(): Promise<Buffer> {
     .toBuffer()
 }
 
-interface RecordingImageGenerator extends ImageGenerator {
-  calls: { prompt: string; referenceImages?: ReferenceImage[] }[]
+interface RecordingBaseImageGenerator extends BaseImageGenerator {
+  calls: Parameters<BaseImageGenerator["generate"]>[0][]
 }
 
-function recordingImageGenerator(
+function recordingBaseImageGenerator(
   behavior: () => Promise<Buffer>
-): RecordingImageGenerator {
-  const calls: RecordingImageGenerator["calls"] = []
+): RecordingBaseImageGenerator {
+  const calls: RecordingBaseImageGenerator["calls"] = []
   return {
     calls,
-    async generate(args) {
-      calls.push({ prompt: args.prompt, referenceImages: args.referenceImages })
-      return behavior()
+    async generate(input) {
+      calls.push(input)
+      return { png: await behavior(), promptUsed: "recorded base image" }
     },
   }
 }
@@ -52,12 +53,11 @@ describe("base image integration", () => {
   let repos: Repos
   let storyId: string
 
-  function baseDeps(image: ImageGenerator): Deps {
+  function baseDeps(image: BaseImageGenerator): Deps {
     return {
       repos,
       storage: inMemoryStorage(),
-      text: fakeTextGenerator({}),
-      image,
+      ai: createFakeAiActions({ baseImage: image.generate.bind(image) }),
       dispatcher: immediateDispatcher(async () => {}),
     }
   }
@@ -97,7 +97,7 @@ describe("base image integration", () => {
   }
 
   it("generates a sheet, passing photos and both names to the generator", async () => {
-    const image = recordingImageGenerator(tinyPng)
+    const image = recordingBaseImageGenerator(tinyPng)
     const deps = baseDeps(image)
     const { photo } = await seedCharacters(deps)
 
@@ -110,10 +110,16 @@ describe("base image integration", () => {
 
     expect(image.calls).toHaveLength(1)
     const call = image.calls[0]
-    expect(call.referenceImages).toHaveLength(1)
-    expect(call.referenceImages?.[0].data.equals(photo)).toBe(true)
-    expect(call.prompt).toContain("Ava")
-    expect(call.prompt).toContain("Bo")
+    expect(call.photos).toHaveLength(1)
+    expect(call.photos[0].characterName).toBe("Ava")
+    expect(call.photos[0].photo.data.equals(photo)).toBe(true)
+    expect(call.characters.map(({ name }) => name)).toEqual(["Ava", "Bo"])
+    expect(call.characters[0]).toEqual({
+      name: "Ava",
+      role: null,
+      age: null,
+      appearance: null,
+    })
 
     const finished = await deps.repos.tasks.getById(task.id)
     expect(finished?.status).toBe("SUCCEEDED")
@@ -127,6 +133,28 @@ describe("base image integration", () => {
     const stored = await deps.storage.fetchBuffer(asset!.storageLocator)
     expect(stored.length).toBeGreaterThan(0)
 
+    const trace: Array<{ name: string; output: unknown }> = []
+    const steps: TaskStepRunner = {
+      async run(name, operation) {
+        const output = await operation()
+        trace.push({ name, output })
+        return output
+      },
+    }
+    await runBaseImageTask(task, deps, steps)
+    expect(trace[0].name).toBe(
+      "Generate and save character reference sheet with AI"
+    )
+    expect(trace[0].output).toMatchObject({
+      request: { characterCount: 2, referencePhotoCount: 1 },
+      response: { imageBytes: expect.any(Number) },
+    })
+    const visibleTrace = JSON.stringify(trace)
+    expect(visibleTrace).not.toContain("Ava")
+    expect(visibleTrace).not.toContain("Bo")
+    expect(visibleTrace).not.toContain(photo.toString("base64"))
+    expect(visibleTrace).not.toContain("recorded base image")
+
     // Cleanup characters for the failure test below.
     for (const character of await deps.repos.characters.listByStory(storyId)) {
       await deps.repos.characters.delete(character.id)
@@ -135,7 +163,7 @@ describe("base image integration", () => {
   })
 
   it("leaves baseImageAssetId unchanged when generation fails", async () => {
-    const image = recordingImageGenerator(async () => {
+    const image = recordingBaseImageGenerator(async () => {
       throw new Error("image gen boom")
     })
     const deps = baseDeps(image)

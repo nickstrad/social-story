@@ -1,5 +1,5 @@
 import type { Deps } from "@/server/container"
-import { buildBaseSheetPrompt } from "@/server/domain/prompts"
+import { toCharacterContext } from "@/server/ai"
 import type { Character, Task } from "@/server/domain/types"
 import { registerTaskHandler } from "@/server/inngest/handlers"
 import { replaceStoryBaseAsset } from "@/server/services/assets"
@@ -13,9 +13,10 @@ async function loadReferenceImages(deps: Deps, characters: Character[]) {
       Boolean(character.photoAssetId)
   )
   return Promise.all(
-    withPhotos.map((character) =>
-      toReferenceImage(deps, character.photoAssetId)
-    )
+    withPhotos.map(async (character) => ({
+      characterName: character.name,
+      photo: await toReferenceImage(deps, character.photoAssetId),
+    }))
   )
 }
 
@@ -29,13 +30,12 @@ export async function runBaseImageTask(
     "Generate and save character reference sheet with AI",
     async () => {
       const characters = await deps.repos.characters.listByStory(task.storyId)
-      const referenceImages = await loadReferenceImages(deps, characters)
+      const photos = await loadReferenceImages(deps, characters)
 
-      const png = await deps.image.generate({
-        prompt: buildBaseSheetPrompt(characters),
-        referenceImages,
-        width: 1024,
-        height: 1024,
+      const { png } = await deps.ai.baseImage.generate({
+        characters: characters.map(toCharacterContext),
+        photos,
+        dimensions: { width: 1024, height: 1024 },
       })
 
       const story = await deps.repos.stories.getById(task.storyId)
@@ -49,7 +49,7 @@ export async function runBaseImageTask(
       return {
         request: {
           characterCount: characters.length,
-          referencePhotoCount: referenceImages.length,
+          referencePhotoCount: photos.length,
           outputSize: "1024x1024",
         },
         response: { assetId: asset.id, imageBytes: png.byteLength },

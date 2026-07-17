@@ -1,13 +1,9 @@
 import { headers } from "next/headers"
 
 import { assertStoryOwnership } from "@/server/api/ownership"
+import type { InputImage } from "@/server/ai"
 import { getServerSession } from "@/server/auth-session"
 import { getDeps } from "@/server/container"
-import {
-  CHARACTER_PHOTO_AUTOFILL_SYSTEM_PROMPT,
-  CHARACTER_PHOTO_AUTOFILL_USER_PROMPT,
-} from "@/server/domain/prompts"
-import { characterPhotoAutofillSchema } from "@/server/domain/schemas"
 import { validateUpload } from "@/server/domain/upload"
 import { normalizeReferencePhoto } from "@/server/services/photo"
 
@@ -43,12 +39,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await deps.text.generateJsonWithImage({
-      system: CHARACTER_PHOTO_AUTOFILL_SYSTEM_PROMPT,
-      user: CHARACTER_PHOTO_AUTOFILL_USER_PROMPT,
-      image: { data: image, mimeType: "image/png" },
-      schema: characterPhotoAutofillSchema,
-      schemaName: "character_photo_details",
+    const photo: InputImage = { data: image, mediaType: "image/png" }
+    const result = await deps.ai.characterPhotoAutofill.suggest({
+      photo,
     })
     return Response.json(result)
   } catch {

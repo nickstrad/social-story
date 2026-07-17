@@ -1,20 +1,16 @@
 import { describe, expect, it, vi } from "vitest"
 
+import { createFakeAiActions } from "@/server/ai/testing/fakes"
 import type { Deps } from "@/server/container"
 import { inMemoryRepos } from "@/server/repos/memory"
-import {
-  fakeImageGenerator,
-  fakeTextGenerator,
-  immediateDispatcher,
-} from "./fakes"
+import { immediateDispatcher } from "./fakes"
 import { inMemoryStorage } from "./memory-storage"
 import { BROWSER_ASSET_KINDS, replaceCharacterPhotoAsset } from "./assets"
 
 const makeDeps = (): Deps => ({
   repos: inMemoryRepos(),
   storage: inMemoryStorage(),
-  text: fakeTextGenerator({}),
-  image: fakeImageGenerator(),
+  ai: createFakeAiActions(),
   dispatcher: immediateDispatcher(async () => {}),
 })
 

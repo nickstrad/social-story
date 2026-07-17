@@ -4,6 +4,7 @@ import { PDFDocument } from "pdf-lib"
 import { describe, expect, it } from "vitest"
 
 import { createTestCaller } from "@/server/api/test-utils"
+import { createFakeAiActions, fakeArtwork } from "@/server/ai/testing/fakes"
 import type { Deps } from "@/server/container"
 import type { ParsedStory } from "@/server/domain/schemas"
 import { getTaskHandler } from "@/server/inngest/handlers"
@@ -13,11 +14,7 @@ import "@/server/inngest/functions/baseImage"
 import "@/server/inngest/functions/pageImage"
 import "@/server/inngest/functions/pdfExport"
 import { inMemoryRepos } from "@/server/repos/memory"
-import {
-  fakeImageGenerator,
-  fakeTextGenerator,
-  immediateDispatcher,
-} from "@/server/services/fakes"
+import { immediateDispatcher } from "@/server/services/fakes"
 import { inMemoryStorage } from "@/server/services/memory-storage"
 import { runTask } from "@/server/services/tasks"
 
@@ -49,8 +46,12 @@ describe("full story-to-PDF flow", () => {
     const deps: Deps = {
       repos,
       storage: inMemoryStorage(),
-      text: fakeTextGenerator({ [SCRIPT]: parsed }),
-      image: fakeImageGenerator(),
+      ai: createFakeAiActions({
+        storyToData: async () => parsed,
+        baseImage: async () => fakeArtwork("base image"),
+        pageImage: async () => fakeArtwork("page image"),
+        coverImage: async () => fakeArtwork("cover image"),
+      }),
       dispatcher: immediateDispatcher(async (taskId) => {
         const task = await repos.tasks.getById(taskId)
         const handler = task && getTaskHandler(task.type)

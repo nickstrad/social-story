@@ -60,3 +60,4 @@ next-env.d.ts
 /cli/character_base.png
 /cli/social-story
 /cli/*.json
+.env*.local

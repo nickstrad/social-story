@@ -14,7 +14,7 @@ JUDGEMENT="$WORKTREE/JUDGEMENT.md"
 
 cd "$WORKTREE"
 
-PLAN_PATH=$(grep -m1 -E '^Plan:' "$SUMMARY" | sed 's/^Plan:[[:space:]]*//')
+PLAN_PATH=$(grep -m1 -E '^Plan:' "$SUMMARY" | sed 's/^Plan:[[:space:]]*//' | tr -d '`')
 [ -n "$PLAN_PATH" ] && [ -f "$PLAN_PATH" ] || { echo "error: plan file '$PLAN_PATH' (from CHANGE_SUMMARY.md) not found" >&2; exit 1; }
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)

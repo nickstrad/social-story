@@ -103,6 +103,27 @@ describe("page image integration", () => {
     return deps.repos.tasks.getById(task.id)
   }
 
+  async function storeAsset(
+    deps: Deps,
+    kind: "BASE_IMAGE" | "CHARACTER_PHOTO",
+    key: string,
+    bytes: Buffer
+  ) {
+    const { locator } = await deps.storage.put(
+      `${key}-${crypto.randomUUID()}`,
+      bytes,
+      "image/png"
+    )
+    return deps.repos.assets.create({
+      userId,
+      storyId,
+      kind,
+      storageLocator: locator,
+      contentType: "image/png",
+      byteLength: bytes.byteLength,
+    })
+  }
+
   beforeAll(async () => {
     repos = inMemoryRepos()
     const story = await repos.stories.create({
@@ -126,18 +147,22 @@ describe("page image integration", () => {
       characterIds: [ava.id, bo.id],
     })
     // Anchor sheet present → no extra photo attached even though Ava has one.
-    const { url: baseUrl } = await deps.storage.put(
+    const base = await storeAsset(
+      deps,
+      "BASE_IMAGE",
       baseImageKey(storyId),
-      await coloredPng(1, 2, 3),
-      "image/png"
+      await coloredPng(1, 2, 3)
     )
-    await deps.repos.stories.update(storyId, { baseImageUrl: baseUrl })
-    const { url: photoUrl } = await deps.storage.put(
+    await deps.repos.stories.update(storyId, {
+      baseImageAssetId: base.id,
+    })
+    const photo = await storeAsset(
+      deps,
+      "CHARACTER_PHOTO",
       photoKey(storyId, ava.id),
-      await coloredPng(9, 9, 9),
-      "image/png"
+      await coloredPng(9, 9, 9)
     )
-    await deps.repos.characters.update(ava.id, { photoUrl })
+    await deps.repos.characters.update(ava.id, { photoAssetId: photo.id })
 
     // Page names only Ava; TOGETHER must pull Bo into the prompt.
     const page = await makePage(deps, { kind: "PAGE", characterIds: [ava.id] })
@@ -159,8 +184,14 @@ describe("page image integration", () => {
     expect(finished?.resultJson).toEqual({ pageImageId: images[0].id })
 
     // Captioned image is taller than the raw source (caption band appended).
-    const raw = await deps.storage.fetchBuffer(images[0].rawUrl!)
-    const captioned = await deps.storage.fetchBuffer(images[0].url)
+    const [rawAsset, captionedAsset] = await Promise.all([
+      deps.repos.assets.getById(images[0].rawAssetId!),
+      deps.repos.assets.getById(images[0].imageAssetId),
+    ])
+    const raw = await deps.storage.fetchBuffer(rawAsset!.storageLocator)
+    const captioned = await deps.storage.fetchBuffer(
+      captionedAsset!.storageLocator
+    )
     const rawMeta = await sharp(raw).metadata()
     const capMeta = await sharp(captioned).metadata()
     expect(capMeta.height!).toBeGreaterThan(rawMeta.height!)
@@ -174,7 +205,7 @@ describe("page image integration", () => {
     const v2 = afterSecond.find((i) => i.variant === 2)!
     expect(reloaded2?.selectedImageId).toBe(v2.id)
 
-    await deps.repos.stories.update(storyId, { baseImageUrl: null })
+    await deps.repos.stories.update(storyId, { baseImageAssetId: null })
     for (const character of await deps.repos.characters.listByStory(storyId)) {
       await deps.repos.characters.delete(character.id)
     }
@@ -200,14 +231,15 @@ describe("page image integration", () => {
     const image = recordingImageGenerator(() => coloredPng(40, 50, 60))
     const deps = depsWith(image)
     // A cover counts as peopled, so a present base sheet is attached as a ref.
-    const { url: baseUrl } = await deps.storage.put(
+    const base = await storeAsset(
+      deps,
+      "BASE_IMAGE",
       baseImageKey(storyId),
-      await coloredPng(1, 2, 3),
-      "image/png"
+      await coloredPng(1, 2, 3)
     )
     await deps.repos.stories.update(storyId, {
       coverNote: "a gentle sunrise",
-      baseImageUrl: baseUrl,
+      baseImageAssetId: base.id,
     })
 
     const cover = await makePage(deps, {
@@ -225,7 +257,7 @@ describe("page image integration", () => {
 
     await deps.repos.stories.update(storyId, {
       coverNote: null,
-      baseImageUrl: null,
+      baseImageAssetId: null,
     })
   })
 

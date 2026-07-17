@@ -3,6 +3,7 @@ import { planPdf } from "@/server/domain/pdfPlan"
 import type { PageImage, Task } from "@/server/domain/types"
 import { registerTaskHandler } from "@/server/inngest/handlers"
 import { assemblePdf } from "@/server/services/pdf"
+import { createAsset, fetchAssetBuffer } from "@/server/services/assets"
 import { storyPdfKey } from "@/server/services/storage-keys"
 
 function groupByPage(images: PageImage[]): Record<string, PageImage[]> {
@@ -19,7 +20,7 @@ export async function runPdfExportTask(task: Task, deps: Deps) {
     deps.repos.pages.listImagesByStory(task.storyId),
   ])
 
-  const { orderedImageUrls, missing } = planPdf(pages, groupByPage(images))
+  const { orderedImageAssetIds, missing } = planPdf(pages, groupByPage(images))
   if (missing.length > 0) {
     // A readable, page-numbered list so the author knows exactly what to fix.
     // The cover sorts to position 0, content pages to their 1-based order.
@@ -36,18 +37,24 @@ export async function runPdfExportTask(task: Task, deps: Deps) {
   }
 
   const buffers = await Promise.all(
-    orderedImageUrls.map((url) => deps.storage.fetchBuffer(url))
+    orderedImageAssetIds.map((assetId) => fetchAssetBuffer(deps, assetId))
   )
   const pdf = await assemblePdf(buffers)
-  const { url } = await deps.storage.put(
-    storyPdfKey(task.storyId),
-    pdf,
-    "application/pdf"
-  )
+  const story = await deps.repos.stories.getById(task.storyId)
+  if (!story) throw new Error("Story not found")
+  const asset = await createAsset(deps, {
+    userId: task.userId,
+    storyId: task.storyId,
+    kind: "PDF",
+    key: storyPdfKey(task.storyId),
+    data: pdf,
+    contentType: "application/pdf",
+    filename: `${story.title || "story"}.pdf`,
+  })
 
   await deps.repos.stories.update(task.storyId, { status: "READY" })
 
-  return { url, pageCount: orderedImageUrls.length }
+  return { assetId: asset.id, pageCount: orderedImageAssetIds.length }
 }
 
 registerTaskHandler("PDF_EXPORT", runPdfExportTask)

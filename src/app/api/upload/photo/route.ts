@@ -5,6 +5,7 @@ import { assertStoryOwnership } from "@/server/api/ownership"
 import { getServerSession } from "@/server/auth-session"
 import { getDeps } from "@/server/container"
 import { validateUpload } from "@/server/domain/upload"
+import { assetUrl, replaceCharacterPhotoAsset } from "@/server/services/assets"
 import { photoKey } from "@/server/services/storage-keys"
 
 const error = (message: string, status: number) =>
@@ -30,8 +31,9 @@ export async function POST(request: Request) {
   if (!validation.valid) return error(validation.error, 400)
 
   const deps = getDeps()
+  let story
   try {
-    await assertStoryOwnership(deps.repos, storyId, session.user.id)
+    story = await assertStoryOwnership(deps.repos, storyId, session.user.id)
   } catch {
     return error("Not found", 404)
   }
@@ -49,13 +51,12 @@ export async function POST(request: Request) {
     })
     .png()
     .toBuffer()
-  const { url } = await deps.storage.put(
-    photoKey(storyId, characterId),
+  const asset = await replaceCharacterPhotoAsset(
+    deps,
+    story,
+    character,
     png,
-    "image/png"
+    photoKey(storyId, characterId)
   )
-  if (character.photoUrl && character.photoUrl !== url)
-    await deps.storage.delete(character.photoUrl)
-  await deps.repos.characters.update(characterId, { photoUrl: url })
-  return Response.json({ url })
+  return Response.json({ assetId: asset.id, url: assetUrl(asset.id) })
 }

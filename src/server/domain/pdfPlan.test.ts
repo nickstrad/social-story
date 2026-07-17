@@ -8,12 +8,12 @@ function withSelection(p: Page, imageId: string | null): Page {
   return { ...p, selectedImageId: imageId }
 }
 
-function image(id: string, pageId: string, url: string): PageImage {
+function image(id: string, pageId: string, assetId: string): PageImage {
   return {
     id,
     pageId,
-    url,
-    rawUrl: null,
+    imageAssetId: assetId,
+    rawAssetId: null,
     promptUsed: "",
     variant: 1,
     createdAt: new Date("2026-01-01T00:00:00Z"),
@@ -27,13 +27,13 @@ describe("planPdf", () => {
     const p2 = withSelection(page("p2", 2), "img-2")
     const p1 = withSelection(page("p1", 1), "img-1")
 
-    const { orderedImageUrls, missing } = planPdf([p2, cover, p1], {
+    const { orderedImageAssetIds, missing } = planPdf([p2, cover, p1], {
       cover: [image("img-cover", "cover", "url-cover")],
       p1: [image("img-1", "p1", "url-1")],
       p2: [image("img-2", "p2", "url-2")],
     })
 
-    expect(orderedImageUrls).toEqual(["url-cover", "url-1", "url-2"])
+    expect(orderedImageAssetIds).toEqual(["url-cover", "url-1", "url-2"])
     expect(missing).toEqual([])
   })
 
@@ -41,12 +41,12 @@ describe("planPdf", () => {
     const cover = withSelection(page("cover", 0, "COVER"), "img-cover")
     const hidden = { ...withSelection(page("p1", 1), "img-1"), hidden: true }
 
-    const { orderedImageUrls, missing } = planPdf([cover, hidden], {
+    const { orderedImageAssetIds, missing } = planPdf([cover, hidden], {
       cover: [image("img-cover", "cover", "url-cover")],
       p1: [image("img-1", "p1", "url-1")],
     })
 
-    expect(orderedImageUrls).toEqual(["url-cover"])
+    expect(orderedImageAssetIds).toEqual(["url-cover"])
     expect(missing).toEqual([])
   })
 
@@ -56,7 +56,7 @@ describe("planPdf", () => {
     // Selected id no longer among the page's variants → also missing.
     const staleSelection = withSelection(page("p2", 2), "gone")
 
-    const { orderedImageUrls, missing } = planPdf(
+    const { orderedImageAssetIds, missing } = planPdf(
       [cover, noSelection, staleSelection],
       {
         cover: [image("img-cover", "cover", "url-cover")],
@@ -64,7 +64,7 @@ describe("planPdf", () => {
       }
     )
 
-    expect(orderedImageUrls).toEqual(["url-cover"])
+    expect(orderedImageAssetIds).toEqual(["url-cover"])
     expect(missing).toEqual([
       { pageId: "p1", reason: "no selected image" },
       { pageId: "p2", reason: "no selected image" },

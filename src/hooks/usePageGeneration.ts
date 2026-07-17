@@ -4,7 +4,11 @@ import { useEffect, useRef } from "react"
 import { toast } from "sonner"
 
 import { latestTask } from "@/server/domain/taskMachine"
-import type { PageImage, Task, TaskStatus } from "@/server/domain/types"
+import type {
+  ClientPageImage as PageImage,
+  Task,
+  TaskStatus,
+} from "@/server/domain/types"
 import { trpc } from "@/lib/trpc"
 import { useStoryTasks } from "@/hooks/useTaskPolling"
 

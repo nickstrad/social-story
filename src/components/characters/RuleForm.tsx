@@ -7,7 +7,10 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { RuleValues } from "@/hooks/useRuleForm"
-import type { Character, RuleKind } from "@/server/domain/types"
+import type {
+  ClientCharacter as Character,
+  RuleKind,
+} from "@/server/domain/types"
 
 const kinds: { value: RuleKind; label: string }[] = [
   { value: "TOGETHER", label: "Together" },

@@ -31,7 +31,7 @@ import { useRuleForm } from "@/hooks/useRuleForm"
 import { useRules } from "@/hooks/useRules"
 import { deriveStepStates } from "@/lib/steps"
 import { trpc } from "@/lib/trpc"
-import type { Character, Rule } from "@/server/domain/types"
+import type { ClientCharacter as Character, Rule } from "@/server/domain/types"
 
 function CharacterEditor({
   storyId,

@@ -120,11 +120,15 @@ describe("full story-to-PDF flow", () => {
     const exportTask = await deps.repos.tasks.getById(taskId)
     expect(exportTask?.status).toBe("SUCCEEDED")
 
-    const result = exportTask?.resultJson as { url: string; pageCount: number }
+    const result = exportTask?.resultJson as {
+      assetId: string
+      pageCount: number
+    }
     // Cover + 1 visible content page; the hidden page is excluded.
     expect(result.pageCount).toBe(2)
 
-    const pdf = await deps.storage.fetchBuffer(result.url)
+    const asset = await deps.repos.assets.getById(result.assetId)
+    const pdf = await deps.storage.fetchBuffer(asset!.storageLocator)
     expect(pdf.subarray(0, 4).toString("latin1")).toBe("%PDF")
     const doc = await PDFDocument.load(pdf)
     expect(doc.getPageCount()).toBe(2)

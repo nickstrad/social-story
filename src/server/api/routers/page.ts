@@ -10,6 +10,7 @@ import { insertPage, removePage, reorderPages } from "@/server/domain/pageOps"
 import { applyRulesToPage } from "@/server/domain/rules"
 import { hasActiveTask } from "@/server/domain/taskMachine"
 import { createTask, listStoryTasks } from "@/server/services/tasks"
+import { clientPageImage } from "@/server/services/assets"
 
 const pageIdInput = z.object({ pageId: z.string().min(1) })
 const steeringSchema = z.string().trim().max(2_000)
@@ -215,10 +216,26 @@ export const pageRouter = createTRPCRouter({
       }
       const pages = await ctx.deps.repos.pages.listByStory(page.storyId)
       const remaining = removePage(pages, page.id)
-      await ctx.deps.repos.pages.delete(page.id)
-      await ctx.deps.repos.pages.updateOrder(
-        page.storyId,
-        remaining.map((p) => p.id)
+      const images = await ctx.deps.repos.pages.listImages(page.id)
+      const assets = await ctx.deps.repos.assets.listByIds(
+        images.flatMap((image) =>
+          [image.imageAssetId, image.rawAssetId].filter((id): id is string =>
+            Boolean(id)
+          )
+        )
+      )
+      await ctx.deps.repos.transaction(async (repos) => {
+        await repos.pages.delete(page.id)
+        await repos.pages.updateOrder(
+          page.storyId,
+          remaining.map((p) => p.id)
+        )
+        for (const asset of assets) await repos.assets.delete(asset.id)
+      })
+      await Promise.all(
+        assets.map((asset) =>
+          ctx.deps.storage.delete(asset.storageLocator).catch(() => undefined)
+        )
       )
       return { success: true }
     }),
@@ -295,6 +312,6 @@ export const pageRouter = createTRPCRouter({
       )
       // Repo returns variants ascending; expose them newest-first.
       const images = await ctx.deps.repos.pages.listImages(input.pageId)
-      return [...images].reverse()
+      return [...images].reverse().map(clientPageImage)
     }),
 })

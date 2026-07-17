@@ -74,15 +74,23 @@ describe("base image integration", () => {
 
   async function seedCharacters(deps: Deps) {
     const photo = await tinyPng()
-    const { url } = await deps.storage.put(
+    const { locator } = await deps.storage.put(
       photoKey(storyId, "with-photo"),
       photo,
       "image/png"
     )
+    const asset = await deps.repos.assets.create({
+      userId,
+      storyId,
+      kind: "CHARACTER_PHOTO",
+      storageLocator: locator,
+      contentType: "image/png",
+      byteLength: photo.byteLength,
+    })
     await deps.repos.characters.create({
       storyId,
       name: "Ava",
-      photoUrl: url,
+      photoAssetId: asset.id,
     })
     await deps.repos.characters.create({ storyId, name: "Bo" })
     return { photo }
@@ -109,29 +117,40 @@ describe("base image integration", () => {
 
     const finished = await deps.repos.tasks.getById(task.id)
     expect(finished?.status).toBe("SUCCEEDED")
-    const resultUrl = (finished?.resultJson as { url: string } | null)?.url
-    expect(resultUrl).toBeTruthy()
+    const resultAssetId = (finished?.resultJson as { assetId: string } | null)
+      ?.assetId
+    expect(resultAssetId).toBeTruthy()
     const story = await deps.repos.stories.getById(storyId)
-    expect(story?.baseImageUrl).toBe(resultUrl)
+    expect(story?.baseImageAssetId).toBe(resultAssetId)
 
-    // The generated sheet was actually written to storage under resultUrl.
-    const stored = await deps.storage.fetchBuffer(resultUrl!)
+    const asset = await deps.repos.assets.getById(resultAssetId!)
+    const stored = await deps.storage.fetchBuffer(asset!.storageLocator)
     expect(stored.length).toBeGreaterThan(0)
 
     // Cleanup characters for the failure test below.
     for (const character of await deps.repos.characters.listByStory(storyId)) {
       await deps.repos.characters.delete(character.id)
     }
-    await deps.repos.stories.update(storyId, { baseImageUrl: null })
+    await deps.repos.stories.update(storyId, { baseImageAssetId: null })
   })
 
-  it("leaves baseImageUrl unchanged when generation fails", async () => {
+  it("leaves baseImageAssetId unchanged when generation fails", async () => {
     const image = recordingImageGenerator(async () => {
       throw new Error("image gen boom")
     })
     const deps = baseDeps(image)
     await deps.repos.characters.create({ storyId, name: "Cy" })
-    await deps.repos.stories.update(storyId, { baseImageUrl: "keep-me" })
+    const keep = await deps.repos.assets.create({
+      userId,
+      storyId,
+      kind: "BASE_IMAGE",
+      storageLocator: "keep-me",
+      contentType: "image/png",
+      byteLength: 1,
+    })
+    await deps.repos.stories.update(storyId, {
+      baseImageAssetId: keep.id,
+    })
 
     const task = await deps.repos.tasks.create({
       userId,
@@ -143,6 +162,6 @@ describe("base image integration", () => {
     const finished = await deps.repos.tasks.getById(task.id)
     expect(finished?.status).toBe("FAILED")
     const story = await deps.repos.stories.getById(storyId)
-    expect(story?.baseImageUrl).toBe("keep-me")
+    expect(story?.baseImageAssetId).toBe(keep.id)
   })
 })

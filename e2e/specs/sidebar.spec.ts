@@ -73,6 +73,34 @@ test("artifacts page lists a character photo and the base image", async ({
   await expect(
     page.getByRole("img", { name: "Character reference sheet" })
   ).toBeVisible()
+  const artifactImages = page.getByRole("main").getByRole("img")
+  await expect(artifactImages).toHaveCount(2)
+  const imageAttributes = await artifactImages.evaluateAll((images) =>
+    images.map((image) => ({
+      src: image.getAttribute("src"),
+      alt: image.getAttribute("alt"),
+    }))
+  )
+  expect(imageAttributes.map(({ alt }) => alt)).toEqual([
+    "Character reference sheet",
+    "Nick photo",
+  ])
+  expect(
+    imageAttributes.every(({ src }) => /^\/api\/me\/assets\//.test(src ?? ""))
+  ).toBe(true)
+
+  const originalHrefs = await page
+    .getByRole("main")
+    .getByRole("link", { name: "Open original" })
+    .evaluateAll((links) => links.map((link) => link.getAttribute("href")))
+  expect(originalHrefs).toHaveLength(2)
+  expect(
+    originalHrefs.every((href) => /^\/api\/me\/assets\//.test(href ?? ""))
+  ).toBe(true)
+  const mainHtml = await page.getByRole("main").innerHTML()
+  expect(mainHtml).not.toContain("blob.vercel-storage.com")
+  expect(mainHtml).not.toContain(`/stories/${storyId}/photos/`)
+  expect(mainHtml).not.toContain(`/stories/${storyId}/base.png`)
   // Every artifact is attributed to the story that produced it. Scoped to main
   // so the sidebar's own "Dentist Day" entry doesn't count toward this.
   await expect(page.getByRole("main").getByText("Dentist Day")).toHaveCount(2)

@@ -1,16 +1,17 @@
 import { describe, expect, it } from "vitest"
 
-import type { PageImage } from "@/server/domain/types"
+import type { ClientPageImage } from "@/server/domain/types"
 import { task } from "@/server/domain/testFactories"
 import { derivePageGenState } from "./usePageGeneration"
 
-function image(variant: number, url = `url-v${variant}`): PageImage {
+function image(variant: number, url = `url-v${variant}`): ClientPageImage {
   const now = new Date("2026-01-01T00:00:00Z")
   return {
     id: `img-${variant}`,
     pageId: "page",
     url,
-    rawUrl: null,
+    imageAssetId: `asset-${variant}`,
+    rawAssetId: null,
     promptUsed: "p",
     variant,
     createdAt: now,

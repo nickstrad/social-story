@@ -5,6 +5,7 @@ import { pickReferencePhoto } from "./photoPick"
 
 const withPhoto = (id: string) => ({
   ...character(id),
+  photoAssetId: `asset-${id}`,
   photoUrl: `photo-${id}`,
 })
 

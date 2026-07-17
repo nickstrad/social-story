@@ -3,9 +3,10 @@ import { z } from "zod"
 
 import { assertStoryOwnership } from "@/server/api/ownership"
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc"
-import { pdfUrlFromTask } from "@/server/domain/pdfPlan"
+import { pdfAssetIdFromTask } from "@/server/domain/pdfPlan"
 import { hasActiveTask, latestTask } from "@/server/domain/taskMachine"
 import { createTask, listStoryTasks } from "@/server/services/tasks"
+import { assetUrl } from "@/server/services/assets"
 
 const storyInput = z.object({ storyId: z.string().min(1) })
 
@@ -42,7 +43,16 @@ export const pdfRouter = createTRPCRouter({
       ctx.session.user.id
     )
     const tasks = await listStoryTasks(ctx.deps, input.storyId)
-    const latest = latestTask(tasks, (task) => pdfUrlFromTask(task) !== null)
-    return { url: latest ? pdfUrlFromTask(latest) : null }
+    const latest = latestTask(
+      tasks,
+      (task) => pdfAssetIdFromTask(task) !== null
+    )
+    const assetId = latest ? pdfAssetIdFromTask(latest) : null
+    const asset = assetId
+      ? await ctx.deps.repos.assets.getOwnedById(assetId, ctx.session.user.id, [
+          "PDF",
+        ])
+      : null
+    return { url: asset ? assetUrl(asset.id) : null }
   }),
 })

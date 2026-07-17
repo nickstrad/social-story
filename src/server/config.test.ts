@@ -25,6 +25,28 @@ describe("parseConfig", () => {
     })
   })
 
+  it("prefers a complete OIDC pair without passing the static token", () => {
+    expect(
+      parseConfig({
+        ...validEnv,
+        BLOB_STORE_ID: "store-id",
+        VERCEL_OIDC_TOKEN: "oidc-token",
+      }).blob
+    ).toEqual({ storeId: "store-id", oidcToken: "oidc-token" })
+  })
+
+  it("falls back to the static token when only part of the OIDC pair exists", () => {
+    expect(
+      parseConfig({ ...validEnv, BLOB_STORE_ID: "store-id" }).blob
+    ).toEqual({ token: "blob-token" })
+  })
+
+  it("requires either complete OIDC credentials or a static token", () => {
+    expect(() =>
+      parseConfig({ ...validEnv, BLOB_READ_WRITE_TOKEN: undefined })
+    ).toThrow(/BLOB_READ_WRITE_TOKEN/)
+  })
+
   it("requires Inngest keys in production", () => {
     expect(() =>
       parseConfig({ ...validEnv, NODE_ENV: "production", INNGEST_DEV: "0" })

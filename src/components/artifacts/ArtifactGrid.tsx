@@ -74,6 +74,7 @@ function ArtifactCard({ artifact }: { artifact: Artifact }) {
           </div>
         ) : (
           <Image
+            unoptimized
             src={artifact.url}
             alt={artifact.label}
             fill

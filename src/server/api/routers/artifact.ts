@@ -28,11 +28,12 @@ export const artifactRouter = createTRPCRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
     const stories = await ctx.deps.repos.stories.listByUser(ctx.session.user.id)
     const storyIds = stories.map((story) => story.id)
-    const [characters, pages, pageImages, tasks] = await Promise.all([
+    const [characters, pages, pageImages, tasks, assets] = await Promise.all([
       ctx.deps.repos.characters.listByStoryIds(storyIds),
       ctx.deps.repos.pages.listByStoryIds(storyIds),
       ctx.deps.repos.pages.listImagesByStoryIds(storyIds),
       ctx.deps.repos.tasks.listByStoryIds(storyIds),
+      ctx.deps.repos.assets.listByStoryIds(storyIds),
     ])
 
     const storyIdByPageId = new Map(
@@ -44,6 +45,7 @@ export const artifactRouter = createTRPCRouter({
       storyIdByPageId.get(item.pageId)
     )
     const tasksByStory = groupBy(tasks, (item) => item.storyId)
+    const assetsByStory = groupBy(assets, (item) => item.storyId)
 
     const sources: StoryArtifactSources[] = stories.map((story) => ({
       story,
@@ -51,6 +53,7 @@ export const artifactRouter = createTRPCRouter({
       pages: pagesByStory.get(story.id) ?? [],
       pageImages: imagesByStory.get(story.id) ?? [],
       tasks: tasksByStory.get(story.id) ?? [],
+      assets: assetsByStory.get(story.id) ?? [],
     }))
     return collectArtifacts(sources)
   }),

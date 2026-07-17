@@ -1,5 +1,8 @@
 import type {
+  Asset,
+  AssetKind,
   Character,
+  CreateAsset,
   CreateCharacter,
   CreatePage,
   CreatePageImage,
@@ -16,6 +19,7 @@ import type {
   UpdateRule,
   UpdateStory,
   UpdateTask,
+  UpdateAsset,
 } from "../domain/types"
 
 export interface StoryRepo {
@@ -75,10 +79,27 @@ export interface TaskRepo {
   update(id: string, input: UpdateTask): Promise<Task>
 }
 
+export interface AssetRepo {
+  create(input: CreateAsset): Promise<Asset>
+  getById(id: string): Promise<Asset | null>
+  getOwnedById(
+    id: string,
+    userId: string,
+    kinds?: readonly AssetKind[]
+  ): Promise<Asset | null>
+  listByIds(ids: string[]): Promise<Asset[]>
+  listByStory(storyId: string): Promise<Asset[]>
+  listByStoryIds(storyIds: string[]): Promise<Asset[]>
+  update(id: string, input: UpdateAsset): Promise<Asset>
+  delete(id: string): Promise<void>
+}
+
 export interface Repos {
   stories: StoryRepo
   characters: CharacterRepo
   rules: RuleRepo
   pages: PageRepo
   tasks: TaskRepo
+  assets: AssetRepo
+  transaction<T>(work: (repos: Repos) => Promise<T>): Promise<T>
 }

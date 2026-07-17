@@ -1,4 +1,4 @@
-import { test, expect } from "../support/auth"
+import { expect, makeUser, signUp, test } from "../support/auth"
 import {
   addCharacter,
   addCharacterPhoto,
@@ -15,6 +15,10 @@ test("generate all page images and export a valid PDF", async ({ page }) => {
   await addCharacter(page, "Nick")
   await addCharacterPhoto(page, "Nick")
   await generateBaseImage(page, storyId)
+  const imageUrl = await page
+    .getByRole("img", { name: "Character reference sheet" })
+    .getAttribute("src")
+  expect(imageUrl).toMatch(/^\/api\/me\/assets\//)
 
   // Parse through the real task handler using the canned LLM JSON fixture.
   await page.goto(`/stories/${storyId}/script`)
@@ -36,6 +40,7 @@ test("generate all page images and export a valid PDF", async ({ page }) => {
   await expect(download).toBeVisible()
   const href = await download.getAttribute("href")
   expect(href).toBeTruthy()
+  expect(href).toMatch(/^\/api\/me\/assets\//)
 
   // Exercise the browser-facing storage route, including its PDF media type,
   // and verify the returned artifact has a genuine PDF header.
@@ -43,4 +48,24 @@ test("generate all page images and export a valid PDF", async ({ page }) => {
   expect(response.ok()).toBe(true)
   expect(response.headers()["content-type"]).toBe("application/pdf")
   expect((await response.body()).subarray(0, 4).toString("latin1")).toBe("%PDF")
+
+  const imageResponse = await page.request.get(imageUrl!)
+  expect(imageResponse.ok()).toBe(true)
+  expect(imageResponse.headers()["content-type"]).toBe("image/png")
+  const etag = imageResponse.headers().etag
+  expect(etag).toBeTruthy()
+  const cachedImageResponse = await page.request.get(imageUrl!, {
+    headers: { "If-None-Match": etag },
+  })
+  expect(cachedImageResponse.status()).toBe(304)
+  expect(cachedImageResponse.headers().etag).toBe(etag)
+
+  await page.getByRole("button", { name: "Sign out" }).click()
+  await page.waitForURL("**/signin")
+  expect((await page.request.get(href!)).status()).toBe(401)
+  expect((await page.request.get(imageUrl!)).status()).toBe(401)
+
+  await signUp(page, makeUser())
+  expect((await page.request.get(href!)).status()).toBe(404)
+  expect((await page.request.get(imageUrl!)).status()).toBe(404)
 })

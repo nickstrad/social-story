@@ -1,4 +1,5 @@
 import type {
+  Asset,
   Character,
   Page,
   PageImage,
@@ -30,6 +31,7 @@ export function inMemoryRepos(): Repos {
   const pages = new Map<string, Page>()
   const images = new Map<string, PageImage>()
   const tasks = new Map<string, Task>()
+  const assets = new Map<string, Asset>()
   const pagesByStoryIds = (storyIds: string[]) =>
     byStoryIds(pages.values(), storyIds).sort((a, b) => a.position - b.position)
   const pageImagesByStoryIds = (storyIds: string[]) => {
@@ -39,14 +41,14 @@ export function inMemoryRepos(): Repos {
       .sort((a, b) => a.variant - b.variant)
   }
 
-  return {
+  const repos: Repos = {
     stories: {
       async create(input) {
         const timestamp = now()
         const value: Story = {
           id: newId(),
           status: "DRAFT",
-          baseImageUrl: null,
+          baseImageAssetId: null,
           coverNote: null,
           ...input,
           createdAt: timestamp,
@@ -80,6 +82,8 @@ export function inMemoryRepos(): Repos {
           if (value.storyId === id) pages.delete(key)
         for (const [key, value] of tasks)
           if (value.storyId === id) tasks.delete(key)
+        for (const [key, value] of assets)
+          if (value.storyId === id) assets.delete(key)
       },
     },
     characters: {
@@ -90,7 +94,7 @@ export function inMemoryRepos(): Repos {
           role: null,
           age: null,
           appearance: null,
-          photoUrl: null,
+          photoAssetId: null,
           photoDescription: null,
           ...input,
           createdAt: timestamp,
@@ -221,7 +225,7 @@ export function inMemoryRepos(): Repos {
         const timestamp = now()
         const value = {
           id: newId(),
-          rawUrl: null,
+          rawAssetId: null,
           ...input,
           createdAt: timestamp,
           updatedAt: timestamp,
@@ -317,5 +321,89 @@ export function inMemoryRepos(): Repos {
         return value
       },
     },
+    assets: {
+      async create(input) {
+        const story = stories.get(input.storyId)
+        if (!story || story.userId !== input.userId) {
+          throw new Error("Asset owner must match story owner")
+        }
+        if (
+          [...assets.values()].some(
+            (asset) => asset.storageLocator === input.storageLocator
+          )
+        ) {
+          throw new Error("Asset storage locator must be unique")
+        }
+        const timestamp = now()
+        const value: Asset = {
+          id: newId(),
+          filename: null,
+          ...input,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }
+        assets.set(value.id, value)
+        return value
+      },
+      async getById(id) {
+        return assets.get(id) ?? null
+      },
+      async getOwnedById(id, userId, kinds) {
+        const asset = assets.get(id)
+        if (!asset || asset.userId !== userId) return null
+        if (kinds && !kinds.includes(asset.kind)) return null
+        return asset
+      },
+      async listByIds(ids) {
+        const wanted = new Set(ids)
+        return [...assets.values()].filter((asset) => wanted.has(asset.id))
+      },
+      async listByStory(storyId) {
+        return byStoryIds(assets.values(), [storyId])
+      },
+      async listByStoryIds(storyIds) {
+        return byStoryIds(assets.values(), storyIds)
+      },
+      async update(id, input) {
+        const value = {
+          ...required(assets.get(id), "Asset"),
+          ...input,
+          updatedAt: now(),
+        }
+        assets.set(id, value)
+        return value
+      },
+      async delete(id) {
+        assets.delete(id)
+      },
+    },
+    async transaction(work) {
+      const snapshots = {
+        stories: new Map(stories),
+        characters: new Map(characters),
+        rules: new Map(rules),
+        pages: new Map(pages),
+        images: new Map(images),
+        tasks: new Map(tasks),
+        assets: new Map(assets),
+      }
+      try {
+        return await work(repos)
+      } catch (error) {
+        const restore = <T>(target: Map<string, T>, source: Map<string, T>) => {
+          target.clear()
+          for (const [key, value] of source) target.set(key, value)
+        }
+        restore(stories, snapshots.stories)
+        restore(characters, snapshots.characters)
+        restore(rules, snapshots.rules)
+        restore(pages, snapshots.pages)
+        restore(images, snapshots.images)
+        restore(tasks, snapshots.tasks)
+        restore(assets, snapshots.assets)
+        throw error
+      }
+    },
   }
+  return repos
 }

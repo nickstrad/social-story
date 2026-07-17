@@ -4,7 +4,11 @@ import { useEffect, useRef } from "react"
 import { toast } from "sonner"
 
 import { isActiveStatus, latestTask } from "@/server/domain/taskMachine"
-import type { Character, Story, Task } from "@/server/domain/types"
+import type {
+  ClientCharacter as Character,
+  ClientStory as Story,
+  Task,
+} from "@/server/domain/types"
 import { trpc } from "@/lib/trpc"
 import { useStoryTasks } from "@/hooks/useTaskPolling"
 

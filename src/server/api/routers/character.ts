@@ -8,6 +8,7 @@ import {
   type Context,
 } from "@/server/api/trpc"
 import { characterInputSchema } from "@/server/domain/schemas"
+import { clientCharacter } from "@/server/services/assets"
 
 const storyInput = z.object({ storyId: z.string().min(1) })
 const characterMutationInput = storyInput.extend({
@@ -35,7 +36,9 @@ export const characterRouter = createTRPCRouter({
         input.storyId,
         ctx.session.user.id
       )
-      return ctx.deps.repos.characters.listByStory(input.storyId)
+      return (await ctx.deps.repos.characters.listByStory(input.storyId)).map(
+        clientCharacter
+      )
     }),
   create: protectedProcedure
     .input(storyInput.extend({ character: characterInputSchema }))
@@ -45,18 +48,22 @@ export const characterRouter = createTRPCRouter({
         input.storyId,
         ctx.session.user.id
       )
-      return ctx.deps.repos.characters.create({
-        storyId: input.storyId,
-        ...input.character,
-      })
+      return clientCharacter(
+        await ctx.deps.repos.characters.create({
+          storyId: input.storyId,
+          ...input.character,
+        })
+      )
     }),
   update: protectedProcedure
     .input(characterMutationInput.extend({ character: characterInputSchema }))
     .mutation(async ({ ctx, input }) => {
       await ownedCharacter(ctx, input.storyId, input.characterId)
-      return ctx.deps.repos.characters.update(
-        input.characterId,
-        input.character
+      return clientCharacter(
+        await ctx.deps.repos.characters.update(
+          input.characterId,
+          input.character
+        )
       )
     }),
   delete: protectedProcedure
@@ -67,20 +74,27 @@ export const characterRouter = createTRPCRouter({
         input.storyId,
         input.characterId
       )
-      if (character.photoUrl) await ctx.deps.storage.delete(character.photoUrl)
+      const photo = character.photoAssetId
+        ? await ctx.deps.repos.assets.getById(character.photoAssetId)
+        : null
       const rules = await ctx.deps.repos.rules.listByStory(input.storyId)
-      await Promise.all(
-        rules
-          .filter((rule) => rule.characterIds.includes(input.characterId))
-          .map((rule) =>
-            ctx.deps.repos.rules.update(rule.id, {
-              characterIds: rule.characterIds.filter(
-                (id) => id !== input.characterId
-              ),
-            })
-          )
-      )
-      await ctx.deps.repos.characters.delete(input.characterId)
+      await ctx.deps.repos.transaction(async (repos) => {
+        for (const rule of rules) {
+          if (!rule.characterIds.includes(input.characterId)) continue
+          await repos.rules.update(rule.id, {
+            characterIds: rule.characterIds.filter(
+              (id) => id !== input.characterId
+            ),
+          })
+        }
+        await repos.characters.delete(input.characterId)
+        if (photo) await repos.assets.delete(photo.id)
+      })
+      if (photo) {
+        await ctx.deps.storage
+          .delete(photo.storageLocator)
+          .catch(() => undefined)
+      }
       return { success: true }
     }),
 })

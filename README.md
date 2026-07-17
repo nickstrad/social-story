@@ -26,6 +26,22 @@ npm run dev     # mprocs starts the app and Inngest Dev Server together
 npm test        # vitest
 ```
 
+### Web environment and private assets
+
+Use [`.env.example`](.env.example) as the variable reference. Hosted deployments
+should connect a private Vercel Blob store so `BLOB_STORE_ID` and
+`VERCEL_OIDC_TOKEN` are available together. Local development can instead set
+`BLOB_READ_WRITE_TOKEN` to a private-store token.
+
+This app is pre-production, and the private-asset schema intentionally has no
+legacy-URL backfill command. Before applying this feature locally, wipe the
+disposable development database and the app-owned `stories/` objects in the old
+Blob store, then apply the migrations to the empty database:
+
+```bash
+npx prisma migrate reset
+```
+
 `npm run dev` uses [`mprocs`](https://github.com/pvolok/mprocs) and
 `mprocs.yaml` to run the Next app at http://localhost:3000 and the Inngest UI at
 http://localhost:8288 in one terminal. The normal development database is the

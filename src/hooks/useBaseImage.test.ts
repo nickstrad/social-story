@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { canGenerateBase, latestBaseImageTask } from "./useBaseImage"
 import { character, task } from "@/server/domain/testFactories"
-import type { Story, Task } from "@/server/domain/types"
+import type { ClientStory, Task } from "@/server/domain/types"
 
 function baseTask(id: string, createdAt: string): Task {
   return {
@@ -13,13 +13,14 @@ function baseTask(id: string, createdAt: string): Task {
   }
 }
 
-const story: Story = {
+const story: ClientStory = {
   id: "story",
   userId: "user",
   title: "A Story",
   script: "script",
   status: "DRAFT",
   baseImageUrl: null,
+  baseImageAssetId: null,
   coverNote: null,
   createdAt: new Date("2026-01-01T00:00:00Z"),
   updatedAt: new Date("2026-01-01T00:00:00Z"),

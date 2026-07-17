@@ -10,6 +10,7 @@ import { E2E_DATABASE_URL } from "./support/constants"
 // and data. `scripts/e2e.sh` removes the volume between runs, so migrate deploy
 // normally lands on an empty database; the truncate covers a reused container.
 const TABLES = [
+  "Asset",
   "PageImage",
   "Page",
   "Task",

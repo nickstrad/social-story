@@ -125,9 +125,17 @@ describe("parse integration", () => {
     await caller.story.parse({ storyId: story.id })
 
     const pages = await deps.repos.pages.listByStory(story.id)
+    const asset = await deps.repos.assets.create({
+      userId: user.id,
+      storyId: story.id,
+      kind: "PAGE_IMAGE",
+      storageLocator: "private/page.png",
+      contentType: "image/png",
+      byteLength: 1,
+    })
     await deps.repos.pages.addImage({
       pageId: pages[1].id,
-      url: "https://blob/page.png",
+      imageAssetId: asset.id,
       promptUsed: "prompt",
       variant: 1,
     })

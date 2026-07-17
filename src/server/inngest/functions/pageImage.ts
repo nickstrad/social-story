@@ -7,6 +7,7 @@ import type { Character, Task } from "@/server/domain/types"
 import { registerTaskHandler } from "@/server/inngest/handlers"
 import type { ReferenceImage } from "@/server/ports/image"
 import { addCaptionBand } from "@/server/services/caption"
+import { createPageImageAssets } from "@/server/services/assets"
 import { toReferenceImage } from "@/server/services/references"
 import { pageImageKey, pageImageRawKey } from "@/server/services/storage-keys"
 
@@ -41,7 +42,7 @@ export async function runPageImageTask(task: Task, deps: Deps) {
 
   const isCover = page.kind === "COVER"
   const peopled = isCover || resolved.length > 0
-  const anchored = peopled && Boolean(story.baseImageUrl)
+  const anchored = peopled && Boolean(story.baseImageAssetId)
 
   const prompt = isCover
     ? buildCoverPrompt({
@@ -61,15 +62,17 @@ export async function runPageImageTask(task: Task, deps: Deps) {
   // Anchor sheet FIRST (buildImagePrompt/BASE_SHEET_INSTRUCTION references "the
   // FIRST image"), then at most one deterministically-chosen character photo.
   const referenceImages: ReferenceImage[] = []
-  if (anchored && story.baseImageUrl) {
-    referenceImages.push(await toReferenceImage(deps, story.baseImageUrl))
+  if (anchored && story.baseImageAssetId) {
+    referenceImages.push(await toReferenceImage(deps, story.baseImageAssetId))
   }
   const photoCharacter = pickReferencePhoto({
     pageCharacters: resolved,
     hasAnchor: anchored,
   })
-  if (photoCharacter?.photoUrl) {
-    referenceImages.push(await toReferenceImage(deps, photoCharacter.photoUrl))
+  if (photoCharacter?.photoAssetId) {
+    referenceImages.push(
+      await toReferenceImage(deps, photoCharacter.photoAssetId)
+    )
   }
 
   // The variant read doesn't depend on the (multi-second) render, so overlap it.
@@ -86,30 +89,18 @@ export async function runPageImageTask(task: Task, deps: Deps) {
 
   // Captioning is not idempotent, so it always runs against the raw source; the
   // raw upload is independent of it, so both run together.
-  const [{ url: rawUrl }, captioned] = await Promise.all([
-    deps.storage.put(
-      pageImageRawKey(task.storyId, page.id, variant),
-      raw,
-      "image/png"
-    ),
-    addCaptionBand(raw, isCover ? story.title : page.text),
-  ])
-  const { url } = await deps.storage.put(
-    pageImageKey(task.storyId, page.id, variant),
-    captioned,
-    "image/png"
-  )
-
-  const image = await deps.repos.pages.addImage({
+  const captioned = await addCaptionBand(raw, isCover ? story.title : page.text)
+  const image = await createPageImageAssets(deps, {
+    userId: story.userId,
+    storyId: story.id,
     pageId: page.id,
-    url,
-    rawUrl,
     promptUsed: prompt,
     variant,
+    raw,
+    captioned,
+    rawKey: pageImageRawKey(task.storyId, page.id, variant),
+    captionedKey: pageImageKey(task.storyId, page.id, variant),
   })
-  // Auto-select the fresh variant; older variants remain listed so a
-  // regenerate-then-compare flow can still switch back.
-  await deps.repos.pages.update(page.id, { selectedImageId: image.id })
 
   return { pageImageId: image.id }
 }

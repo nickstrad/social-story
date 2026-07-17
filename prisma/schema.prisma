@@ -19,6 +19,7 @@ model User {
   accounts      Account[]
   stories       Story[]
   tasks         Task[]
+  assets        Asset[]
 }
 
 model Session {
@@ -72,7 +73,8 @@ model Story {
   title        String
   script       String
   status       StoryStatus @default(DRAFT)
-  baseImageUrl String?
+  baseImageAssetId String?     @unique
+  baseImageAsset   Asset?      @relation("StoryBaseImage", fields: [baseImageAssetId], references: [id], onDelete: SetNull)
   coverNote    String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -80,8 +82,10 @@ model Story {
   rules        Rule[]
   pages        Page[]
   tasks        Task[]
+  assets       Asset[]         @relation("StoryAssets")
 
   @@index([userId])
+  @@unique([id, userId])
 }
 
 model Character {
@@ -92,7 +96,8 @@ model Character {
   role             String?
   age              String?
   appearance       String?
-  photoUrl         String?
+  photoAssetId     String?  @unique
+  photoAsset       Asset?   @relation("CharacterPhoto", fields: [photoAssetId], references: [id], onDelete: SetNull)
   photoDescription String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -139,14 +144,38 @@ model PageImage {
   pageId     String
   page       Page     @relation("PageImages", fields: [pageId], references: [id], onDelete: Cascade)
   selectedBy Page?    @relation("SelectedPageImage")
-  url        String
-  rawUrl     String?
+  imageAssetId String  @unique
+  imageAsset   Asset   @relation("PageImageCaptioned", fields: [imageAssetId], references: [id], onDelete: Restrict)
+  rawAssetId   String? @unique
+  rawAsset     Asset?  @relation("PageImageRaw", fields: [rawAssetId], references: [id], onDelete: SetNull)
   promptUsed String
   variant    Int
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   @@index([pageId, variant])
+}
+
+model Asset {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storyId        String
+  story          Story     @relation("StoryAssets", fields: [storyId, userId], references: [id, userId], onDelete: Cascade)
+  kind           AssetKind
+  storageLocator String    @unique
+  contentType    String
+  byteLength     Int
+  filename       String?
+  baseImageFor   Story?    @relation("StoryBaseImage")
+  characterPhoto Character? @relation("CharacterPhoto")
+  captionedImage PageImage? @relation("PageImageCaptioned")
+  rawImage       PageImage? @relation("PageImageRaw")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId, id])
+  @@index([storyId])
 }
 
 model Task {
@@ -201,4 +230,12 @@ enum TaskStatus {
   RUNNING
   SUCCEEDED
   FAILED
+}
+
+enum AssetKind {
+  BASE_IMAGE
+  CHARACTER_PHOTO
+  PAGE_IMAGE
+  PAGE_IMAGE_RAW
+  PDF
 }

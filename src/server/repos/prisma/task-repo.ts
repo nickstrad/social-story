@@ -1,10 +1,11 @@
-import { Prisma, type PrismaClient } from "@prisma/client"
+import { Prisma } from "@prisma/client"
 
 import type { CreateTask, Task, UpdateTask } from "../../domain/types"
 import type { TaskRepo } from "../../ports/repos"
+import type { PrismaDb } from "./db-client"
 
 const toDomain = (
-  task: Awaited<ReturnType<PrismaClient["task"]["findFirstOrThrow"]>>
+  task: Awaited<ReturnType<PrismaDb["task"]["findFirstOrThrow"]>>
 ): Task => ({
   ...task,
   resultJson: task.resultJson as Task["resultJson"],
@@ -25,7 +26,7 @@ const updateData = (input: UpdateTask): Prisma.TaskUncheckedUpdateInput => ({
 })
 
 async function changedTask(
-  db: PrismaClient,
+  db: PrismaDb,
   id: string,
   count: number
 ): Promise<Task | null> {
@@ -34,7 +35,7 @@ async function changedTask(
 }
 
 async function listTasksByStoryIds(
-  db: PrismaClient,
+  db: PrismaDb,
   storyIds: string[]
 ): Promise<Task[]> {
   return (
@@ -45,7 +46,7 @@ async function listTasksByStoryIds(
   ).map(toDomain)
 }
 
-export const prismaTaskRepo = (db: PrismaClient): TaskRepo => ({
+export const prismaTaskRepo = (db: PrismaDb): TaskRepo => ({
   async create(input) {
     return toDomain(await db.task.create({ data: createData(input) }))
   },

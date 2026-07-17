@@ -22,7 +22,7 @@ export function pickReferencePhoto({
   if (hasAnchor) return null
 
   const withPhoto = pageCharacters.filter((character) =>
-    Boolean(character.photoUrl)
+    Boolean(character.photoAssetId)
   )
   return withPhoto.length === 1 ? withPhoto[0] : null
 }

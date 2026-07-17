@@ -90,6 +90,7 @@ export function BaseImagePanel({
               ) : null}
               {imageUrl && !busy ? (
                 <Image
+                  unoptimized
                   src={imageUrl}
                   alt="Character reference sheet"
                   fill

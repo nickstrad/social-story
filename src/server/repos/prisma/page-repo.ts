@@ -1,20 +1,33 @@
-import type { PrismaClient } from "@prisma/client"
+import type { Prisma } from "@prisma/client"
 
 import type { PageRepo } from "../../ports/repos"
+import type { PrismaDb } from "./db-client"
 
-const listPagesByStoryIds = (db: PrismaClient, storyIds: string[]) =>
+const runTransaction = async (
+  db: PrismaDb,
+  queries: PromiseLike<unknown>[]
+) => {
+  if ("$transaction" in db) {
+    await db.$transaction(queries as Prisma.PrismaPromise<unknown>[])
+    return
+  }
+  // An interactive transaction client cannot start these writes concurrently.
+  for (const query of queries) await query
+}
+
+const listPagesByStoryIds = (db: PrismaDb, storyIds: string[]) =>
   db.page.findMany({
     where: { storyId: { in: storyIds } },
     orderBy: { position: "asc" },
   })
 
-const listPageImagesByStoryIds = (db: PrismaClient, storyIds: string[]) =>
+const listPageImagesByStoryIds = (db: PrismaDb, storyIds: string[]) =>
   db.pageImage.findMany({
     where: { page: { storyId: { in: storyIds } } },
     orderBy: { variant: "asc" },
   })
 
-export const prismaPageRepo = (db: PrismaClient): PageRepo => ({
+export const prismaPageRepo = (db: PrismaDb): PageRepo => ({
   create: (data) => db.page.create({ data }),
   getById: (id) => db.page.findUnique({ where: { id } }),
   listByStory: (storyId) => listPagesByStoryIds(db, [storyId]),
@@ -22,7 +35,7 @@ export const prismaPageRepo = (db: PrismaClient): PageRepo => ({
   async replaceAll(storyId, pages) {
     // Re-parse is destructive: drop existing pages and recreate from scratch.
     // Callers guard against clobbering pages that already have generated art.
-    await db.$transaction([
+    await runTransaction(db, [
       db.page.deleteMany({ where: { storyId } }),
       ...pages.map((data) => db.page.create({ data: { ...data, storyId } })),
     ])
@@ -33,7 +46,8 @@ export const prismaPageRepo = (db: PrismaClient): PageRepo => ({
   },
   update: (id, data) => db.page.update({ where: { id }, data }),
   async updateOrder(storyId, orderedIds) {
-    await db.$transaction(
+    await runTransaction(
+      db,
       orderedIds.map((id, position) =>
         db.page.updateMany({ where: { id, storyId }, data: { position } })
       )

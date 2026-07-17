@@ -1,8 +1,8 @@
-import type { Character, Page, Rule, Task } from "./types"
+import type { ClientCharacter, Page, Rule, Task } from "./types"
 
 const now = new Date("2026-01-01T00:00:00Z")
 
-export function character(id: string, name = id): Character {
+export function character(id: string, name = id): ClientCharacter {
   return {
     id,
     storyId: "story",
@@ -10,6 +10,7 @@ export function character(id: string, name = id): Character {
     role: null,
     age: null,
     appearance: null,
+    photoAssetId: null,
     photoUrl: null,
     photoDescription: null,
     createdAt: now,

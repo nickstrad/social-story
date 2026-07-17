@@ -4,7 +4,7 @@ import { PencilIcon, Trash2Icon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { describeRule } from "@/lib/ruleText"
-import type { Character, Rule } from "@/server/domain/types"
+import type { ClientCharacter as Character, Rule } from "@/server/domain/types"
 
 export function RuleList({
   rules,

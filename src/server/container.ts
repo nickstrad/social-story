@@ -40,7 +40,7 @@ export function createDeps(config: Config, client: PrismaClient = db): Deps {
   const repos = prismaRepos(client)
   if (config.e2eFakes) return createE2eDeps(repos)
   return {
-    storage: createVercelBlobStorage(config.blob.token),
+    storage: createVercelBlobStorage(config.blob),
     repos,
     text: openAITextGenerator(config.openai),
     image: openAIImageGenerator(config.openai),

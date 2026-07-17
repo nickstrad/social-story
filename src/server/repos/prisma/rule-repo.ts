@@ -1,8 +1,7 @@
-import type { PrismaClient } from "@prisma/client"
-
 import type { RuleRepo } from "../../ports/repos"
+import type { PrismaDb } from "./db-client"
 
-export const prismaRuleRepo = (db: PrismaClient): RuleRepo => ({
+export const prismaRuleRepo = (db: PrismaDb): RuleRepo => ({
   create: (data) => db.rule.create({ data }),
   getById: (id) => db.rule.findUnique({ where: { id } }),
   listByStory: (storyId) =>

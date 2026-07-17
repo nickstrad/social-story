@@ -5,32 +5,47 @@ const optionalNonEmptyString = z.preprocess(
   z.string().min(1).optional()
 )
 
-const envSchema = z.object({
-  DATABASE_URL: z.string().url(),
-  OPENAI_TOKEN: z.string().min(1),
-  BLOB_READ_WRITE_TOKEN: z.string().min(1),
-  BETTER_AUTH_SECRET: z.string().min(1),
-  BETTER_AUTH_URL: z.string().url(),
-  OPENAI_CHAT_MODEL: z.string().default("gpt-5.5"),
-  OPENAI_IMAGE_MODEL: z.string().default("gpt-image-2"),
-  NODE_ENV: z
-    .enum(["development", "test", "production"])
-    .default("development"),
-  // Playwright E2E switch. When "1", the container swaps every external adapter
-  // (LLM, blob storage, background dispatch) for a deterministic fake while the
-  // database, auth, and tRPC stay real. Off by default — never implied in prod.
-  E2E_FAKES: z.enum(["0", "1"]).default("0"),
-  NEXT_PHASE: z.string().optional(),
-  INNGEST_DEV: z.enum(["0", "1"]).optional(),
-  INNGEST_EVENT_KEY: optionalNonEmptyString,
-  INNGEST_SIGNING_KEY: optionalNonEmptyString,
-  INNGEST_SIGNING_KEY_FALLBACK: optionalNonEmptyString,
-})
+const envSchema = z
+  .object({
+    DATABASE_URL: z.string().url(),
+    OPENAI_TOKEN: z.string().min(1),
+    BLOB_READ_WRITE_TOKEN: optionalNonEmptyString,
+    BLOB_STORE_ID: optionalNonEmptyString,
+    VERCEL_OIDC_TOKEN: optionalNonEmptyString,
+    BETTER_AUTH_SECRET: z.string().min(1),
+    BETTER_AUTH_URL: z.string().url(),
+    OPENAI_CHAT_MODEL: z.string().default("gpt-5.5"),
+    OPENAI_IMAGE_MODEL: z.string().default("gpt-image-2"),
+    NODE_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
+    // Playwright E2E switch. When "1", the container swaps every external adapter
+    // (LLM, blob storage, background dispatch) for a deterministic fake while the
+    // database, auth, and tRPC stay real. Off by default — never implied in prod.
+    E2E_FAKES: z.enum(["0", "1"]).default("0"),
+    NEXT_PHASE: z.string().optional(),
+    INNGEST_DEV: z.enum(["0", "1"]).optional(),
+    INNGEST_EVENT_KEY: optionalNonEmptyString,
+    INNGEST_SIGNING_KEY: optionalNonEmptyString,
+    INNGEST_SIGNING_KEY_FALLBACK: optionalNonEmptyString,
+  })
+  .superRefine((env, ctx) => {
+    const hasOidcPair = Boolean(env.BLOB_STORE_ID && env.VERCEL_OIDC_TOKEN)
+    if (hasOidcPair || env.BLOB_READ_WRITE_TOKEN) return
+    const hasPartialOidc = Boolean(env.BLOB_STORE_ID || env.VERCEL_OIDC_TOKEN)
+    ctx.addIssue({
+      code: "custom",
+      message: hasPartialOidc
+        ? "BLOB_STORE_ID and VERCEL_OIDC_TOKEN must be set together"
+        : "OIDC credentials or BLOB_READ_WRITE_TOKEN are required",
+      path: [hasPartialOidc ? "BLOB_STORE_ID" : "BLOB_READ_WRITE_TOKEN"],
+    })
+  })
 
 export type Config = Readonly<{
   db: Readonly<{ url: string }>
   openai: Readonly<{ token: string; chatModel: string; imageModel: string }>
-  blob: Readonly<{ token: string }>
+  blob: Readonly<{ storeId: string; oidcToken: string } | { token: string }>
   auth: Readonly<{ secret: string; url: string }>
   inngest: Readonly<{
     isDev: boolean
@@ -80,7 +95,13 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
       chatModel: value.OPENAI_CHAT_MODEL,
       imageModel: value.OPENAI_IMAGE_MODEL,
     },
-    blob: { token: value.BLOB_READ_WRITE_TOKEN },
+    blob:
+      value.BLOB_STORE_ID && value.VERCEL_OIDC_TOKEN
+        ? {
+            storeId: value.BLOB_STORE_ID,
+            oidcToken: value.VERCEL_OIDC_TOKEN,
+          }
+        : { token: value.BLOB_READ_WRITE_TOKEN! },
     auth: { secret: value.BETTER_AUTH_SECRET, url: value.BETTER_AUTH_URL },
     inngest: {
       isDev: inngestDev,

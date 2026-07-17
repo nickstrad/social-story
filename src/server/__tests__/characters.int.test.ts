@@ -59,7 +59,17 @@ describe("character and rule routers", () => {
       Buffer.from("photo"),
       "image/png"
     )
-    await services.repos.characters.update(first.id, { photoUrl: blob.url })
+    const asset = await services.repos.assets.create({
+      userId: user.id,
+      storyId: story.id,
+      kind: "CHARACTER_PHOTO",
+      storageLocator: blob.locator,
+      contentType: "image/png",
+      byteLength: 5,
+    })
+    await services.repos.characters.update(first.id, {
+      photoAssetId: asset.id,
+    })
     const rule = await caller.rule.create({
       storyId: story.id,
       rule: {
@@ -81,7 +91,7 @@ describe("character and rule routers", () => {
       },
     })
     await caller.character.delete({ storyId: story.id, characterId: first.id })
-    expect(deleteBlob).toHaveBeenCalledWith(blob.url)
+    expect(deleteBlob).toHaveBeenCalledWith(blob.locator)
     expect(
       (await caller.rule.listForStory({ storyId: story.id }))[0].characterIds
     ).toEqual([second.id])

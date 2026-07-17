@@ -1,5 +1,5 @@
 import { test, expect } from "../support/auth"
-import { SAMPLE_SCRIPT } from "../support/story"
+import { createStory } from "../support/story"
 
 // `test` here is the extended fixture: each test starts signed in as a fresh
 // user (see support/auth.ts), so the story list starts empty.
@@ -9,13 +9,15 @@ test("shows the empty state before any story exists", async ({ page }) => {
 })
 
 test("create a story, see it in the list, then delete it", async ({ page }) => {
-  await page.goto("/stories/new")
-  await page.locator("#new-title").fill("Dentist Day")
-  await page.locator("#new-script").fill(SAMPLE_SCRIPT)
-  await page.getByRole("button", { name: "Create story" }).click()
+  const storyId = await createStory(page, { title: "Dentist Day" })
 
-  // Creation lands on the script step of the new story.
-  await page.waitForURL(/\/stories\/[^/]+\/script$/)
+  // Exercise the restrictive PageImage-to-Asset link before deleting the story.
+  await page.getByRole("button", { name: "Parse into pages" }).click()
+  await expect(page.getByText(/Parsed into 4 pages/)).toBeVisible()
+  await page.goto(`/stories/${storyId}/pages`)
+  await page.getByRole("button", { name: "Select all" }).click()
+  await page.getByRole("button", { name: "Generate selected (4)" }).click()
+  await expect(page.getByRole("img")).toHaveCount(4)
 
   await page.goto("/stories")
   // Scoped to main: the sidebar's recent-stories list carries the same title,

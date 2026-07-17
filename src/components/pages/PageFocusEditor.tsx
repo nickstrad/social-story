@@ -9,7 +9,10 @@ import { VariantStrip } from "./VariantStrip"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { TaskStatusBadge } from "@/components/tasks/TaskStatusBadge"
-import type { Character, PageImage } from "@/server/domain/types"
+import type {
+  ClientCharacter as Character,
+  ClientPageImage as PageImage,
+} from "@/server/domain/types"
 import type { EditorPage } from "@/lib/pagesEditor"
 import type { PageGenState } from "@/hooks/usePageGeneration"
 

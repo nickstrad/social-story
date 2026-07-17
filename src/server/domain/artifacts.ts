@@ -1,6 +1,7 @@
-import { pdfUrlFromTask } from "./pdfPlan"
+import { pdfAssetIdFromTask } from "./pdfPlan"
 import { storyTitle } from "./storyTitle"
-import type { Character, Page, PageImage, Story, Task } from "./types"
+import type { Asset, Character, Page, PageImage, Story, Task } from "./types"
+import { assetUrl } from "../services/assets"
 
 export type ArtifactKind =
   "BASE_IMAGE" | "CHARACTER_PHOTO" | "PAGE_IMAGE" | "PDF"
@@ -21,6 +22,7 @@ export interface StoryArtifactSources {
   pages: Page[]
   pageImages: PageImage[]
   tasks: Task[]
+  assets: Asset[]
 }
 
 /**
@@ -34,30 +36,38 @@ function collectStoryArtifacts({
   pages,
   pageImages,
   tasks,
+  assets,
 }: StoryArtifactSources): Artifact[] {
   const base = { storyId: story.id, storyTitle: storyTitle(story) }
   const artifacts: Artifact[] = []
 
-  if (story.baseImageUrl) {
+  const assetsById = new Map(assets.map((asset) => [asset.id, asset]))
+  const baseAsset = story.baseImageAssetId
+    ? assetsById.get(story.baseImageAssetId)
+    : null
+  if (baseAsset?.kind === "BASE_IMAGE") {
     artifacts.push({
       ...base,
-      id: `base-${story.id}`,
+      id: baseAsset.id,
       kind: "BASE_IMAGE",
-      url: story.baseImageUrl,
+      url: assetUrl(baseAsset.id),
       label: "Character reference sheet",
-      createdAt: story.updatedAt,
+      createdAt: baseAsset.createdAt,
     })
   }
 
   for (const character of characters) {
-    if (!character.photoUrl) continue
+    const asset = character.photoAssetId
+      ? assetsById.get(character.photoAssetId)
+      : null
+    if (asset?.kind !== "CHARACTER_PHOTO") continue
     artifacts.push({
       ...base,
-      id: `character-${character.id}`,
+      id: asset.id,
       kind: "CHARACTER_PHOTO",
-      url: character.photoUrl,
+      url: assetUrl(asset.id),
       label: `${character.name} photo`,
-      createdAt: character.updatedAt,
+      createdAt: asset.createdAt,
     })
   }
 
@@ -70,27 +80,30 @@ function collectStoryArtifacts({
   for (const image of pageImages) {
     if (!selectedIds.has(image.id)) continue
     const page = pageById.get(image.pageId)
+    const asset = assetsById.get(image.imageAssetId)
+    if (asset?.kind !== "PAGE_IMAGE") continue
     artifacts.push({
       ...base,
-      id: `page-image-${image.id}`,
+      id: asset.id,
       kind: "PAGE_IMAGE",
-      url: image.url,
+      url: assetUrl(asset.id),
       label:
         page?.kind === "COVER" ? "Cover" : `Page ${(page?.position ?? 0) + 1}`,
-      createdAt: image.createdAt,
+      createdAt: asset.createdAt,
     })
   }
 
   for (const task of tasks) {
-    const url = pdfUrlFromTask(task)
-    if (!url) continue
+    const assetId = pdfAssetIdFromTask(task)
+    const asset = assetId ? assetsById.get(assetId) : null
+    if (asset?.kind !== "PDF") continue
     artifacts.push({
       ...base,
-      id: `pdf-${task.id}`,
+      id: asset.id,
       kind: "PDF",
-      url,
+      url: assetUrl(asset.id),
       label: `${base.storyTitle}.pdf`,
-      createdAt: task.finishedAt ?? task.createdAt,
+      createdAt: asset.createdAt,
     })
   }
 

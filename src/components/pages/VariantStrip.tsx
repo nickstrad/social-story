@@ -3,7 +3,7 @@
 import { FadeInImage } from "./FadeInImage"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
-import type { PageImage } from "@/server/domain/types"
+import type { ClientPageImage as PageImage } from "@/server/domain/types"
 import { cn } from "@/lib/utils"
 
 function VariantThumb({

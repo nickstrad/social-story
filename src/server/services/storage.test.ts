@@ -11,17 +11,25 @@ import {
 describe("inMemoryStorage", () => {
   it("puts, fetches, and deletes a blob", async () => {
     const storage = inMemoryStorage()
-    const { url } = await storage.put(
+    const { locator } = await storage.put(
       "hello.txt",
       Buffer.from("hello"),
       "text/plain"
     )
 
-    await expect(storage.fetchBuffer(url)).resolves.toEqual(
+    const first = await storage.read(locator)
+    expect(first.status).toBe(200)
+    const etag = first.status === 200 ? first.etag : ""
+    await expect(storage.read(locator, etag)).resolves.toEqual({
+      status: 304,
+      etag,
+    })
+    await expect(storage.fetchBuffer(locator)).resolves.toEqual(
       Buffer.from("hello")
     )
-    await storage.delete(url)
-    await expect(storage.fetchBuffer(url)).rejects.toThrow("Blob not found")
+    await storage.delete(locator)
+    await expect(storage.read(locator)).resolves.toEqual({ status: 404 })
+    await expect(storage.fetchBuffer(locator)).rejects.toThrow("Blob not found")
   })
 })
 

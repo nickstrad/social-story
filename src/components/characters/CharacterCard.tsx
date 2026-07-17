@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import type { Character } from "@/server/domain/types"
+import type { ClientCharacter as Character } from "@/server/domain/types"
 
 export function CharacterCard({
   character,
@@ -27,6 +27,7 @@ export function CharacterCard({
             <Skeleton className="size-full" />
           ) : character.photoUrl ? (
             <Image
+              unoptimized
               src={character.photoUrl}
               alt={character.name}
               fill

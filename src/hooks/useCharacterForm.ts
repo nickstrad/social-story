@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react"
 import { toast } from "sonner"
 import { characterInputSchema } from "@/server/domain/schemas"
-import type { Character } from "@/server/domain/types"
+import type { ClientCharacter as Character } from "@/server/domain/types"
 import { useCharacters } from "./useCharacters"
 
 export type CharacterValues = {

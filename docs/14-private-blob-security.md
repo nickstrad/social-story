@@ -20,8 +20,9 @@ Vercel's current storage choices differ as follows:
 
 Important platform findings:
 
-- A store's public/private access mode cannot be changed after creation, so this
-  requires a new private store and migration rather than an in-place toggle.
+- A store's public/private access mode cannot be changed after creation. This
+  app is pre-production and its development data is disposable, so cutover uses
+  a fresh private store and database reset rather than a data migration.
 - `@vercel/blob` 2.6.1, already installed here, supports private `put()` and
   streaming `get()`, conditional reads, OIDC credentials, and signed URLs.
 - Vercel recommends OIDC on Vercel because the token is short-lived and rotated;
@@ -43,15 +44,15 @@ Sources: [Vercel Blob public/private comparison](https://vercel.com/docs/vercel-
 DigitalOcean Spaces is a viable object store, but it is not a simpler privacy
 fix for this Vercel-hosted app:
 
-| Concern                 | Vercel private Blob                               | DigitalOcean Spaces                             | Result                |
-| ----------------------- | ------------------------------------------------- | ----------------------------------------------- | --------------------- |
-| Existing integration    | Current SDK and adapter                           | Add AWS S3 SDK and replace adapter              | Vercel simpler        |
-| Private objects         | Store-level private mode                          | Per-object/bucket private ACL                   | Equivalent outcome    |
-| App ownership           | Authenticated app route or signed URL             | Authenticated app route or presigned URL        | Same application work |
-| Server credential       | Rotating Vercel OIDC                              | Static Spaces access key and secret             | Vercel safer/simpler  |
-| Direct private delivery | Signed URLs use Blob CDN                          | Presigned requests are not cached by Spaces CDN | Vercel better fit     |
-| Migration               | Copy public Vercel objects to a new private store | Copy public Vercel objects to Spaces            | Same migration class  |
-| Portability             | Vercel-specific SDK                               | Partially S3-compatible API                     | Spaces advantage      |
+| Concern                 | Vercel private Blob                      | DigitalOcean Spaces                             | Result                |
+| ----------------------- | ---------------------------------------- | ----------------------------------------------- | --------------------- |
+| Existing integration    | Current SDK and adapter                  | Add AWS S3 SDK and replace adapter              | Vercel simpler        |
+| Private objects         | Store-level private mode                 | Per-object/bucket private ACL                   | Equivalent outcome    |
+| App ownership           | Authenticated app route or signed URL    | Authenticated app route or presigned URL        | Same application work |
+| Server credential       | Rotating Vercel OIDC                     | Static Spaces access key and secret             | Vercel safer/simpler  |
+| Direct private delivery | Signed URLs use Blob CDN                 | Presigned requests are not cached by Spaces CDN | Vercel better fit     |
+| Pre-production reset    | Recreate objects in a private Blob store | Recreate objects in a private Space             | Equivalent reset      |
+| Portability             | Vercel-specific SDK                      | Partially S3-compatible API                     | Spaces advantage      |
 
 Spaces supports private ACLs, presigned URLs, bucket policies, and AWS SDK
 clients, but its S3 compatibility is explicitly partial. A production adapter
@@ -67,8 +68,8 @@ Spaces has predictable pricing—currently a $5/month base including 250 GiB of
 storage and 1 TiB of outbound transfer—and is attractive if S3 portability or a
 broader move away from Vercel is a product goal. It is not a simplification for
 this isolated access-control change. Keep the storage port provider-neutral so
-a later infrastructure-driven pivot only replaces the adapter and migration
-target, not the owned-asset route or browser DTO boundary.
+a later infrastructure-driven pivot only replaces the adapter and provisioning,
+not the owned-asset route or browser DTO boundary.
 
 Sources: [Spaces S3 compatibility and ACLs](https://docs.digitalocean.com/products/spaces/reference/s3-compatibility/),
 [AWS SDK configuration](https://docs.digitalocean.com/products/spaces/how-to/use-aws-sdks/),
@@ -208,45 +209,17 @@ artifacts page.
   selected-image filtering, verify raw assets are absent, and prove another
   user's assets and every storage locator are excluded.
 
-### 5. Additive migration, cutover, and cleanup
+### 5. Clean-install schema and pre-production reset
 
-Use two Prisma migrations so production never drops the only copy of a locator:
+The app is not in production and all existing development database and Blob data
+is disposable. Install the registry in its final shape in one Prisma migration:
+create `Asset`, add the final asset-ID references and ownership constraints, and
+drop the legacy URL columns immediately. Do not carry a backfill/finalization
+operator or a temporary nullable-reference window.
 
-1. **Additive:** create `Asset`, add nullable asset-ID reference columns and the
-   compound story ownership constraint, but retain every legacy URL column.
-2. **Cleanup:** only after application verification, make required asset
-   references non-null where applicable and drop `baseImageUrl`, `photoUrl`,
-   `url`, and `rawUrl` legacy columns. Remove legacy URL values from task JSON
-   during finalization, not during the rollback-safe backfill.
-
-Add a repeatable operator script using explicit
-`BLOB_PUBLIC_READ_WRITE_TOKEN`, `BLOB_PRIVATE_READ_WRITE_TOKEN`, and
-`DATABASE_URL`. It defaults to dry-run and must:
-
-1. Inventory/deduplicate legacy URLs from stories, characters, page images, and
-   task JSON; also list the public store's entire app-owned `stories/` prefix to
-   classify unreferenced orphans.
-2. For each reference, derive owner/story/kind/filename, copy the object to the
-   private store with a fresh suffix, verify content type and byte length, create
-   the `Asset`, and populate the corresponding asset-ID field. Add `assetId` to
-   legacy task results while retaining `url` so the old deployment can still be
-   rolled back. Reruns skip completed asset references and never delete sources
-   during backfill.
-3. Verify every legacy reference has an owner-consistent, readable private
-   `Asset`; every required domain reference and task `assetId` is populated; and
-   the old-store listing is fully classified.
-4. Refuse finalization until verification and the new application smoke tests
-   pass. Finalization removes task `url` values, deletes referenced objects and
-   orphans under `stories/`, confirms the prefix is empty, and unlocks the
-   cleanup Prisma migration.
-
-Operationally: provision/connect the private store and OIDC; apply the additive
-migration; pause uploads/generation; run backfill and verification while the old
-app still reads public URLs; deploy the Asset-based app and smoke-test owner,
-logged-out, and second-user access; resume writes; run finalization to strip task
-URLs and delete public objects; then apply the cleanup migration and remove old
-credentials. Do not delete the public source or legacy columns until the
-Asset-based deployment is proven.
+For cutover, provision/connect the private store and OIDC, wipe the development
+database and old app-owned Blob objects, apply the migrations to the empty
+database, deploy, and smoke-test owner, logged-out, and second-user access.
 
 ## Tests and acceptance
 
@@ -260,9 +233,6 @@ Asset-based deployment is proven.
   photo upload/replacement, base and page generation, raw image server access,
   selection, PDF export, artifact listing, page/story deletion, and task results.
   Assert client DTOs contain only `/api/me/assets/...` and never locators.
-- Test migration inventory, deduplication, owner derivation, resumability,
-  rollback-safe task-JSON augmentation, finalization, verification, and cleanup
-  with fakes only. No automated test may contact Vercel or a real database.
 - Add Playwright coverage for owner image/PDF access through the protected route,
   then verify the same URL returns 401 after logout and 404 to a second user.
   Keep the isolated port 3100 server and deterministic external-service fakes.
@@ -278,12 +248,12 @@ Asset-based deployment is proven.
 
 - Story ownership is immutable. The compound `(storyId, userId)` relationship is
   the database-enforced source of every asset's owner.
-- The old public store is dedicated to this app, or the app exclusively owns its
-  `stories/` prefix. Cleanup stops for operator review if that is false.
+- The pre-production reset wipes only this app's disposable `stories/` prefix
+  and development database.
 - User assets remain below Vercel's recommended 100 MB threshold for private
   Function delivery; current 1024px images and generated PDFs satisfy this.
 - Public marketing/build assets remain static app files. Direct client uploads,
   signed sharing, custom asset domains, and a DigitalOcean pivot are out of
   scope.
-- Provisioning and production migration require user credentials; implementation
-  stops and asks rather than inferring or inspecting secrets.
+- Provisioning and the pre-production reset require user credentials;
+  implementation stops and asks rather than inferring or inspecting secrets.

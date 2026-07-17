@@ -1,8 +1,7 @@
-import type { PrismaClient } from "@prisma/client"
-
 import type { StoryRepo } from "../../ports/repos"
+import type { PrismaDb } from "./db-client"
 
-export const prismaStoryRepo = (db: PrismaClient): StoryRepo => ({
+export const prismaStoryRepo = (db: PrismaDb): StoryRepo => ({
   create: (input) => db.story.create({ data: input }),
   getById: (id) => db.story.findUnique({ where: { id } }),
   listByUser: (userId) =>

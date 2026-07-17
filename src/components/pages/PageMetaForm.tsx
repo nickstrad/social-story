@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import type { Character } from "@/server/domain/types"
+import type { ClientCharacter as Character } from "@/server/domain/types"
 
 export function PageMetaForm({
   isCover,

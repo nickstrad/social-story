@@ -19,7 +19,7 @@ import {
 import { effectiveCharacters, type EditorPage } from "@/lib/pagesEditor"
 import { toggle } from "@/lib/selection"
 import { deriveStepStates } from "@/lib/steps"
-import type { Character, Rule } from "@/server/domain/types"
+import type { ClientCharacter as Character, Rule } from "@/server/domain/types"
 import { trpc } from "@/lib/trpc"
 import { usePageForm } from "@/hooks/usePageForm"
 import { usePageGeneration } from "@/hooks/usePageGeneration"

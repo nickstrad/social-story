@@ -8,7 +8,12 @@ import type { ReferenceImage } from "@/server/ports/image"
  */
 export async function toReferenceImage(
   deps: Deps,
-  url: string
+  assetId: string
 ): Promise<ReferenceImage> {
-  return { data: await deps.storage.fetchBuffer(url), mimeType: "image/png" }
+  const asset = await deps.repos.assets.getById(assetId)
+  if (!asset) throw new Error(`Reference asset not found: ${assetId}`)
+  return {
+    data: await deps.storage.fetchBuffer(asset.storageLocator),
+    mimeType: asset.contentType,
+  }
 }

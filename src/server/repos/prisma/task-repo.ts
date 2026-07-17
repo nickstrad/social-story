@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma"
 
 import type { CreateTask, Task, UpdateTask } from "../../domain/types"
 import type { TaskRepo } from "../../ports/repos"

@@ -20,6 +20,7 @@
     "test:e2e:down": "docker compose -f docker-compose.e2e.yml down -v",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "postinstall": "prisma generate",
     "prepare": "husky"
   },
   "lint-staged": {

@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client"
+import type { PrismaClient } from "@/generated/prisma"
 
 import type { Config } from "./config"
 import { getConfig } from "./config"

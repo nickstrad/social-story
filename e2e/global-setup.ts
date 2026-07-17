@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process"
 
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient } from "../src/generated/prisma"
 
 import { E2E_DATABASE_URL } from "./support/constants"
 

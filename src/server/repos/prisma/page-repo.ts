@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client"
+import type { Prisma } from "@/generated/prisma"
 
 import type { PageRepo } from "../../ports/repos"
 import type { PrismaDb } from "./db-client"

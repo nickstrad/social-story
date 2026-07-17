@@ -49,6 +49,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# prisma generated client (generator output = ../src/generated/prisma)
+/src/generated/prisma
+
 # Backup of Go artifacts (pdfs, images, json)
 /bkup/
 

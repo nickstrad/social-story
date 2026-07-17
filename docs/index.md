@@ -25,7 +25,7 @@ One plan per feature. A plan is a spec written before implementation; it is **no
 updated to track drift afterwards. To learn how a subsystem actually works today,
 read the code — the plan tells you what was intended and why.
 
-- `plans/completed/` — implemented, numbered `00`–`15` in build order.
+- `plans/completed/` — implemented, numbered in build order.
   [`00-overview.md`](plans/completed/00-overview.md) is the architecture map and the
   best entry point for a new subsystem.
 - `plans/open/` — not yet implemented. A plan moves to `completed/` once it merges

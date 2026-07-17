@@ -12,7 +12,7 @@ New features go in a new git worktree branched off `main` — never directly on 
 Flow:
 
 1. Create a worktree branched from `main`.
-2. Copy `.env` into it as-is — do not open or inspect it.
+2. Copy `.env.local` into it as-is — do not open or inspect it.
 3. Run `npm i`.
 4. Do the work.
 5. Stop with the completed worktree ready for review. Never merge into `main`
@@ -28,7 +28,7 @@ When implementing a plan from `docs/`, use this skill chain instead of working f
 2. `/judge-branch` — runs `scripts/judge-branch.sh`: the `fable` model judges the full worktree diff (committed and uncommitted) against the plan in a fresh `claude -p` context and writes `JUDGEMENT.md` at the worktree root.
 3. `/handle-judge-feedback` — implements `JUDGEMENT.md`'s feedback in priority order.
 
-The pipeline stops and asks rather than pushing past blockers it can't resolve (missing `.env` values, migrations that can't run, services needing provisioning). Nothing merges to `main` — that's always a separate, explicit action.
+The pipeline stops and asks rather than pushing past blockers it can't resolve (missing `.env.local` values, migrations that can't run, services needing provisioning). Nothing merges to `main` — that's always a separate, explicit action.
 
 # Testing
 
@@ -48,7 +48,7 @@ routes `createDeps` down `createE2eDeps` (`src/server/container.ts`), swapping i
 `staticTextGenerator`, `scriptedImageGenerator`, `e2eStorage`, and the inline
 dispatcher. That env lives in `serverEnv` (`e2e/support/constants.ts`) and is
 applied **only** to the server Playwright starts itself. A server the suite did
-not start has none of it — it holds the real `.env`, so the specs drive real
+not start has none of it — it holds the real `.env.local`, so the specs drive real
 OpenAI, real Vercel Blob, and the dev database.
 
 This actually happened: the harness pointed at `http://localhost:3000` with
@@ -71,8 +71,8 @@ Rules, therefore:
   button, means the app under test is probably not running the fakes. Check
   which process owns the port before debugging the UI.
 
-# .env
+# .env.local
 
-Never read, `cat`, `grep`, or otherwise inspect `.env` (or copies) — it holds secrets. Copy it between worktrees as an opaque file only. To learn which variables are required, read the code (`process.env.X` references) or a checked-in `.env.example`.
+Never read, `cat`, `grep`, or otherwise inspect `.env.local` (or copies) — it holds secrets. Copy it between worktrees as an opaque file only. To learn which variables are required, read the code (`process.env.X` references) or a checked-in `.env.example`.
 
-The config module (wherever env vars are read in code) is the source of truth for what variables exist and how they're used. Give config values sane defaults where possible, so `.env` only carries real secrets and environment-specific overrides. Keeping `.env` in sync with the config module is the user's job — don't try to infer or validate its contents.
+The config module (wherever env vars are read in code) is the source of truth for what variables exist and how they're used. Give config values sane defaults where possible, so `.env.local` only carries real secrets and environment-specific overrides. Keeping `.env.local` in sync with the config module is the user's job — don't try to infer or validate its contents.

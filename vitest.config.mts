@@ -22,7 +22,7 @@ export default defineConfig({
           include: ["src/**/*.test.{ts,tsx}"],
           exclude: ["src/server/**"],
           environment: "jsdom",
-          setupFiles: ["./vitest.setup.ts"],
+          setupFiles: ["./vitest.setup.ts", "./vitest.setup.client.ts"],
         },
       },
     ],

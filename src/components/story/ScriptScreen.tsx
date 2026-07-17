@@ -20,7 +20,8 @@ export function ScriptScreen({ storyId }: { storyId: string }) {
   })
 
   return (
-    <div className="grid gap-8">
+    // No width here: the steps nav and the editor each own their own frame.
+    <div className="grid gap-page-relaxed">
       <StoryStepsNav storyId={storyId} steps={steps} current="script" />
       <ScriptEditor
         title={editor.title}

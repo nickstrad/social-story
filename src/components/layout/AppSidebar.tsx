@@ -48,7 +48,7 @@ export function AppSidebar() {
       collapsible="offcanvas"
       // Sit below the app header rather than over it: the shared component
       // pins itself to `inset-y-0 h-svh`, which assumes it owns the viewport.
-      className="top-(--header-height) h-[calc(100svh-var(--header-height))]"
+      className="top-app-header h-app-body"
     >
       {/* A real landmark — the app's primary navigation, named to distinguish
           it from the per-story steps nav. */}

@@ -2,8 +2,13 @@
 
 import type { FormEvent } from "react"
 import { Button } from "@/components/ui/button"
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { CharacterErrors, CharacterValues } from "@/hooks/useCharacterForm"
 
@@ -22,8 +27,8 @@ export function CharacterForm(props: {
     label: string,
     multiline = false
   ) => (
-    <div className="grid gap-1.5">
-      <Label htmlFor={`character-${name}`}>{label}</Label>
+    <Field>
+      <FieldLabel htmlFor={`character-${name}`}>{label}</FieldLabel>
       {multiline ? (
         <Textarea
           id={`character-${name}`}
@@ -37,10 +42,8 @@ export function CharacterForm(props: {
           onChange={(event) => props.onChange(name, event.target.value)}
         />
       )}
-      {props.errors[name] && (
-        <p className="text-sm text-destructive">{props.errors[name]}</p>
-      )}
-    </div>
+      <FieldError>{props.errors[name]}</FieldError>
+    </Field>
   )
   return (
     <form className="grid gap-4" onSubmit={props.onSubmit}>
@@ -51,8 +54,8 @@ export function CharacterForm(props: {
       </div>
       {field("appearance", "Appearance", true)}
       {field("photoDescription", "Photo description", true)}
-      <div className="grid gap-1.5">
-        <Label htmlFor="character-photo">Photo</Label>
+      <Field>
+        <FieldLabel htmlFor="character-photo">Photo</FieldLabel>
         <div className="flex items-center gap-3">
           <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-muted">
             {props.photoPreviewUrl ? (
@@ -78,13 +81,9 @@ export function CharacterForm(props: {
             }}
           />
         </div>
-        <p className="text-xs text-muted-foreground">
-          PNG, JPEG, or WebP up to 8 MB.
-        </p>
-      </div>
-      {props.errors.form && (
-        <p className="text-sm text-destructive">{props.errors.form}</p>
-      )}
+        <FieldDescription>PNG, JPEG, or WebP up to 8 MB.</FieldDescription>
+      </Field>
+      <FieldError>{props.errors.form}</FieldError>
       <Button type="submit" disabled={props.isSubmitting}>
         {props.uploadState === "uploading"
           ? "Uploading photo…"

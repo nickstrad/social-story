@@ -3,7 +3,7 @@
 import { RefreshCwIcon, SparklesIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Textarea } from "@/components/ui/textarea"
 
 function generationLabel(busy: boolean, failed: boolean, hasImage: boolean) {
@@ -34,8 +34,8 @@ export function SteeringBox({
   const actionLabel = generationLabel(busy, failed, hasImage)
 
   return (
-    <div className="grid gap-2">
-      <Label htmlFor="steering">Steering</Label>
+    <Field>
+      <FieldLabel htmlFor="steering">Steering</FieldLabel>
       <Textarea
         id="steering"
         rows={2}
@@ -47,6 +47,6 @@ export function SteeringBox({
         {hasImage ? <RefreshCwIcon /> : <SparklesIcon />}
         {actionLabel}
       </Button>
-    </div>
+    </Field>
   )
 }

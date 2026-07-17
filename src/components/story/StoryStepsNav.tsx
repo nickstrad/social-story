@@ -15,7 +15,7 @@ export function StoryStepsNav({
   current: StepKey
 }) {
   return (
-    <nav className="mx-auto flex max-w-3xl flex-wrap items-center gap-1 border-b pb-3">
+    <nav className="mx-auto flex max-w-form flex-wrap items-center gap-1 border-b pb-3">
       {steps.map((step, index) => {
         const active = step.key === current
         const content = (

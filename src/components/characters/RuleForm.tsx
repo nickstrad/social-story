@@ -3,7 +3,12 @@
 import type { FormEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
+import {
+  Field,
+  FieldError,
+  FieldLabel,
+  FieldTitle,
+} from "@/components/ui/field"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { RuleValues } from "@/hooks/useRuleForm"
@@ -35,8 +40,8 @@ export function RuleForm({
 }) {
   return (
     <form className="grid gap-4" onSubmit={onSubmit}>
-      <div className="grid gap-2">
-        <Label>Rule type</Label>
+      <Field>
+        <FieldTitle>Rule type</FieldTitle>
         <ToggleGroup
           value={[values.kind]}
           onValueChange={(selected) => {
@@ -51,15 +56,12 @@ export function RuleForm({
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
-      </div>
+      </Field>
       {values.kind !== "FREEFORM" && (
-        <div className="grid gap-2">
-          <Label>Characters</Label>
+        <Field>
+          <FieldTitle>Characters</FieldTitle>
           {characters.map((character) => (
-            <label
-              key={character.id}
-              className="flex items-center gap-2 text-sm"
-            >
+            <FieldLabel key={character.id} className="font-normal">
               <Checkbox
                 checked={values.characterIds.includes(character.id)}
                 onCheckedChange={(checked) =>
@@ -72,27 +74,23 @@ export function RuleForm({
                 }
               />
               {character.name}
-            </label>
+            </FieldLabel>
           ))}
-          {errors.characterIds && (
-            <p className="text-sm text-destructive">{errors.characterIds}</p>
-          )}
-        </div>
+          <FieldError>{errors.characterIds}</FieldError>
+        </Field>
       )}
-      <div className="grid gap-1.5">
-        <Label htmlFor="rule-text">
+      <Field>
+        <FieldLabel htmlFor="rule-text">
           {values.kind === "FREEFORM" ? "Rule" : "Note"}
-        </Label>
+        </FieldLabel>
         <Textarea
           id="rule-text"
           value={values.text}
           onChange={(event) => onChange("text", event.target.value)}
         />
-        {errors.text && (
-          <p className="text-sm text-destructive">{errors.text}</p>
-        )}
-      </div>
-      {errors.form && <p className="text-sm text-destructive">{errors.form}</p>}
+        <FieldError>{errors.text}</FieldError>
+      </Field>
+      <FieldError>{errors.form}</FieldError>
       <Button type="submit" disabled={isSubmitting}>
         Save rule
       </Button>

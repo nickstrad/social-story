@@ -1,6 +1,8 @@
 "use client"
 
 import { SparklesIcon } from "lucide-react"
+import { PageHeader } from "@/components/layout/PageHeader"
+import { PageLayout } from "@/components/layout/PageLayout"
 import { TaskStatusBadge } from "@/components/tasks/TaskStatusBadge"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
@@ -53,18 +56,16 @@ export function ScriptEditor({
   const parseLabel = parseButtonLabel(parseState, parsed)
 
   return (
-    <div className="mx-auto grid max-w-3xl gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Script</h1>
-        <p className="text-muted-foreground">
-          Paste your social story. We&apos;ll split it into picture-book pages.
-        </p>
-      </div>
+    <PageLayout width="form">
+      <PageHeader
+        title="Script"
+        description="Paste your social story. We'll split it into picture-book pages."
+      />
 
-      <div className="grid gap-2">
-        <label className="text-sm font-medium" htmlFor="story-title">
+      <Field>
+        <FieldLabel htmlFor="story-title">
           Title <span className="text-muted-foreground">(optional)</span>
-        </label>
+        </FieldLabel>
         <Input
           id="story-title"
           value={title}
@@ -72,13 +73,13 @@ export function ScriptEditor({
           maxLength={200}
           onChange={(event) => onChangeTitle(event.target.value)}
         />
-      </div>
+      </Field>
 
-      <div className="grid gap-2">
+      <Field>
+        {/* The live character count sits opposite the label, so this row is
+            local layout rather than a FieldDescription. */}
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium" htmlFor="story-script">
-            Story script
-          </label>
+          <FieldLabel htmlFor="story-script">Story script</FieldLabel>
           <span className="text-xs text-muted-foreground tabular-nums">
             {script.length.toLocaleString()} / 50,000
           </span>
@@ -91,7 +92,7 @@ export function ScriptEditor({
           placeholder="Write the story in plain language…"
           onChange={(event) => onChangeScript(event.target.value)}
         />
-      </div>
+      </Field>
 
       <div className="flex items-center gap-3">
         <Button
@@ -118,7 +119,7 @@ export function ScriptEditor({
           </CardHeader>
         </Card>
       )}
-    </div>
+    </PageLayout>
   )
 }
 

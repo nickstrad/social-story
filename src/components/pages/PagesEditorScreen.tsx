@@ -5,6 +5,8 @@ import { useState } from "react"
 import { PageFocusEditor } from "./PageFocusEditor"
 import { PageGrid } from "./PageGrid"
 import { PageGridToolbar } from "./PageGridToolbar"
+import { PageHeader } from "@/components/layout/PageHeader"
+import { PageLayout } from "@/components/layout/PageLayout"
 import { StoryStepsNav } from "@/components/story/StoryStepsNav"
 import {
   AlertDialog,
@@ -115,7 +117,7 @@ export function PagesEditorScreen({
   })
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8">
+    <PageLayout width="app" spacing="relaxed">
       <StoryStepsNav storyId={storyId} steps={steps} current="pages" />
 
       {editor.focusedPage ? (
@@ -129,13 +131,11 @@ export function PagesEditorScreen({
           onRequestDelete={setDeleteTarget}
         />
       ) : (
-        <div className="grid gap-6">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Pages</h1>
-            <p className="text-muted-foreground">
-              Generate every page in bulk, or open one to edit and refine it.
-            </p>
-          </div>
+        <div className="grid gap-page">
+          <PageHeader
+            title="Pages"
+            description="Generate every page in bulk, or open one to edit and refine it."
+          />
           <PageGridToolbar
             selectedCount={editor.selection.size}
             isAllSelected={editor.isAllSelected}
@@ -184,6 +184,6 @@ export function PagesEditorScreen({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageLayout>
   )
 }

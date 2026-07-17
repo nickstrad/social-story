@@ -9,7 +9,7 @@ type LandingHeaderProps = {
 export function LandingHeader({ isAuthenticated }: LandingHeaderProps) {
   return (
     <header className="border-b bg-background">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+      <div className="mx-auto flex h-app-header max-w-app items-center justify-between px-app-gutter">
         <Link href="/" className="font-semibold">
           Social Story
         </Link>

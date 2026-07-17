@@ -6,6 +6,8 @@ import { CharacterCard } from "./CharacterCard"
 import { CharacterForm } from "./CharacterForm"
 import { RuleForm } from "./RuleForm"
 import { RuleList } from "./RuleList"
+import { PageHeader } from "@/components/layout/PageHeader"
+import { PageLayout } from "@/components/layout/PageLayout"
 import { StoryStepsNav } from "@/components/story/StoryStepsNav"
 import {
   AlertDialog,
@@ -25,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Empty, EmptyDescription } from "@/components/ui/empty"
 import { useCharacterForm } from "@/hooks/useCharacterForm"
 import { useCharacters } from "@/hooks/useCharacters"
 import { useRuleForm } from "@/hooks/useRuleForm"
@@ -122,23 +125,19 @@ export function CharactersScreen({ storyId }: { storyId: string }) {
   })
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-10">
+    <PageLayout spacing="relaxed">
       <StoryStepsNav storyId={storyId} steps={steps} current="characters" />
-      <section className="grid gap-4">
-        <div className="flex items-end justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">
-              Characters
-            </h1>
-            <p className="text-muted-foreground">
-              Add the people who should stay recognizable throughout this story.
-            </p>
-          </div>
-          <Button onClick={() => setEditingCharacter(null)}>
-            <PlusIcon />
-            Add character
-          </Button>
-        </div>
+      <section className="grid gap-section">
+        <PageHeader
+          title="Characters"
+          description="Add the people who should stay recognizable throughout this story."
+          actions={
+            <Button onClick={() => setEditingCharacter(null)}>
+              <PlusIcon />
+              Add character
+            </Button>
+          }
+        />
         {characters.length ? (
           <div className="grid gap-4 md:grid-cols-2">
             {characters.map((character) => (
@@ -158,28 +157,29 @@ export function CharactersScreen({ storyId }: { storyId: string }) {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-            Start by adding the main character.
-          </div>
+          <Empty className="border">
+            <EmptyDescription>
+              Start by adding the main character.
+            </EmptyDescription>
+          </Empty>
         )}
       </section>
-      <section className="grid gap-4">
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold">Visual rules</h2>
-            <p className="text-sm text-muted-foreground">
-              Tell image generation who appears together—or who should not.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            disabled={!characters.length}
-            onClick={() => setEditingRule(null)}
-          >
-            <PlusIcon />
-            Add rule
-          </Button>
-        </div>
+      <section className="grid gap-section">
+        <PageHeader
+          size="section"
+          title="Visual rules"
+          description="Tell image generation who appears together—or who should not."
+          actions={
+            <Button
+              variant="outline"
+              disabled={!characters.length}
+              onClick={() => setEditingRule(null)}
+            >
+              <PlusIcon />
+              Add rule
+            </Button>
+          }
+        />
         <RuleList
           rules={rules}
           characters={characters}
@@ -265,6 +265,6 @@ export function CharactersScreen({ storyId }: { storyId: string }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageLayout>
   )
 }

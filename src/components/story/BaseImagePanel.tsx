@@ -8,6 +8,7 @@ import { ImageIcon, SparklesIcon } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -52,16 +53,18 @@ export function BaseImagePanel({
   const actionLabel = generationLabel(taskState, imageUrl)
 
   return (
-    <Card className="mx-auto w-full max-w-3xl">
-      <CardHeader className="flex-row items-start justify-between gap-4">
-        <div className="grid gap-1">
-          <CardTitle>Character reference sheet</CardTitle>
-          <CardDescription>
-            A single base image of your whole cast, attached to every page so
-            everyone stays recognizable.
-          </CardDescription>
-        </div>
-        {taskState && <TaskStatusBadge status={taskState} error={taskError} />}
+    <Card className="mx-auto w-full max-w-form">
+      <CardHeader>
+        <CardTitle>Character reference sheet</CardTitle>
+        <CardDescription>
+          A single base image of your whole cast, attached to every page so
+          everyone stays recognizable.
+        </CardDescription>
+        {taskState && (
+          <CardAction>
+            <TaskStatusBadge status={taskState} error={taskError} />
+          </CardAction>
+        )}
       </CardHeader>
       <CardContent className="grid gap-4">
         {characterCount === 0 ? (

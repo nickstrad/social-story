@@ -12,9 +12,11 @@ export default async function Home() {
   return (
     <div className="flex flex-1 flex-col bg-background">
       <LandingHeader isAuthenticated={isAuthenticated} />
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center gap-8 px-6 py-24 text-center">
-        <div className="flex flex-col items-center gap-4">
-          <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+      {/* The hero keeps its own tall py-24 rhythm and responsive headline
+          scale — that composition is unique to the landing page. */}
+      <main className="mx-auto flex w-full max-w-app flex-1 flex-col items-center justify-center gap-page-relaxed px-app-gutter py-24 text-center">
+        <div className="flex flex-col items-center gap-section">
+          <h1 className="max-w-2xl font-heading text-4xl font-title tracking-title text-balance sm:text-5xl">
             Personalized social stories, made in minutes
           </h1>
           <p className="max-w-xl text-lg text-muted-foreground text-balance">

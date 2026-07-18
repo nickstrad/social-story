@@ -6,7 +6,12 @@ export type TaskType =
   "PARSE_STORY" | "BASE_IMAGE" | "PAGE_IMAGE" | "PDF_EXPORT"
 export type TaskStatus = "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED"
 export type AssetKind =
-  "BASE_IMAGE" | "CHARACTER_PHOTO" | "PAGE_IMAGE" | "PAGE_IMAGE_RAW" | "PDF"
+  | "BASE_IMAGE"
+  | "CHARACTER_PHOTO"
+  | "LIBRARY_PHOTO"
+  | "PAGE_IMAGE"
+  | "PAGE_IMAGE_RAW"
+  | "PDF"
 export type JsonValue =
   string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
 
@@ -25,6 +30,20 @@ export interface Story {
 export interface Character {
   id: string
   storyId: string
+  name: string
+  role: string | null
+  age: string | null
+  appearance: string | null
+  photoAssetId: string | null
+  photoDescription: string | null
+  libraryCharacterId: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface LibraryCharacter {
+  id: string
+  userId: string
   name: string
   role: string | null
   age: string | null
@@ -90,7 +109,7 @@ export interface Task {
 export interface Asset {
   id: string
   userId: string
-  storyId: string
+  storyId: string | null
   kind: AssetKind
   storageLocator: string
   contentType: string
@@ -108,6 +127,10 @@ export interface ClientCharacter extends Character {
   photoUrl: string | null
 }
 
+export interface ClientLibraryCharacter extends LibraryCharacter {
+  photoUrl: string | null
+}
+
 export interface ClientPageImage extends PageImage {
   url: string
 }
@@ -121,12 +144,36 @@ export type CreateCharacter = Pick<Character, "storyId" | "name"> &
   Partial<
     Pick<
       Character,
-      "role" | "age" | "appearance" | "photoAssetId" | "photoDescription"
+      | "role"
+      | "age"
+      | "appearance"
+      | "photoAssetId"
+      | "photoDescription"
+      | "libraryCharacterId"
     >
   >
 export type UpdateCharacter = Partial<
   Pick<
     Character,
+    | "name"
+    | "role"
+    | "age"
+    | "appearance"
+    | "photoAssetId"
+    | "photoDescription"
+    | "libraryCharacterId"
+  >
+>
+export type CreateLibraryCharacter = Pick<LibraryCharacter, "userId" | "name"> &
+  Partial<
+    Pick<
+      LibraryCharacter,
+      "role" | "age" | "appearance" | "photoAssetId" | "photoDescription"
+    >
+  >
+export type UpdateLibraryCharacter = Partial<
+  Pick<
+    LibraryCharacter,
     "name" | "role" | "age" | "appearance" | "photoAssetId" | "photoDescription"
   >
 >

@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useState } from "react"
-import { ImageIcon, SparklesIcon } from "lucide-react"
+import { ImageIcon, RotateCcwIcon, SparklesIcon } from "lucide-react"
 
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
@@ -39,6 +39,9 @@ export function BaseImagePanel({
   characterCount,
   canGenerate,
   onGenerate,
+  reuseSources,
+  isReusing,
+  onReuse,
 }: {
   storyId: string
   imageUrl?: string
@@ -47,6 +50,13 @@ export function BaseImagePanel({
   characterCount: number
   canGenerate: boolean
   onGenerate: () => void
+  reuseSources: Array<{
+    storyId: string
+    title: string
+    baseImageUrl: string
+  }>
+  isReusing: boolean
+  onReuse: (sourceStoryId: string) => void
 }) {
   const [imageLoading, setImageLoading] = useState(Boolean(imageUrl))
   const busy = isActiveStatus(taskState)
@@ -107,6 +117,39 @@ export function BaseImagePanel({
                 </div>
               ) : null}
             </div>
+            {reuseSources.length > 0 && (
+              <div className="grid gap-2 rounded-xl border p-3">
+                <p className="text-sm font-medium">
+                  Reuse a base image from the same cast
+                </p>
+                {reuseSources.map((source) => (
+                  <div key={source.storyId} className="flex items-center gap-3">
+                    <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
+                      <Image
+                        unoptimized
+                        src={source.baseImageUrl}
+                        alt=""
+                        fill
+                        sizes="56px"
+                        className="object-cover"
+                      />
+                    </div>
+                    <span className="min-w-0 flex-1 truncate text-sm">
+                      {source.title || "Untitled story"}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isReusing || busy}
+                      onClick={() => onReuse(source.storyId)}
+                    >
+                      <RotateCcwIcon />
+                      Reuse base image
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex justify-end">
               <Button onClick={onGenerate} disabled={!canGenerate}>
                 <SparklesIcon />

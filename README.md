@@ -22,6 +22,13 @@ What exists at the root today:
 - Vitest + React Testing Library configured (`vitest.config.mts`, `vitest.setup.ts`)
 - Prettier + husky/lint-staged pre-commit hooks
 
+### Plan review artifacts
+
+`CHANGE_SUMMARY.md` and `JUDGEMENT.md` are temporary, worktree-local context for
+the plan → judge → fix workflow. **Never commit either document.** Keep them at
+the worktree root for the review tools, and leave them ignored by Git along with
+`HANDOFF.md`.
+
 ```bash
 npm install
 npm run dev     # mprocs starts the app and Inngest Dev Server together

@@ -10,7 +10,9 @@ import {
   assetUrl,
   clientCharacter,
   clientStory,
+  replaceStoryBaseAsset,
 } from "@/server/services/assets"
+import { baseImageKey } from "@/server/services/storage-keys"
 
 const storyInput = z.object({ storyId: z.string().min(1) })
 const scriptSchema = z.string().trim().min(1).max(50_000)
@@ -81,6 +83,70 @@ export const storyRouter = createTRPCRouter({
       },
     }
   }),
+
+  baseImageSources: protectedProcedure
+    .input(storyInput)
+    .query(async ({ ctx, input }) => {
+      const story = await assertStoryOwnership(
+        ctx.deps.repos,
+        input.storyId,
+        ctx.session.user.id
+      )
+      const candidates = (
+        await ctx.deps.repos.stories.listByUser(story.userId)
+      ).filter(
+        (candidate) =>
+          candidate.id !== story.id && Boolean(candidate.baseImageAssetId)
+      )
+      const characters = await ctx.deps.repos.characters.listByStoryIds(
+        candidates.map((candidate) => candidate.id)
+      )
+      return candidates.map((candidate) => ({
+        storyId: candidate.id,
+        title: candidate.title,
+        baseImageUrl: assetUrl(candidate.baseImageAssetId!),
+        libraryCharacterIds: characters
+          .filter((character) => character.storyId === candidate.id)
+          .map((character) => character.libraryCharacterId),
+      }))
+    }),
+
+  reuseBaseImage: protectedProcedure
+    .input(storyInput.extend({ sourceStoryId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const [story, sourceStory] = await Promise.all([
+        assertStoryOwnership(
+          ctx.deps.repos,
+          input.storyId,
+          ctx.session.user.id
+        ),
+        assertStoryOwnership(
+          ctx.deps.repos,
+          input.sourceStoryId,
+          ctx.session.user.id
+        ),
+      ])
+      if (!sourceStory.baseImageAssetId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The source story has no base image",
+        })
+      }
+      const source = await ctx.deps.repos.assets.getOwnedById(
+        sourceStory.baseImageAssetId,
+        ctx.session.user.id,
+        ["BASE_IMAGE"]
+      )
+      if (!source) throw new TRPCError({ code: "NOT_FOUND" })
+      const data = await ctx.deps.storage.fetchBuffer(source.storageLocator)
+      const asset = await replaceStoryBaseAsset(
+        ctx.deps,
+        story,
+        data,
+        baseImageKey(story.id)
+      )
+      return { assetId: asset.id, baseImageUrl: assetUrl(asset.id) }
+    }),
 
   updateScript: protectedProcedure
     .input(storyInput.extend({ script: scriptSchema }))

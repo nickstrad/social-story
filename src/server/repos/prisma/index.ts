@@ -3,6 +3,7 @@ import type { PrismaClient } from "@/generated/prisma"
 import type { Repos } from "../../ports/repos"
 import { prismaAssetRepo } from "./asset-repo"
 import { prismaCharacterRepo } from "./character-repo"
+import { prismaLibraryCharacterRepo } from "./library-character-repo"
 import { prismaPageRepo } from "./page-repo"
 import { prismaRuleRepo } from "./rule-repo"
 import { prismaStoryRepo } from "./story-repo"
@@ -13,6 +14,7 @@ export const prismaRepos = (db: PrismaClient): Repos => {
     const repos: Repos = {
       stories: prismaStoryRepo(client),
       characters: prismaCharacterRepo(client),
+      libraryCharacters: prismaLibraryCharacterRepo(client),
       rules: prismaRuleRepo(client),
       pages: prismaPageRepo(client),
       tasks: prismaTaskRepo(client),

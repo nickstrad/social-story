@@ -8,7 +8,12 @@ import {
   type Context,
 } from "@/server/api/trpc"
 import { characterInputSchema } from "@/server/domain/schemas"
-import { clientCharacter } from "@/server/services/assets"
+import {
+  clientCharacter,
+  clientLibraryCharacter,
+  copyAsset,
+} from "@/server/services/assets"
+import { libraryPhotoKey, photoKey } from "@/server/services/storage-keys"
 
 const storyInput = z.object({ storyId: z.string().min(1) })
 const characterMutationInput = storyInput.extend({
@@ -54,6 +59,108 @@ export const characterRouter = createTRPCRouter({
           ...input.character,
         })
       )
+    }),
+  addFromLibrary: protectedProcedure
+    .input(
+      storyInput.extend({
+        libraryCharacterIds: z.array(z.string().min(1)).min(1).max(20),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const story = await assertStoryOwnership(
+        ctx.deps.repos,
+        input.storyId,
+        ctx.session.user.id
+      )
+      const libraryCharacters = await Promise.all(
+        input.libraryCharacterIds.map((id) =>
+          ctx.deps.repos.libraryCharacters.getOwnedById(id, story.userId)
+        )
+      )
+      if (libraryCharacters.some((character) => !character)) {
+        throw new TRPCError({ code: "NOT_FOUND" })
+      }
+
+      const created = []
+      for (const libraryCharacter of libraryCharacters) {
+        if (!libraryCharacter) continue
+        let character = await ctx.deps.repos.characters.create({
+          storyId: story.id,
+          name: libraryCharacter.name,
+          role: libraryCharacter.role,
+          age: libraryCharacter.age,
+          appearance: libraryCharacter.appearance,
+          photoDescription: libraryCharacter.photoDescription,
+          libraryCharacterId: libraryCharacter.id,
+        })
+        if (libraryCharacter.photoAssetId) {
+          const source = await ctx.deps.repos.assets.getById(
+            libraryCharacter.photoAssetId
+          )
+          if (!source) throw new TRPCError({ code: "NOT_FOUND" })
+          const photo = await copyAsset(
+            ctx.deps,
+            source,
+            photoKey(story.id, character.id),
+            { storyId: story.id, kind: "CHARACTER_PHOTO" }
+          )
+          character = await ctx.deps.repos.characters.update(character.id, {
+            photoAssetId: photo.id,
+          })
+        }
+        created.push(clientCharacter(character))
+      }
+      return created
+    }),
+  saveToLibrary: protectedProcedure
+    .input(characterMutationInput)
+    .mutation(async ({ ctx, input }) => {
+      const character = await ownedCharacter(
+        ctx,
+        input.storyId,
+        input.characterId
+      )
+      if (character.libraryCharacterId) {
+        const existing = await ctx.deps.repos.libraryCharacters.getOwnedById(
+          character.libraryCharacterId,
+          ctx.session.user.id
+        )
+        if (existing) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "This character is already saved to your library",
+          })
+        }
+      }
+
+      let libraryCharacter = await ctx.deps.repos.libraryCharacters.create({
+        userId: ctx.session.user.id,
+        name: character.name,
+        role: character.role,
+        age: character.age,
+        appearance: character.appearance,
+        photoDescription: character.photoDescription,
+      })
+      if (character.photoAssetId) {
+        const source = await ctx.deps.repos.assets.getById(
+          character.photoAssetId
+        )
+        if (!source) throw new TRPCError({ code: "NOT_FOUND" })
+        const photo = await copyAsset(
+          ctx.deps,
+          source,
+          libraryPhotoKey(ctx.session.user.id, libraryCharacter.id),
+          { storyId: null, kind: "LIBRARY_PHOTO" }
+        )
+        libraryCharacter = await ctx.deps.repos.libraryCharacters.update(
+          libraryCharacter.id,
+          { photoAssetId: photo.id }
+        )
+      }
+      await ctx.deps.repos.characters.update(character.id, {
+        libraryCharacterId: libraryCharacter.id,
+      })
+      return clientLibraryCharacter(libraryCharacter)
     }),
   update: protectedProcedure
     .input(characterMutationInput.extend({ character: characterInputSchema }))

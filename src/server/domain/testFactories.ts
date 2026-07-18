@@ -13,6 +13,7 @@ export function character(id: string, name = id): ClientCharacter {
     photoAssetId: null,
     photoUrl: null,
     photoDescription: null,
+    libraryCharacterId: null,
     createdAt: now,
     updatedAt: now,
   }

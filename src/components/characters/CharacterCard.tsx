@@ -1,23 +1,33 @@
 "use client"
 
 import Image from "next/image"
-import { PencilIcon, Trash2Icon } from "lucide-react"
+import { PencilIcon, SaveIcon, Trash2Icon } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import type { ClientCharacter as Character } from "@/server/domain/types"
+
+interface CharacterCardCharacter {
+  name: string
+  role: string | null
+  age: string | null
+  appearance: string | null
+  photoDescription: string | null
+  photoUrl: string | null
+}
 
 export function CharacterCard({
   character,
   imagePending = false,
   onEdit,
   onDelete,
+  onSaveToLibrary,
 }: {
-  character: Character
+  character: CharacterCardCharacter
   imagePending?: boolean
   onEdit: () => void
   onDelete: () => void
+  onSaveToLibrary?: () => void
 }) {
   return (
     <Card>
@@ -57,6 +67,16 @@ export function CharacterCard({
         >
           <PencilIcon />
         </Button>
+        {onSaveToLibrary && (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Save ${character.name} to library`}
+            onClick={onSaveToLibrary}
+          >
+            <SaveIcon />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"

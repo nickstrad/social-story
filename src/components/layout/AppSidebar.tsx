@@ -2,7 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BookOpenIcon, ImagesIcon, PlusIcon, SettingsIcon } from "lucide-react"
+import {
+  BookOpenIcon,
+  ImagesIcon,
+  PlusIcon,
+  SettingsIcon,
+  UsersIcon,
+} from "lucide-react"
 
 import {
   Sidebar,
@@ -22,6 +28,7 @@ import { storyTitle } from "@/server/domain/storyTitle"
 const NAV = [
   { href: "/stories/new", icon: PlusIcon, label: "New story" },
   { href: "/stories", icon: BookOpenIcon, label: "All stories" },
+  { href: "/characters", icon: UsersIcon, label: "Characters" },
   { href: "/artifacts", icon: ImagesIcon, label: "Artifacts" },
   {
     href: "/settings",

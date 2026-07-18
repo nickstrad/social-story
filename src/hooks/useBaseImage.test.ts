@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
 
-import { canGenerateBase, latestBaseImageTask } from "./useBaseImage"
+import {
+  canGenerateBase,
+  latestBaseImageTask,
+  matchingBaseImageSources,
+} from "./useBaseImage"
 import { character, task } from "@/server/domain/testFactories"
 import type { ClientStory, Task } from "@/server/domain/types"
 
@@ -69,5 +73,41 @@ describe("latestBaseImageTask", () => {
     const newer = baseTask("newer", "2026-01-02T00:00:00Z")
     expect(latestBaseImageTask([older, newer])?.id).toBe("newer")
     expect(latestBaseImageTask([newer, older])?.id).toBe("newer")
+  })
+})
+
+describe("matchingBaseImageSources", () => {
+  const source = (ids: (string | null)[]) => ({
+    storyId: ids.join("-") || "empty",
+    title: "Source",
+    baseImageUrl: "/base.png",
+    libraryCharacterIds: ids,
+  })
+
+  it("matches the same complete library cast regardless of order", () => {
+    const first = { ...character("first"), libraryCharacterId: "library-a" }
+    const second = {
+      ...character("second"),
+      libraryCharacterId: "library-b",
+    }
+    const match = source(["library-b", "library-a"])
+    expect(
+      matchingBaseImageSources(
+        [first, second],
+        [match, source(["library-a"]), source(["library-a", "library-c"])]
+      )
+    ).toEqual([match])
+  })
+
+  it("offers no reuse when either cast contains an unsaved character", () => {
+    expect(
+      matchingBaseImageSources([character("unsaved")], [source(["library-a"])])
+    ).toEqual([])
+    expect(
+      matchingBaseImageSources(
+        [{ ...character("saved"), libraryCharacterId: "library-a" }],
+        [source([null])]
+      )
+    ).toEqual([])
   })
 })

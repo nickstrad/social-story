@@ -29,10 +29,40 @@ export function latestBaseImageTask(tasks: Task[]): Task | undefined {
   return latestTask(tasks, (task) => task.type === "BASE_IMAGE")
 }
 
+interface BaseImageSource {
+  storyId: string
+  title: string
+  baseImageUrl: string
+  libraryCharacterIds: (string | null)[]
+}
+
+export function matchingBaseImageSources(
+  characters: Character[],
+  sources: BaseImageSource[]
+): BaseImageSource[] {
+  const targetIds = characters.map((character) => character.libraryCharacterId)
+  if (targetIds.length === 0 || targetIds.some((id) => id === null)) return []
+  const target = new Set(targetIds as string[])
+  return sources.filter((source) => {
+    if (
+      source.libraryCharacterIds.some((id) => id === null) ||
+      source.libraryCharacterIds.length !== targetIds.length
+    ) {
+      return false
+    }
+    const sourceIds = new Set(source.libraryCharacterIds as string[])
+    return (
+      sourceIds.size === target.size &&
+      [...target].every((id) => sourceIds.has(id))
+    )
+  })
+}
+
 export function useBaseImage(storyId: string) {
   const utils = trpc.useUtils()
   const [story] = trpc.story.get.useSuspenseQuery({ storyId })
   const [characters] = trpc.character.listForStory.useSuspenseQuery({ storyId })
+  const [sources] = trpc.story.baseImageSources.useSuspenseQuery({ storyId })
   const { tasks } = useStoryTasks(storyId)
 
   const activeTask = latestBaseImageTask(tasks)
@@ -47,6 +77,13 @@ export function useBaseImage(storyId: string) {
         // active → terminal transition so the new URL is never left stale.
         utils.story.get.invalidate({ storyId }),
       ])
+    },
+    onError: (error) => toast.error(error.message),
+  })
+  const reuse = trpc.story.reuseBaseImage.useMutation({
+    onSuccess: async () => {
+      await utils.story.get.invalidate({ storyId })
+      toast.success("Base image reused")
     },
     onError: (error) => toast.error(error.message),
   })
@@ -76,7 +113,13 @@ export function useBaseImage(storyId: string) {
     taskState: generate.isPending ? ("PENDING" as const) : status,
     taskError: activeTask?.error ?? undefined,
     canGenerate:
-      !generate.isPending && canGenerateBase(story, characters, activeTask),
+      !generate.isPending &&
+      !reuse.isPending &&
+      canGenerateBase(story, characters, activeTask),
     onGenerate: () => generate.mutate({ storyId }),
+    reuseSources: matchingBaseImageSources(characters, sources),
+    isReusing: reuse.isPending,
+    onReuse: (sourceStoryId: string) =>
+      reuse.mutate({ storyId, sourceStoryId }),
   }
 }

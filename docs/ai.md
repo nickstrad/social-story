@@ -62,6 +62,10 @@ Application call sites pass semantic data and never assemble prompts.
 All current production bindings use OpenAI. Separate constructors and bindings
 are intentional even where the implementation shares a private transport.
 
+Page and cover artwork can also be uploaded by the user. That synchronous path
+normalizes and captions the image without calling `deps.ai`, creating an action,
+or requiring an AI fake.
+
 ## Public contracts
 
 - `InputImage` contains already-authorized bytes and a media type. Ports never

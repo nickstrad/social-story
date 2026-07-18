@@ -295,6 +295,7 @@ export function inMemoryRepos(): Repos {
         const value = {
           id: newId(),
           rawAssetId: null,
+          source: "AI" as const,
           ...input,
           createdAt: timestamp,
           updatedAt: timestamp,

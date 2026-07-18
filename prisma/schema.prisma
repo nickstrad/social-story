@@ -167,18 +167,19 @@ model Page {
 }
 
 model PageImage {
-  id           String   @id @default(cuid())
+  id           String          @id @default(cuid())
   pageId       String
-  page         Page     @relation("PageImages", fields: [pageId], references: [id], onDelete: Cascade)
-  selectedBy   Page?    @relation("SelectedPageImage")
-  imageAssetId String   @unique
-  imageAsset   Asset    @relation("PageImageCaptioned", fields: [imageAssetId], references: [id], onDelete: Restrict)
-  rawAssetId   String?  @unique
-  rawAsset     Asset?   @relation("PageImageRaw", fields: [rawAssetId], references: [id], onDelete: SetNull)
-  promptUsed   String
+  page         Page            @relation("PageImages", fields: [pageId], references: [id], onDelete: Cascade)
+  selectedBy   Page?           @relation("SelectedPageImage")
+  imageAssetId String          @unique
+  imageAsset   Asset           @relation("PageImageCaptioned", fields: [imageAssetId], references: [id], onDelete: Restrict)
+  rawAssetId   String?         @unique
+  rawAsset     Asset?          @relation("PageImageRaw", fields: [rawAssetId], references: [id], onDelete: SetNull)
+  source       PageImageSource @default(AI)
+  promptUsed   String?
   variant      Int
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   @@index([pageId, variant])
 }
@@ -249,6 +250,11 @@ enum RuleKind {
 enum PageKind {
   COVER
   PAGE
+}
+
+enum PageImageSource {
+  AI
+  UPLOAD
 }
 
 enum TaskType {

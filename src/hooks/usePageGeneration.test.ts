@@ -12,6 +12,7 @@ function image(variant: number, url = `url-v${variant}`): ClientPageImage {
     url,
     imageAssetId: `asset-${variant}`,
     rawAssetId: null,
+    source: "AI",
     promptUsed: "p",
     variant,
     createdAt: now,

@@ -203,8 +203,10 @@ export async function createPageImageAssets(
     userId: string
     storyId: string
     pageId: string
-    promptUsed: string
+    source?: PageImage["source"]
+    promptUsed: string | null
     variant: number
+    filename?: string
     raw: Buffer
     captioned: Buffer
     rawKey: string
@@ -218,6 +220,7 @@ export async function createPageImageAssets(
     key: input.rawKey,
     data: input.raw,
     contentType: "image/png",
+    filename: input.filename,
   })
   let captioned: Awaited<ReturnType<typeof uploadBlob>>
   try {
@@ -228,6 +231,7 @@ export async function createPageImageAssets(
       key: input.captionedKey,
       data: input.captioned,
       contentType: "image/png",
+      filename: input.filename,
     })
   } catch (error) {
     await deleteBestEffort(deps, raw.storageLocator)
@@ -242,6 +246,7 @@ export async function createPageImageAssets(
         pageId: input.pageId,
         imageAssetId: imageAsset.id,
         rawAssetId: rawAsset.id,
+        source: input.source ?? "AI",
         promptUsed: input.promptUsed,
         variant: input.variant,
       })

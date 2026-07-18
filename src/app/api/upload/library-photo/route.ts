@@ -4,7 +4,7 @@ import { getServerSession } from "@/server/auth-session"
 import { getDeps } from "@/server/container"
 import { validateUpload } from "@/server/domain/upload"
 import { assetUrl, replaceLibraryPhotoAsset } from "@/server/services/assets"
-import { normalizeReferencePhoto } from "@/server/services/photo"
+import { normalizeUploadedImage } from "@/server/services/photo"
 import { libraryPhotoKey } from "@/server/services/storage-keys"
 
 const error = (message: string, status: number) =>
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
   let png: Buffer
   try {
-    png = await normalizeReferencePhoto(Buffer.from(await file.arrayBuffer()))
+    png = await normalizeUploadedImage(Buffer.from(await file.arrayBuffer()))
   } catch {
     return error("Photo could not be read", 400)
   }

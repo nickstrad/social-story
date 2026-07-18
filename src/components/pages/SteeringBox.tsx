@@ -1,6 +1,6 @@
 "use client"
 
-import { RefreshCwIcon, SparklesIcon } from "lucide-react"
+import { RefreshCwIcon, SparklesIcon, UploadIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Field, FieldLabel } from "@/components/ui/field"
@@ -22,14 +22,18 @@ export function SteeringBox({
   onGenerate,
   hasImage,
   busy,
+  uploading,
   failed,
+  onUpload,
 }: {
   value: string
   onChange: (value: string) => void
   onGenerate: () => void
   hasImage: boolean
   busy: boolean
+  uploading: boolean
   failed: boolean
+  onUpload: () => void
 }) {
   const actionLabel = generationLabel(busy, failed, hasImage)
 
@@ -43,10 +47,24 @@ export function SteeringBox({
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
-      <Button onClick={onGenerate} disabled={busy}>
-        {hasImage ? <RefreshCwIcon /> : <SparklesIcon />}
-        {actionLabel}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={onGenerate} disabled={busy || uploading}>
+          {hasImage ? <RefreshCwIcon /> : <SparklesIcon />}
+          {actionLabel}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onUpload}
+          disabled={busy || uploading}
+        >
+          <UploadIcon />
+          {uploading ? "Uploading…" : "Upload"}
+        </Button>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        PNG, JPEG or WebP, up to 8 MB
+      </p>
     </Field>
   )
 }

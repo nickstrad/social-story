@@ -3,6 +3,7 @@ export type StoryKind = "STORY" | "TEMPLATE"
 export type RuleKind =
   "TOGETHER" | "ALWAYS_INCLUDE" | "NEVER_INCLUDE" | "FREEFORM"
 export type PageKind = "COVER" | "PAGE"
+export type PageImageSource = "AI" | "UPLOAD"
 export type TaskType =
   "PARSE_STORY" | "BASE_IMAGE" | "PAGE_IMAGE" | "PDF_EXPORT"
 export type TaskStatus = "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED"
@@ -73,7 +74,8 @@ export interface PageImage {
   pageId: string
   imageAssetId: string
   rawAssetId: string | null
-  promptUsed: string
+  source: PageImageSource
+  promptUsed: string | null
   variant: number
   createdAt: Date
   updatedAt: Date
@@ -225,7 +227,7 @@ export type CreatePageImage = Pick<
   PageImage,
   "pageId" | "imageAssetId" | "promptUsed" | "variant"
 > &
-  Partial<Pick<PageImage, "rawAssetId">>
+  Partial<Pick<PageImage, "rawAssetId" | "source">>
 export type CreateAsset = Pick<
   Asset,
   | "userId"

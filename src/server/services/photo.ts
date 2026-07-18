@@ -1,14 +1,14 @@
 import sharp from "sharp"
 
-const MAX_REFERENCE_DIMENSION = 1024
+const MAX_UPLOAD_DIMENSION = 1024
 
-/** Normalize an uploaded reference photo and strip its original metadata. */
-export function normalizeReferencePhoto(data: Buffer): Promise<Buffer> {
+/** Normalize an uploaded image and strip its original metadata. */
+export function normalizeUploadedImage(data: Buffer): Promise<Buffer> {
   return sharp(data)
     .rotate()
     .resize({
-      width: MAX_REFERENCE_DIMENSION,
-      height: MAX_REFERENCE_DIMENSION,
+      width: MAX_UPLOAD_DIMENSION,
+      height: MAX_UPLOAD_DIMENSION,
       fit: "inside",
       withoutEnlargement: true,
     })

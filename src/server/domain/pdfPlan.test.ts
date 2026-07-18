@@ -14,6 +14,7 @@ function image(id: string, pageId: string, assetId: string): PageImage {
     pageId,
     imageAssetId: assetId,
     rawAssetId: null,
+    source: "AI",
     promptUsed: "",
     variant: 1,
     createdAt: new Date("2026-01-01T00:00:00Z"),

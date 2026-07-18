@@ -5,7 +5,7 @@ import { getServerSession } from "@/server/auth-session"
 import { getDeps } from "@/server/container"
 import { validateUpload } from "@/server/domain/upload"
 import { assetUrl, replaceCharacterPhotoAsset } from "@/server/services/assets"
-import { normalizeReferencePhoto } from "@/server/services/photo"
+import { normalizeUploadedImage } from "@/server/services/photo"
 import { photoKey } from "@/server/services/storage-keys"
 
 const error = (message: string, status: number) =>
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   if (!character || character.storyId !== storyId)
     return error("Not found", 404)
 
-  const png = await normalizeReferencePhoto(
+  const png = await normalizeUploadedImage(
     Buffer.from(await file.arrayBuffer())
   )
   const asset = await replaceCharacterPhotoAsset(

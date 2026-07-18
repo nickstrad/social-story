@@ -1,6 +1,7 @@
 "use client"
 
 import { FadeInImage } from "./FadeInImage"
+import { Badge } from "@/components/ui/badge"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { ClientPageImage as PageImage } from "@/server/domain/types"
@@ -21,7 +22,7 @@ function VariantThumb({
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(
-        "size-16 shrink-0 overflow-hidden rounded-md border-2",
+        "relative size-16 shrink-0 overflow-hidden rounded-md border-2",
         selected ? "border-primary" : "border-transparent"
       )}
     >
@@ -31,6 +32,14 @@ function VariantThumb({
         className="size-full"
         imageClassName="object-cover"
       />
+      {image.source === "UPLOAD" && (
+        <Badge
+          variant="secondary"
+          className="absolute right-0.5 bottom-0.5 h-4 px-1 text-[0.625rem]"
+        >
+          Uploaded
+        </Badge>
+      )}
     </button>
   )
 }

@@ -32,6 +32,7 @@ import type {
 import { trpc } from "@/lib/trpc"
 import { usePageForm } from "@/hooks/usePageForm"
 import { usePageGeneration } from "@/hooks/usePageGeneration"
+import { usePageImageUpload } from "@/hooks/usePageImageUpload"
 import { usePagesEditor } from "@/hooks/usePagesEditor"
 
 type Editor = ReturnType<typeof usePagesEditor>
@@ -64,11 +65,15 @@ function FocusEditor({
 }) {
   const form = usePageForm(page, storyKind)
   const generation = usePageGeneration(page.id, storyId)
+  const upload = usePageImageUpload({ storyId, pageId: page.id, storyKind })
   const imagesQuery = trpc.page.listImages.useQuery({ pageId: page.id })
   const images = imagesQuery.data ?? []
 
+  const selectedImage = images.find(
+    (image) => image.id === page.selectedImageId
+  )
   const currentImageUrl =
-    images.find((image) => image.id === page.selectedImageId)?.url ??
+    selectedImage?.url ??
     page.selectedImageUrl ??
     generation.latestImageUrl ??
     null
@@ -85,6 +90,7 @@ function FocusEditor({
       genState={generation.state}
       genError={generation.error}
       currentImageUrl={currentImageUrl}
+      currentImageSource={selectedImage?.source}
       images={images}
       imagesLoading={imagesQuery.isLoading}
       form={form}
@@ -93,6 +99,7 @@ function FocusEditor({
       hasPrev={editor.hasPrev}
       hasNext={editor.hasNext}
       onGenerate={() => generation.generate(form.steering)}
+      upload={upload}
       onSelectVariant={(pageImageId) =>
         editor.selectImage(page.id, pageImageId)
       }

@@ -37,7 +37,7 @@ function Thumbnail({
 
   return (
     <div className="flex aspect-square w-full items-center justify-center rounded-md border border-dashed bg-muted/40 text-xs text-muted-foreground">
-      No image yet
+      Open to generate or upload
     </div>
   )
 }

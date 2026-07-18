@@ -18,12 +18,15 @@ New features go in a new git worktree branched off `main` — never directly on 
 
 Flow:
 
-1. Create a worktree branched from `main`.
+1. Create a worktree inside `.worktrees/` (gitignored — never elsewhere), branched from `main`.
 2. Copy `.env.local` into it as-is — do not open or inspect it.
 3. Run `npm i`.
 4. Do the work.
 5. Stop with the completed worktree ready for review. Never merge into `main`
    automatically; merge only after the user gives explicit consent.
+
+Once a plan's branch is merged into `main`, delete its worktree and branch —
+don't leave finished worktrees or branches lying around.
 
 Skip the Go CLI (`cli/`) in worktrees — deprecated, kept for reference only.
 
@@ -36,6 +39,10 @@ When implementing a plan from `docs/`, use this skill chain instead of working f
 3. `/handle-judge-feedback` — implements `JUDGEMENT.md`'s feedback in priority order.
 
 The pipeline stops and asks rather than pushing past blockers it can't resolve (missing `.env.local` values, migrations that can't run, services needing provisioning). Nothing merges to `main` — that's always a separate, explicit action.
+
+`CHANGE_SUMMARY.md` and `JUDGEMENT.md` are temporary, worktree-local context for
+this pipeline. **Never commit either document.** Keep them at the worktree root
+for the review tools; they're gitignored along with `HANDOFF.md`.
 
 # Testing
 

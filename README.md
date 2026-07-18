@@ -13,7 +13,7 @@ The planned UX: sign in, paste a social-story script, upload photos of the peopl
 
 The build is specified as self-contained plans in [`docs/plans/`](docs/plans/): start with [`docs/plans/completed/00-overview.md`](docs/plans/completed/00-overview.md) (architecture, conventions, dependency graph), then plans `01`–`12` in dependency order. Planned stack: Next.js 16 (App Router), tRPC v11, Prisma → Neon Postgres, Better Auth, Vercel Blob, Inngest, sharp, pdf-lib.
 
-Each plan lives in [`docs/plans/open/`](docs/plans/open/) until its work is finished, then moves to [`docs/plans/completed/`](docs/plans/completed/). Once a plan's branch is merged into `main`, delete its worktree and branch — don't leave finished worktrees or branches lying around.
+Each plan lives in [`docs/plans/open/`](docs/plans/open/) until its work is finished, then moves to [`docs/plans/completed/`](docs/plans/completed/). See [`CLAUDE.md`](CLAUDE.md) for the worktree and plan → judge → fix workflow used to implement plans.
 
 What exists at the root today:
 
@@ -21,13 +21,6 @@ What exists at the root today:
 - shadcn/ui component set (`src/components/ui/`)
 - Vitest + React Testing Library configured (`vitest.config.mts`, `vitest.setup.ts`)
 - Prettier + husky/lint-staged pre-commit hooks
-
-### Plan review artifacts
-
-`CHANGE_SUMMARY.md` and `JUDGEMENT.md` are temporary, worktree-local context for
-the plan → judge → fix workflow. **Never commit either document.** Keep them at
-the worktree root for the review tools, and leave them ignored by Git along with
-`HANDOFF.md`.
 
 ```bash
 npm install
@@ -127,10 +120,8 @@ npm run test:e2e
 The runner starts Postgres, applies migrations, runs the browser tests, and
 always removes the container and its volume when it exits. OpenAI, Vercel Blob,
 and Inngest are replaced by deterministic local fixtures in E2E mode, so the
-suite makes no paid external-service calls.
-
-New UI flows must include a Playwright E2E spec. Any new external service port
-must include a deterministic fake suitable for automated tests.
+suite makes no paid external-service calls. See [`CLAUDE.md`](CLAUDE.md) for the
+testing rules that apply when writing new tests.
 
 ## The Go CLI (working today)
 

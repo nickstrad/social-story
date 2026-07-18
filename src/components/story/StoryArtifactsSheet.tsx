@@ -1,12 +1,16 @@
 "use client"
 
 import Image from "next/image"
-import { FileTextIcon, UsersIcon } from "lucide-react"
+import { ChevronRightIcon, FileTextIcon, UsersIcon } from "lucide-react"
 import type { inferRouterOutputs } from "@trpc/server"
 
 import { Badge } from "@/components/ui/badge"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   SheetContent,
@@ -254,16 +258,27 @@ function ArtifactSection({
   children: React.ReactNode
 }) {
   return (
-    <section className="grid gap-3">
-      <div className="flex items-center gap-3">
-        <span className="font-mono text-xs text-muted-foreground">
-          {number}
-        </span>
-        <h3 className="font-heading font-medium">{title}</h3>
-        <Separator className="flex-1" />
-      </div>
-      {children}
-    </section>
+    <Collapsible render={<section />}>
+      <h3>
+        <CollapsibleTrigger className="group flex w-full items-center gap-3 rounded-lg py-1 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+          <span
+            aria-hidden="true"
+            className="font-mono text-xs text-muted-foreground transition-colors group-hover:text-foreground"
+          >
+            {number}
+          </span>
+          <span className="font-heading font-medium">{title}</span>
+          <span aria-hidden="true" className="h-px flex-1 bg-border" />
+          <ChevronRightIcon
+            aria-hidden="true"
+            className="size-4 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none group-data-panel-open:rotate-90"
+          />
+        </CollapsibleTrigger>
+      </h3>
+      <CollapsibleContent>
+        <div className="pt-3">{children}</div>
+      </CollapsibleContent>
+    </Collapsible>
   )
 }
 

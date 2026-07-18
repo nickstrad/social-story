@@ -1,5 +1,5 @@
 import { test, expect } from "../support/auth"
-import { createStory } from "../support/story"
+import { createStory, SAMPLE_SCRIPT } from "../support/story"
 
 test("edits to title and script persist across a reload", async ({ page }) => {
   await createStory(page)
@@ -47,8 +47,22 @@ test("the footer shows artifacts and continues to characters", async ({
   await page.getByRole("button", { name: "View artifacts" }).click()
   const artifacts = page.getByRole("dialog", { name: "Story artifacts" })
   await expect(artifacts).toBeVisible()
-  await expect(artifacts.getByText("Story script")).toBeVisible()
-  await expect(artifacts.getByText(/Story pages · \d+/)).toBeVisible()
+  const scriptSection = artifacts.getByRole("button", {
+    name: "Story script",
+  })
+  const pagesSection = artifacts.getByRole("button", {
+    name: /Story pages · \d+/,
+  })
+  await expect(scriptSection).toHaveAttribute("aria-expanded", "false")
+  await expect(pagesSection).toHaveAttribute("aria-expanded", "false")
+  await expect(artifacts.getByText(SAMPLE_SCRIPT, { exact: true })).toBeHidden()
+
+  await scriptSection.click()
+  await expect(scriptSection).toHaveAttribute("aria-expanded", "true")
+  await expect(
+    artifacts.getByText(SAMPLE_SCRIPT, { exact: true })
+  ).toBeVisible()
+  await expect(pagesSection).toHaveAttribute("aria-expanded", "false")
   await page.keyboard.press("Escape")
 
   await page.getByRole("link", { name: "Continue to Characters" }).click()

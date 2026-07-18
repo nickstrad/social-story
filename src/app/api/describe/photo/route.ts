@@ -17,18 +17,23 @@ export async function POST(request: Request) {
   const form = await request.formData()
   const storyId = form.get("storyId")
   const file = form.get("file")
-  if (typeof storyId !== "string" || !(file instanceof File)) {
-    return error("storyId and file are required", 400)
+  if (
+    (storyId !== null && typeof storyId !== "string") ||
+    !(file instanceof File)
+  ) {
+    return error("file is required", 400)
   }
 
   const validation = validateUpload({ mimeType: file.type, size: file.size })
   if (!validation.valid) return error(validation.error, 400)
 
   const deps = getDeps()
-  try {
-    await assertStoryOwnership(deps.repos, storyId, session.user.id)
-  } catch {
-    return error("Not found", 404)
+  if (storyId) {
+    try {
+      await assertStoryOwnership(deps.repos, storyId, session.user.id)
+    } catch {
+      return error("Not found", 404)
+    }
   }
 
   let image: Buffer

@@ -44,6 +44,15 @@ async function request(storyId: string, file: File) {
   })
 }
 
+async function libraryRequest(file: File) {
+  const form = new FormData()
+  form.set("file", file)
+  return new Request("http://localhost/api/describe/photo", {
+    method: "POST",
+    body: form,
+  })
+}
+
 describe("POST /api/describe/photo", () => {
   const suggest = vi.fn()
   const repos = inMemoryRepos()
@@ -81,6 +90,13 @@ describe("POST /api/describe/photo", () => {
     const photo = suggest.mock.calls[0][0].photo
     expect(photo.mediaType).toBe("image/png")
     expect(photo.data.subarray(1, 4).toString()).toBe("PNG")
+  })
+
+  it("allows authenticated library autofill without a story", async () => {
+    const response = await POST(await libraryRequest(await photoFile()))
+
+    expect(response.status).toBe(200)
+    expect(suggest).toHaveBeenCalledOnce()
   })
 
   it("rejects unauthenticated, unowned, and invalid uploads before AI", async () => {

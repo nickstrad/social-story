@@ -3,6 +3,7 @@ import type {
   Asset,
   AssetKind,
   Character,
+  LibraryCharacter,
   PageImage,
   Story,
 } from "@/server/domain/types"
@@ -11,6 +12,7 @@ import type { Repos } from "@/server/ports/repos"
 export const BROWSER_ASSET_KINDS = [
   "BASE_IMAGE",
   "CHARACTER_PHOTO",
+  "LIBRARY_PHOTO",
   "PAGE_IMAGE",
   "PDF",
 ] as const satisfies readonly AssetKind[]
@@ -30,6 +32,11 @@ export const clientCharacter = (character: Character) => ({
   photoUrl: character.photoAssetId ? assetUrl(character.photoAssetId) : null,
 })
 
+export const clientLibraryCharacter = (character: LibraryCharacter) => ({
+  ...character,
+  photoUrl: character.photoAssetId ? assetUrl(character.photoAssetId) : null,
+})
+
 export const clientPageImage = (image: PageImage) => ({
   ...image,
   url: assetUrl(image.imageAssetId),
@@ -37,7 +44,7 @@ export const clientPageImage = (image: PageImage) => ({
 
 interface AssetUpload {
   userId: string
-  storyId: string
+  storyId: string | null
   kind: AssetKind
   key: string
   data: Buffer
@@ -148,6 +155,46 @@ export function replaceCharacterPhotoAsset(
     (repos, assetId) =>
       repos.characters.update(character.id, { photoAssetId: assetId })
   )
+}
+
+export function replaceLibraryPhotoAsset(
+  deps: Deps,
+  character: LibraryCharacter,
+  data: Buffer,
+  key: string
+) {
+  return replaceAssetReference(
+    deps,
+    {
+      userId: character.userId,
+      storyId: null,
+      kind: "LIBRARY_PHOTO",
+      key,
+      data,
+      contentType: "image/png",
+    },
+    character.photoAssetId,
+    (repos, assetId) =>
+      repos.libraryCharacters.update(character.id, { photoAssetId: assetId })
+  )
+}
+
+export async function copyAsset(
+  deps: Deps,
+  source: Asset,
+  targetKey: string,
+  target: { storyId: string | null; kind: AssetKind }
+): Promise<Asset> {
+  const data = await deps.storage.fetchBuffer(source.storageLocator)
+  return createAsset(deps, {
+    userId: source.userId,
+    storyId: target.storyId,
+    kind: target.kind,
+    key: targetKey,
+    data,
+    contentType: source.contentType,
+    filename: source.filename ?? undefined,
+  })
 }
 
 export async function createPageImageAssets(

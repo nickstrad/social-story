@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { PlusIcon } from "lucide-react"
+import { PlusIcon, UsersIcon } from "lucide-react"
+import { AddFromLibraryDialog } from "./AddFromLibraryDialog"
 import { CharacterCard } from "./CharacterCard"
 import { CharacterForm } from "./CharacterForm"
 import { RuleForm } from "./RuleForm"
@@ -31,6 +32,7 @@ import {
 import { Empty, EmptyDescription } from "@/components/ui/empty"
 import { useCharacterForm } from "@/hooks/useCharacterForm"
 import { useCharacters } from "@/hooks/useCharacters"
+import { useLibraryCharacters } from "@/hooks/useLibraryCharacters"
 import { useRuleForm } from "@/hooks/useRuleForm"
 import { useRules } from "@/hooks/useRules"
 import { deriveStepStates } from "@/lib/steps"
@@ -91,7 +93,13 @@ function RuleEditor({
 
 export function CharactersScreen({ storyId }: { storyId: string }) {
   const [story] = trpc.story.get.useSuspenseQuery({ storyId })
-  const { characters, remove: removeCharacter } = useCharacters(storyId)
+  const {
+    characters,
+    remove: removeCharacter,
+    addFromLibrary,
+    saveToLibrary,
+  } = useCharacters(storyId)
+  const { characters: libraryCharacters } = useLibraryCharacters()
   const { rules, remove: removeRule } = useRules(storyId)
   const [editingCharacter, setEditingCharacter] = useState<
     Character | null | undefined
@@ -100,6 +108,7 @@ export function CharactersScreen({ storyId }: { storyId: string }) {
     string | null
   >(null)
   const [editingRule, setEditingRule] = useState<Rule | null | undefined>()
+  const [libraryOpen, setLibraryOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{
     type: "character" | "rule"
     id: string
@@ -133,10 +142,16 @@ export function CharactersScreen({ storyId }: { storyId: string }) {
           title="Characters"
           description="Add the people who should stay recognizable throughout this story."
           actions={
-            <Button onClick={() => setEditingCharacter(null)}>
-              <PlusIcon />
-              Add character
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => setLibraryOpen(true)}>
+                <UsersIcon />
+                Add from library
+              </Button>
+              <Button onClick={() => setEditingCharacter(null)}>
+                <PlusIcon />
+                Add character
+              </Button>
+            </div>
           }
         />
         {characters.length ? (
@@ -153,6 +168,15 @@ export function CharactersScreen({ storyId }: { storyId: string }) {
                     id: character.id,
                     name: character.name,
                   })
+                }
+                onSaveToLibrary={
+                  character.libraryCharacterId
+                    ? undefined
+                    : () =>
+                        saveToLibrary.mutate({
+                          storyId,
+                          characterId: character.id,
+                        })
                 }
               />
             ))}
@@ -191,6 +215,22 @@ export function CharactersScreen({ storyId }: { storyId: string }) {
         />
       </section>
       <StoryFlowFooter storyId={storyId} steps={steps} current="characters" />
+      <AddFromLibraryDialog
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        characters={libraryCharacters}
+        existingIds={
+          new Set(
+            characters.flatMap((character) =>
+              character.libraryCharacterId ? [character.libraryCharacterId] : []
+            )
+          )
+        }
+        isSubmitting={addFromLibrary.isPending}
+        onSubmit={async (libraryCharacterIds) => {
+          await addFromLibrary.mutateAsync({ storyId, libraryCharacterIds })
+        }}
+      />
       <Dialog
         open={editingCharacter !== undefined}
         onOpenChange={(open) => {

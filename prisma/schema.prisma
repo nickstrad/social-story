@@ -9,18 +9,19 @@ datasource db {
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  stories       Story[]
-  tasks         Task[]
-  assets        Asset[]
+  id                String             @id
+  name              String
+  email             String             @unique
+  emailVerified     Boolean            @default(false)
+  image             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  sessions          Session[]
+  accounts          Account[]
+  stories           Story[]
+  tasks             Task[]
+  assets            Asset[]
+  libraryCharacters LibraryCharacter[]
 }
 
 model Session {
@@ -68,42 +69,62 @@ model Verification {
 }
 
 model Story {
-  id           String      @id @default(cuid())
-  userId       String
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title        String
-  script       String
-  status       StoryStatus @default(DRAFT)
+  id               String      @id @default(cuid())
+  userId           String
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  script           String
+  status           StoryStatus @default(DRAFT)
   baseImageAssetId String?     @unique
   baseImageAsset   Asset?      @relation("StoryBaseImage", fields: [baseImageAssetId], references: [id], onDelete: SetNull)
-  coverNote    String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  characters   Character[]
-  rules        Rule[]
-  pages        Page[]
-  tasks        Task[]
-  assets       Asset[]         @relation("StoryAssets")
+  coverNote        String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  characters       Character[]
+  rules            Rule[]
+  pages            Page[]
+  tasks            Task[]
+  assets           Asset[]     @relation("StoryAssets")
 
-  @@index([userId])
   @@unique([id, userId])
+  @@index([userId])
 }
 
 model Character {
-  id               String   @id @default(cuid())
-  storyId          String
-  story            Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  id                 String            @id @default(cuid())
+  storyId            String
+  story              Story             @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  name               String
+  role               String?
+  age                String?
+  appearance         String?
+  photoAssetId       String?           @unique
+  photoAsset         Asset?            @relation("CharacterPhoto", fields: [photoAssetId], references: [id], onDelete: SetNull)
+  photoDescription   String?
+  libraryCharacterId String?
+  libraryCharacter   LibraryCharacter? @relation(fields: [libraryCharacterId], references: [id], onDelete: SetNull)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([storyId])
+}
+
+model LibraryCharacter {
+  id               String      @id @default(cuid())
+  userId           String
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   name             String
   role             String?
   age              String?
   appearance       String?
-  photoAssetId     String?  @unique
-  photoAsset       Asset?   @relation("CharacterPhoto", fields: [photoAssetId], references: [id], onDelete: SetNull)
+  photoAssetId     String?     @unique
+  photoAsset       Asset?      @relation("LibraryCharacterPhoto", fields: [photoAssetId], references: [id], onDelete: SetNull)
   photoDescription String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  storyCharacters  Character[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
-  @@index([storyId])
+  @@index([userId])
 }
 
 model Rule {
@@ -141,39 +162,40 @@ model Page {
 }
 
 model PageImage {
-  id         String   @id @default(cuid())
-  pageId     String
-  page       Page     @relation("PageImages", fields: [pageId], references: [id], onDelete: Cascade)
-  selectedBy Page?    @relation("SelectedPageImage")
-  imageAssetId String  @unique
-  imageAsset   Asset   @relation("PageImageCaptioned", fields: [imageAssetId], references: [id], onDelete: Restrict)
-  rawAssetId   String? @unique
-  rawAsset     Asset?  @relation("PageImageRaw", fields: [rawAssetId], references: [id], onDelete: SetNull)
-  promptUsed String
-  variant    Int
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String   @id @default(cuid())
+  pageId       String
+  page         Page     @relation("PageImages", fields: [pageId], references: [id], onDelete: Cascade)
+  selectedBy   Page?    @relation("SelectedPageImage")
+  imageAssetId String   @unique
+  imageAsset   Asset    @relation("PageImageCaptioned", fields: [imageAssetId], references: [id], onDelete: Restrict)
+  rawAssetId   String?  @unique
+  rawAsset     Asset?   @relation("PageImageRaw", fields: [rawAssetId], references: [id], onDelete: SetNull)
+  promptUsed   String
+  variant      Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([pageId, variant])
 }
 
 model Asset {
-  id             String    @id @default(cuid())
+  id             String            @id @default(cuid())
   userId         String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  storyId        String
-  story          Story     @relation("StoryAssets", fields: [storyId, userId], references: [id, userId], onDelete: Cascade)
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storyId        String?
+  story          Story?            @relation("StoryAssets", fields: [storyId, userId], references: [id, userId], onDelete: Cascade)
   kind           AssetKind
-  storageLocator String    @unique
+  storageLocator String            @unique
   contentType    String
   byteLength     Int
   filename       String?
-  baseImageFor   Story?    @relation("StoryBaseImage")
-  characterPhoto Character? @relation("CharacterPhoto")
-  captionedImage PageImage? @relation("PageImageCaptioned")
-  rawImage       PageImage? @relation("PageImageRaw")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  baseImageFor   Story?            @relation("StoryBaseImage")
+  characterPhoto Character?        @relation("CharacterPhoto")
+  libraryPhoto   LibraryCharacter? @relation("LibraryCharacterPhoto")
+  captionedImage PageImage?        @relation("PageImageCaptioned")
+  rawImage       PageImage?        @relation("PageImageRaw")
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   @@index([userId, id])
   @@index([storyId])
@@ -236,6 +258,7 @@ enum TaskStatus {
 enum AssetKind {
   BASE_IMAGE
   CHARACTER_PHOTO
+  LIBRARY_PHOTO
   PAGE_IMAGE
   PAGE_IMAGE_RAW
   PDF

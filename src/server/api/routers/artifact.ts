@@ -100,7 +100,7 @@ export const artifactRouter = createTRPCRouter({
       storyIdByPageId.get(item.pageId)
     )
     const tasksByStory = groupBy(tasks, (item) => item.storyId)
-    const assetsByStory = groupBy(assets, (item) => item.storyId)
+    const assetsByStory = groupBy(assets, (item) => item.storyId ?? undefined)
 
     const sources: StoryArtifactSources[] = stories.map((story) => ({
       story,

@@ -12,6 +12,7 @@ export default async function BaseImagePage({
 }) {
   const { storyId } = await params
   prefetch(trpc.story.get.prefetch({ storyId }))
+  prefetch(trpc.story.baseImageSources.prefetch({ storyId }))
   prefetch(trpc.character.listForStory.prefetch({ storyId }))
   return (
     <HydrateClient>

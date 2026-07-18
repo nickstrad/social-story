@@ -4,6 +4,7 @@ import type {
   Character,
   CreateAsset,
   CreateCharacter,
+  CreateLibraryCharacter,
   CreatePage,
   CreatePageImage,
   CreateRule,
@@ -11,10 +12,12 @@ import type {
   CreateTask,
   Page,
   PageImage,
+  LibraryCharacter,
   Rule,
   Story,
   Task,
   UpdateCharacter,
+  UpdateLibraryCharacter,
   UpdatePage,
   UpdateRule,
   UpdateStory,
@@ -36,6 +39,14 @@ export interface CharacterRepo {
   listByStory(storyId: string): Promise<Character[]>
   listByStoryIds(storyIds: string[]): Promise<Character[]>
   update(id: string, input: UpdateCharacter): Promise<Character>
+  delete(id: string): Promise<void>
+}
+
+export interface LibraryCharacterRepo {
+  create(input: CreateLibraryCharacter): Promise<LibraryCharacter>
+  getOwnedById(id: string, userId: string): Promise<LibraryCharacter | null>
+  listByUser(userId: string): Promise<LibraryCharacter[]>
+  update(id: string, input: UpdateLibraryCharacter): Promise<LibraryCharacter>
   delete(id: string): Promise<void>
 }
 
@@ -97,6 +108,7 @@ export interface AssetRepo {
 export interface Repos {
   stories: StoryRepo
   characters: CharacterRepo
+  libraryCharacters: LibraryCharacterRepo
   rules: RuleRepo
   pages: PageRepo
   tasks: TaskRepo

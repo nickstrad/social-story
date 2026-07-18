@@ -1,6 +1,7 @@
 import type {
   Asset,
   Character,
+  LibraryCharacter,
   Page,
   PageImage,
   Rule,
@@ -16,17 +17,20 @@ const required = <T>(value: T | undefined, label: string): T => {
   return value
 }
 
-function byStoryIds<T extends { storyId: string }>(
+function byStoryIds<T extends { storyId: string | null }>(
   values: Iterable<T>,
   storyIds: string[]
 ): T[] {
   const wanted = new Set(storyIds)
-  return [...values].filter((value) => wanted.has(value.storyId))
+  return [...values].filter(
+    (value) => value.storyId !== null && wanted.has(value.storyId)
+  )
 }
 
 export function inMemoryRepos(): Repos {
   const stories = new Map<string, Story>()
   const characters = new Map<string, Character>()
+  const libraryCharacters = new Map<string, LibraryCharacter>()
   const rules = new Map<string, Rule>()
   const pages = new Map<string, Page>()
   const images = new Map<string, PageImage>()
@@ -96,6 +100,7 @@ export function inMemoryRepos(): Repos {
           appearance: null,
           photoAssetId: null,
           photoDescription: null,
+          libraryCharacterId: null,
           ...input,
           createdAt: timestamp,
           updatedAt: timestamp,
@@ -123,6 +128,54 @@ export function inMemoryRepos(): Repos {
       },
       async delete(id) {
         characters.delete(id)
+      },
+    },
+    libraryCharacters: {
+      async create(input) {
+        const timestamp = now()
+        const value: LibraryCharacter = {
+          id: newId(),
+          role: null,
+          age: null,
+          appearance: null,
+          photoAssetId: null,
+          photoDescription: null,
+          ...input,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }
+        libraryCharacters.set(value.id, value)
+        return value
+      },
+      async getOwnedById(id, userId) {
+        const value = libraryCharacters.get(id)
+        return value?.userId === userId ? value : null
+      },
+      async listByUser(userId) {
+        return [...libraryCharacters.values()].filter(
+          (item) => item.userId === userId
+        )
+      },
+      async update(id, input) {
+        const value = {
+          ...required(libraryCharacters.get(id), "Library character"),
+          ...input,
+          updatedAt: now(),
+        }
+        libraryCharacters.set(id, value)
+        return value
+      },
+      async delete(id) {
+        libraryCharacters.delete(id)
+        for (const [key, value] of characters) {
+          if (value.libraryCharacterId === id) {
+            characters.set(key, {
+              ...value,
+              libraryCharacterId: null,
+              updatedAt: now(),
+            })
+          }
+        }
       },
     },
     rules: {
@@ -323,9 +376,11 @@ export function inMemoryRepos(): Repos {
     },
     assets: {
       async create(input) {
-        const story = stories.get(input.storyId)
-        if (!story || story.userId !== input.userId) {
-          throw new Error("Asset owner must match story owner")
+        if (input.storyId) {
+          const story = stories.get(input.storyId)
+          if (!story || story.userId !== input.userId) {
+            throw new Error("Asset owner must match story owner")
+          }
         }
         if (
           [...assets.values()].some(
@@ -381,6 +436,7 @@ export function inMemoryRepos(): Repos {
       const snapshots = {
         stories: new Map(stories),
         characters: new Map(characters),
+        libraryCharacters: new Map(libraryCharacters),
         rules: new Map(rules),
         pages: new Map(pages),
         images: new Map(images),
@@ -396,6 +452,7 @@ export function inMemoryRepos(): Repos {
         }
         restore(stories, snapshots.stories)
         restore(characters, snapshots.characters)
+        restore(libraryCharacters, snapshots.libraryCharacters)
         restore(rules, snapshots.rules)
         restore(pages, snapshots.pages)
         restore(images, snapshots.images)

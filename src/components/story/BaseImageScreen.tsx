@@ -17,6 +17,9 @@ export function BaseImageScreen({ storyId }: { storyId: string }) {
     taskError,
     canGenerate,
     onGenerate,
+    reuseSources,
+    isReusing,
+    onReuse,
   } = useBaseImage(storyId)
   const steps = deriveStepStates({
     status: story.status,
@@ -42,6 +45,9 @@ export function BaseImageScreen({ storyId }: { storyId: string }) {
         characterCount={characters.length}
         canGenerate={canGenerate}
         onGenerate={onGenerate}
+        reuseSources={reuseSources}
+        isReusing={isReusing}
+        onReuse={onReuse}
       />
       <StoryFlowFooter storyId={storyId} steps={steps} current="base" />
     </PageLayout>

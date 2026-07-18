@@ -7,6 +7,9 @@
 export const photoKey = (storyId: string, characterId: string) =>
   `stories/${storyId}/photos/${characterId}.png`
 
+export const libraryPhotoKey = (userId: string, libraryCharacterId: string) =>
+  `users/${userId}/library/photos/${libraryCharacterId}.png`
+
 export const baseImageKey = (storyId: string) => `stories/${storyId}/base.png`
 
 export const pageImageKey = (

@@ -114,8 +114,9 @@ text model or credential.
 
 ## Synchronous photo autofill
 
-`POST /api/describe/photo` authenticates, checks story ownership, validates the
-upload, and normalizes it to bounded PNG bytes before invoking
+`POST /api/describe/photo` authenticates, checks story ownership when a story
+is supplied (the character-library form has no story), validates the upload,
+and normalizes it to bounded PNG bytes before invoking
 `ai.characterPhotoAutofill.suggest`. The action neither accesses storage nor
 persists data. Its safety prompt describes visible illustration-relevant details,
 does not identify the person or infer sensitive traits, and returns only the two
@@ -125,6 +126,9 @@ The client invokes the route only after **Auto-fill from photo** is clicked,
 places suggestions into the form, and reminds the author to review them. Normal
 form submission is the only persistence path. Keep 400/404 validation behavior
 and the safe 502 failure copy provider-neutral.
+
+Adding a saved character to a story and reusing a matching cast's base image
+are deterministic asset copies. They never invoke an AI action.
 
 ## Durable workflows and sensitive data
 

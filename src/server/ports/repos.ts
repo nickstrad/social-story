@@ -15,6 +15,7 @@ import type {
   LibraryCharacter,
   Rule,
   Story,
+  StoryKind,
   Task,
   UpdateCharacter,
   UpdateLibraryCharacter,
@@ -28,13 +29,14 @@ import type {
 export interface StoryRepo {
   create(input: CreateStory): Promise<Story>
   getById(id: string): Promise<Story | null>
-  listByUser(userId: string): Promise<Story[]>
+  listByUser(userId: string, kind?: StoryKind): Promise<Story[]>
   update(id: string, input: UpdateStory): Promise<Story>
   delete(id: string): Promise<void>
 }
 
 export interface CharacterRepo {
   create(input: CreateCharacter): Promise<Character>
+  createMany(input: CreateCharacter[]): Promise<Character[]>
   getById(id: string): Promise<Character | null>
   listByStory(storyId: string): Promise<Character[]>
   listByStoryIds(storyIds: string[]): Promise<Character[]>

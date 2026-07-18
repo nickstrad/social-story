@@ -137,7 +137,10 @@ describe("usePagesEditor", () => {
     await act(async () => {
       await opts.onMutate?.({ pageId: "a", hidden: true })
     })
-    expect(mocks.cancel).toHaveBeenCalledWith({ storyId: "s1" })
+    expect(mocks.cancel).toHaveBeenCalledWith({
+      storyId: "s1",
+      kind: "STORY",
+    })
     const optimistic = mocks.setData.mock.calls[0][1] as typeof mocks.story
     expect(optimistic.pages.find((p) => p.id === "a")?.hidden).toBe(true)
 
@@ -152,7 +155,7 @@ describe("usePagesEditor", () => {
     })
     // Rollback restores the pre-mutation snapshot.
     expect(mocks.setData).toHaveBeenLastCalledWith(
-      { storyId: "s1" },
+      { storyId: "s1", kind: "STORY" },
       mocks.story
     )
   })

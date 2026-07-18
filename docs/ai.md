@@ -130,6 +130,12 @@ and the safe 502 failure copy provider-neutral.
 Adding a saved character to a story and reusing a matching cast's base image
 are deterministic asset copies. They never invoke an AI action.
 
+Story-template instantiation is also deterministic by design. It clones authored
+rows, remaps character IDs, replaces whole-name references, and optionally copies
+a caller-owned library character's photo and descriptive fields. Do not add an AI
+rewrite or generation step: identical template and cast inputs must preserve the
+same script, page text, and prompts apart from the requested name substitutions.
+
 ## Durable workflows and sensitive data
 
 AI tasks remain inside the named Inngest workflow registry and existing durable

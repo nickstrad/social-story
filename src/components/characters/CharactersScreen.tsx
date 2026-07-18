@@ -37,18 +37,24 @@ import { useRuleForm } from "@/hooks/useRuleForm"
 import { useRules } from "@/hooks/useRules"
 import { deriveStepStates } from "@/lib/steps"
 import { trpc } from "@/lib/trpc"
-import type { ClientCharacter as Character, Rule } from "@/server/domain/types"
+import type {
+  ClientCharacter as Character,
+  Rule,
+  StoryKind,
+} from "@/server/domain/types"
 
 function CharacterEditor({
   storyId,
   character,
   onDone,
   onUploadingChange,
+  showOptional,
 }: {
   storyId: string
   character?: Character
   onDone: () => void
   onUploadingChange: (id: string | null) => void
+  showOptional: boolean
 }) {
   const form = useCharacterForm(storyId, character)
   const characterId = character?.id ?? null
@@ -60,6 +66,7 @@ function CharacterEditor({
   return (
     <CharacterForm
       {...form}
+      showOptional={showOptional}
       onSubmit={async (event) => {
         const saved = await form.onSubmit(event)
         if (saved) onDone()
@@ -91,8 +98,14 @@ function RuleEditor({
   )
 }
 
-export function CharactersScreen({ storyId }: { storyId: string }) {
-  const [story] = trpc.story.get.useSuspenseQuery({ storyId })
+export function CharactersScreen({
+  storyId,
+  storyKind,
+}: {
+  storyId: string
+  storyKind: StoryKind
+}) {
+  const [story] = trpc.story.get.useSuspenseQuery({ storyId, kind: storyKind })
   const {
     characters,
     remove: removeCharacter,
@@ -126,6 +139,7 @@ export function CharactersScreen({ storyId }: { storyId: string }) {
   }
 
   const steps = deriveStepStates({
+    kind: story.kind,
     status: story.status,
     script: story.script,
     charactersCount: characters.length,
@@ -136,7 +150,12 @@ export function CharactersScreen({ storyId }: { storyId: string }) {
 
   return (
     <PageLayout spacing="relaxed">
-      <StoryStepsNav storyId={storyId} steps={steps} current="characters" />
+      <StoryStepsNav
+        storyId={storyId}
+        steps={steps}
+        current="characters"
+        kind={story.kind}
+      />
       <section className="grid gap-section">
         <PageHeader
           title="Characters"
@@ -214,7 +233,12 @@ export function CharactersScreen({ storyId }: { storyId: string }) {
           }
         />
       </section>
-      <StoryFlowFooter storyId={storyId} steps={steps} current="characters" />
+      <StoryFlowFooter
+        storyId={storyId}
+        steps={steps}
+        current="characters"
+        kind={story.kind}
+      />
       <AddFromLibraryDialog
         open={libraryOpen}
         onOpenChange={setLibraryOpen}
@@ -255,6 +279,7 @@ export function CharactersScreen({ storyId }: { storyId: string }) {
               character={editingCharacter ?? undefined}
               onDone={() => setEditingCharacter(undefined)}
               onUploadingChange={setUploadingCharacterId}
+              showOptional={story.kind === "TEMPLATE"}
             />
           )}
         </DialogContent>

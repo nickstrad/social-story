@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { InfoIcon } from "lucide-react"
 
 import { PageFocusEditor } from "./PageFocusEditor"
 import { PageGrid } from "./PageGrid"
@@ -19,10 +20,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { effectiveCharacters, type EditorPage } from "@/lib/pagesEditor"
 import { toggle } from "@/lib/selection"
 import { deriveStepStates } from "@/lib/steps"
-import type { ClientCharacter as Character, Rule } from "@/server/domain/types"
+import type {
+  ClientCharacter as Character,
+  Rule,
+  StoryKind,
+} from "@/server/domain/types"
 import { trpc } from "@/lib/trpc"
 import { usePageForm } from "@/hooks/usePageForm"
 import { usePageGeneration } from "@/hooks/usePageGeneration"
@@ -45,6 +51,7 @@ function FocusEditor({
   storyId,
   characters,
   rules,
+  storyKind,
   onRequestDelete,
 }: {
   editor: Editor
@@ -52,9 +59,10 @@ function FocusEditor({
   storyId: string
   characters: Character[]
   rules: Rule[]
+  storyKind: StoryKind
   onRequestDelete: (page: EditorPage) => void
 }) {
-  const form = usePageForm(page)
+  const form = usePageForm(page, storyKind)
   const generation = usePageGeneration(page.id, storyId)
   const imagesQuery = trpc.page.listImages.useQuery({ pageId: page.id })
   const images = imagesQuery.data ?? []
@@ -101,14 +109,17 @@ function FocusEditor({
 export function PagesEditorScreen({
   storyId,
   initialFocusedPageId = null,
+  storyKind,
 }: {
   storyId: string
   initialFocusedPageId?: string | null
+  storyKind: StoryKind
 }) {
-  const editor = usePagesEditor(storyId, initialFocusedPageId)
+  const editor = usePagesEditor(storyId, initialFocusedPageId, storyKind)
   const [deleteTarget, setDeleteTarget] = useState<EditorPage | null>(null)
 
   const steps = deriveStepStates({
+    kind: editor.story.kind,
     status: editor.story.status,
     script: editor.story.script,
     charactersCount: editor.story.counts.characters,
@@ -119,7 +130,23 @@ export function PagesEditorScreen({
 
   return (
     <PageLayout width="app" spacing="relaxed">
-      <StoryStepsNav storyId={storyId} steps={steps} current="pages" />
+      <StoryStepsNav
+        storyId={storyId}
+        steps={steps}
+        current="pages"
+        kind={editor.story.kind}
+      />
+
+      {editor.story.kind === "TEMPLATE" && (
+        <Alert>
+          <InfoIcon />
+          <AlertTitle>Write optional roles cast-neutrally</AlertTitle>
+          <AlertDescription>
+            Use phrases such as “my family” when an optional slot might be left
+            out. Required role names are replaced when the template is used.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {editor.focusedPage ? (
         <FocusEditor
@@ -129,6 +156,7 @@ export function PagesEditorScreen({
           storyId={storyId}
           characters={editor.characters}
           rules={editor.rules}
+          storyKind={editor.story.kind}
           onRequestDelete={setDeleteTarget}
         />
       ) : (
@@ -158,7 +186,12 @@ export function PagesEditorScreen({
         </div>
       )}
 
-      <StoryFlowFooter storyId={storyId} steps={steps} current="pages" />
+      <StoryFlowFooter
+        storyId={storyId}
+        steps={steps}
+        current="pages"
+        kind={editor.story.kind}
+      />
 
       <AlertDialog
         open={deleteTarget !== null}

@@ -15,6 +15,21 @@ export async function assertStoryOwnership(
   return story
 }
 
+export async function assertTemplateUsable(
+  repos: Repos,
+  templateOrId: Story | string,
+  userId: string
+): Promise<Story> {
+  const template =
+    typeof templateOrId === "string"
+      ? await assertStoryOwnership(repos, templateOrId, userId)
+      : templateOrId
+  if (template.userId !== userId || template.kind !== "TEMPLATE") {
+    throw notFound()
+  }
+  return template
+}
+
 export async function assertPageOwnership(
   repos: Repos,
   pageId: string,

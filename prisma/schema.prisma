@@ -74,6 +74,10 @@ model Story {
   user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   title            String
   script           String
+  kind             StoryKind   @default(STORY)
+  templateId       String?
+  template         Story?      @relation("TemplateInstances", fields: [templateId], references: [id], onDelete: SetNull)
+  instances        Story[]     @relation("TemplateInstances")
   status           StoryStatus @default(DRAFT)
   baseImageAssetId String?     @unique
   baseImageAsset   Asset?      @relation("StoryBaseImage", fields: [baseImageAssetId], references: [id], onDelete: SetNull)
@@ -87,7 +91,7 @@ model Story {
   assets           Asset[]     @relation("StoryAssets")
 
   @@unique([id, userId])
-  @@index([userId])
+  @@index([userId, kind])
 }
 
 model Character {
@@ -103,6 +107,7 @@ model Character {
   photoDescription   String?
   libraryCharacterId String?
   libraryCharacter   LibraryCharacter? @relation(fields: [libraryCharacterId], references: [id], onDelete: SetNull)
+  isOptional         Boolean           @default(false)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
@@ -227,6 +232,11 @@ enum StoryStatus {
   DRAFT
   PARSED
   READY
+}
+
+enum StoryKind {
+  STORY
+  TEMPLATE
 }
 
 enum RuleKind {

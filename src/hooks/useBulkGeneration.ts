@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { summarizeStoryTasks } from "@/server/domain/taskMachine"
-import type { Task } from "@/server/domain/types"
+import type { StoryKind, Task } from "@/server/domain/types"
 import { isAllSelected, selectAll, selectNone, toggle } from "@/lib/selection"
 import { trpc } from "@/lib/trpc"
 import { useStoryTasks } from "@/hooks/useTaskPolling"
@@ -16,7 +16,11 @@ export function summarizePageProgress(tasks: Task[]) {
   return summarizeStoryTasks(tasks.filter((task) => task.type === "PAGE_IMAGE"))
 }
 
-export function useBulkGeneration(storyId: string, pageIds: string[]) {
+export function useBulkGeneration(
+  storyId: string,
+  pageIds: string[],
+  kind: StoryKind = "STORY"
+) {
   const utils = trpc.useUtils()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const { tasks } = useStoryTasks(storyId)
@@ -29,7 +33,7 @@ export function useBulkGeneration(storyId: string, pageIds: string[]) {
         utils.task.listForStory.invalidate({ storyId }),
         // Inline/very fast dispatch can complete before the UI observes an
         // active task, so refresh selected image URLs immediately too.
-        utils.story.get.invalidate({ storyId }),
+        utils.story.get.invalidate({ storyId, kind }),
       ])
     },
     onError: (error) => toast.error(error.message),

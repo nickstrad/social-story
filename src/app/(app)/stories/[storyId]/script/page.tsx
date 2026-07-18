@@ -6,16 +6,20 @@ import { HydrateClient, prefetch, trpc } from "@/lib/trpc-server"
 
 export default async function ScriptPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ storyId: string }>
+  searchParams: Promise<{ template?: string }>
 }) {
   const { storyId } = await params
-  prefetch(trpc.story.get.prefetch({ storyId }))
+  const { template } = await searchParams
+  const storyKind = template === "1" ? "TEMPLATE" : "STORY"
+  prefetch(trpc.story.get.prefetch({ storyId, kind: storyKind }))
   return (
     <HydrateClient>
       <ErrorBoundary fallbackTitle="Could not load story">
         <Suspense fallback={<ScriptEditorSkeleton />}>
-          <ScriptScreen storyId={storyId} />
+          <ScriptScreen storyId={storyId} storyKind={storyKind} />
         </Suspense>
       </ErrorBoundary>
     </HydrateClient>

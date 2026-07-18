@@ -22,6 +22,8 @@ const story: ClientStory = {
   userId: "user",
   title: "A Story",
   script: "script",
+  kind: "STORY",
+  templateId: null,
   status: "DRAFT",
   baseImageUrl: null,
   baseImageAssetId: null,

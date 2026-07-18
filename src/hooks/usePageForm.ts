@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 
-import type { Page } from "@/server/domain/types"
+import type { Page, StoryKind } from "@/server/domain/types"
 import { trpc } from "@/lib/trpc"
 
 const SAVE_DEBOUNCE_MS = 600
@@ -15,14 +15,15 @@ const SAVE_DEBOUNCE_MS = 600
  * Expects a stable page identity for its lifetime — callers remount it (key by
  * `page.id`) when the focused page changes so drafts reset cleanly.
  */
-export function usePageForm(page: Page) {
+export function usePageForm(page: Page, kind: StoryKind = "STORY") {
   const utils = trpc.useUtils()
   const [text, setText] = useState(page.text)
   const [imagePrompt, setImagePrompt] = useState(page.imagePrompt)
   const [steering, setSteering] = useState(page.steeringText ?? "")
 
   const update = trpc.page.update.useMutation({
-    onSuccess: () => utils.story.get.invalidate({ storyId: page.storyId }),
+    onSuccess: () =>
+      utils.story.get.invalidate({ storyId: page.storyId, kind }),
   })
 
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)

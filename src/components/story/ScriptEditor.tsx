@@ -1,6 +1,7 @@
 "use client"
 
-import { SparklesIcon } from "lucide-react"
+import { InfoIcon, SparklesIcon } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { PageHeader } from "@/components/layout/PageHeader"
 import { PageLayout } from "@/components/layout/PageLayout"
 import { TaskStatusBadge } from "@/components/tasks/TaskStatusBadge"
@@ -37,6 +38,7 @@ export function ScriptEditor({
   pageCount,
   error,
   canReparse,
+  isTemplate,
   onChangeTitle,
   onChangeScript,
   onParse,
@@ -47,6 +49,7 @@ export function ScriptEditor({
   pageCount?: number
   error?: string
   canReparse: boolean
+  isTemplate: boolean
   onChangeTitle: (value: string) => void
   onChangeScript: (value: string) => void
   onParse: () => void
@@ -106,6 +109,17 @@ export function ScriptEditor({
           <TaskStatusBadge status={badgeStatus[parseState]} error={error} />
         )}
       </div>
+
+      {parsed && isTemplate && (
+        <Alert>
+          <InfoIcon />
+          <AlertTitle>Re-parsing replaces the template pages</AlertTitle>
+          <AlertDescription>
+            Any page text, prompts, cast selections, and steering edits made
+            after the last parse will be replaced.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {isParsing && <ParsePreview />}
 

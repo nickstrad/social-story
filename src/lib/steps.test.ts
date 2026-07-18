@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { deriveStepStates, type StoryStepInput } from "./steps"
 
 const base: StoryStepInput = {
+  kind: "STORY",
   status: "DRAFT",
   script: "",
   charactersCount: 0,
@@ -67,5 +68,9 @@ describe("deriveStepStates", () => {
       pagesWithImageCount: 20,
     })
     expect(steps.export.done).toBe(true)
+  })
+
+  it("omits export for templates", () => {
+    expect(states({ kind: "TEMPLATE" }).export).toBeUndefined()
   })
 })

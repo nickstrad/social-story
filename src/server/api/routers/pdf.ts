@@ -14,11 +14,18 @@ export const pdfRouter = createTRPCRouter({
   export: protectedProcedure
     .input(storyInput)
     .mutation(async ({ ctx, input }) => {
-      await assertStoryOwnership(
+      const story = await assertStoryOwnership(
         ctx.deps.repos,
         input.storyId,
         ctx.session.user.id
       )
+      if (story.kind !== "STORY") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Templates cannot be exported; create a story from this template first",
+        })
+      }
       // Refuse a second export while one is queued/running — they'd race on the
       // same PDF blob key and the user couldn't tell which download won.
       const tasks = await listStoryTasks(ctx.deps, input.storyId)

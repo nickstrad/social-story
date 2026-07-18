@@ -135,11 +135,30 @@ pass `TARGET=dev` or `TARGET=prod` plus an explicit `DB_URL` or `DB_ENV_FILE`;
 never rely on an implicitly loaded env file. Do not inspect an env file while
 using it.
 
+The root checkout carries `.env.local` for development and `.env.production`
+for production. Copy either file into a worktree only when that environment is
+needed, and copy it opaquely without opening, printing, searching, or validating
+its contents. Pass the copied file explicitly to Make, for example
+`DB_ENV_FILE=.env.local` or `DB_ENV_FILE=.env.production`.
+
+Every database-changing migration command requires a fresh, explicit `yes` from
+the user immediately before it runs. Approval for a development migration does
+not authorize production deployment, and a request to implement a plan does not
+count as migration approval. Prepare the command, explain the target and effect,
+then stop and ask before `db-migrate`, `db-deploy`, or any other schema/data
+mutation. Read-only status and validation commands do not require this approval.
+
 Create migrations with `db-migrate` against development only. Apply reviewed,
 checked-in migrations with `db-deploy` in production. Database resets require a
 matching database-name confirmation, and production reset/push require their
 additional explicit opt-in flags. A database reset does not remove Vercel Blob
 objects or other external-service data.
+
+When a migration transforms or backfills data rather than only changing schema,
+add a purpose-built, read-only validation script for its postconditions. Run it
+against development after migration and before requesting production approval,
+then run it against production after deploy. Schema-only migrations use the
+normal migration status, generated-client, tests, and build verification instead.
 
 To source Production variables from Vercel, use `make vercel-env-pull-prod` to
 write the ignored `.env.production` file, then pass it explicitly as

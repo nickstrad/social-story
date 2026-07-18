@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
     userId: "u1",
     title: "",
     script: "Sam visits the dentist.",
+    kind: "STORY" as const,
+    templateId: null,
     status: "DRAFT" as const,
     baseImageUrl: null as string | null,
     coverNote: null,
@@ -80,7 +82,10 @@ describe("useScriptEditor", () => {
     rerender()
     expect(result.current.parseState).toBe("done")
     expect(result.current.pageCount).toBe(20)
-    expect(mocks.invalidate).toHaveBeenCalledWith({ storyId: "s1" })
+    expect(mocks.invalidate).toHaveBeenCalledWith({
+      storyId: "s1",
+      kind: "STORY",
+    })
   })
 
   it("debounces script edits into a save", () => {

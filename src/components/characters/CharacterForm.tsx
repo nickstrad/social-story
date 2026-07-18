@@ -5,8 +5,16 @@ import { InfoIcon } from "lucide-react"
 import { CharacterPhotoField } from "./CharacterPhotoField"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Field, FieldError, FieldLabel } from "@/components/ui/field"
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  FieldTitle,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import type { CharacterErrors, CharacterValues } from "@/hooks/useCharacterForm"
 
@@ -18,10 +26,13 @@ interface CharacterFormProps {
   autofillState: "idle" | "loading" | "error"
   canAutofill: boolean
   isSubmitting?: boolean
+  showOptional?: boolean
+  isOptional?: boolean
   onChange: (field: keyof CharacterValues, value: string) => void
   onPickFile: (file: File) => void
   onAutofill: () => void
   onSubmit: (event: FormEvent) => void
+  onOptionalChange?: (value: boolean) => void
 }
 
 function CharacterTextField({
@@ -60,10 +71,13 @@ export function CharacterForm({
   autofillState,
   canAutofill,
   isSubmitting,
+  showOptional,
+  isOptional,
   onChange,
   onPickFile,
   onAutofill,
   onSubmit,
+  onOptionalChange,
 }: CharacterFormProps) {
   const fieldProps = { values, errors, onChange }
   return (
@@ -78,6 +92,21 @@ export function CharacterForm({
         </AlertDescription>
       </Alert>
       <CharacterTextField {...fieldProps} name="name" label="Name" />
+      {showOptional && (
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldTitle>Optional slot</FieldTitle>
+            <FieldDescription>
+              People using this template may leave this role out of the cast.
+            </FieldDescription>
+          </FieldContent>
+          <Switch
+            checked={isOptional}
+            aria-label="Optional slot"
+            onCheckedChange={onOptionalChange}
+          />
+        </Field>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <CharacterTextField {...fieldProps} name="role" label="Role" />
         <CharacterTextField {...fieldProps} name="age" label="Age" />

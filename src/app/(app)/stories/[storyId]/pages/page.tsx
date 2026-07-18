@@ -10,11 +10,12 @@ export default async function PagesPage({
   searchParams,
 }: {
   params: Promise<{ storyId: string }>
-  searchParams: Promise<{ focus?: string }>
+  searchParams: Promise<{ focus?: string; template?: string }>
 }) {
   const { storyId } = await params
-  const { focus } = await searchParams
-  prefetch(trpc.story.get.prefetch({ storyId }))
+  const { focus, template } = await searchParams
+  const storyKind = template === "1" ? "TEMPLATE" : "STORY"
+  prefetch(trpc.story.get.prefetch({ storyId, kind: storyKind }))
   // Deep-linked into a specific page: warm its variant list too.
   if (focus) prefetch(trpc.page.listImages.prefetch({ pageId: focus }))
 
@@ -25,6 +26,7 @@ export default async function PagesPage({
           <PagesEditorScreen
             storyId={storyId}
             initialFocusedPageId={focus ?? null}
+            storyKind={storyKind}
           />
         </Suspense>
       </ErrorBoundary>

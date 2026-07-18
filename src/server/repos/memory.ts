@@ -51,6 +51,8 @@ export function inMemoryRepos(): Repos {
         const timestamp = now()
         const value: Story = {
           id: newId(),
+          kind: "STORY",
+          templateId: null,
           status: "DRAFT",
           baseImageAssetId: null,
           coverNote: null,
@@ -64,8 +66,10 @@ export function inMemoryRepos(): Repos {
       async getById(id) {
         return stories.get(id) ?? null
       },
-      async listByUser(userId) {
-        return [...stories.values()].filter((item) => item.userId === userId)
+      async listByUser(userId, kind) {
+        return [...stories.values()].filter(
+          (item) => item.userId === userId && (!kind || item.kind === kind)
+        )
       },
       async update(id, input) {
         const value = {
@@ -78,6 +82,11 @@ export function inMemoryRepos(): Repos {
       },
       async delete(id) {
         stories.delete(id)
+        for (const [key, value] of stories) {
+          if (value.templateId === id) {
+            stories.set(key, { ...value, templateId: null, updatedAt: now() })
+          }
+        }
         for (const [key, value] of characters)
           if (value.storyId === id) characters.delete(key)
         for (const [key, value] of rules)
@@ -101,12 +110,19 @@ export function inMemoryRepos(): Repos {
           photoAssetId: null,
           photoDescription: null,
           libraryCharacterId: null,
+          isOptional: false,
           ...input,
           createdAt: timestamp,
           updatedAt: timestamp,
         }
         characters.set(value.id, value)
         return value
+      },
+      async createMany(input) {
+        const created: Character[] = []
+        for (const row of input)
+          created.push(await repos.characters.create(row))
+        return created
       },
       async getById(id) {
         return characters.get(id) ?? null

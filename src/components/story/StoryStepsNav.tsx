@@ -2,20 +2,29 @@
 
 import Link from "next/link"
 import { CheckIcon } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import type { StepKey, StepState } from "@/lib/steps"
+import type { StoryKind } from "@/server/domain/types"
 
 export function StoryStepsNav({
   storyId,
   steps,
   current,
+  kind,
 }: {
   storyId: string
   steps: StepState[]
   current: StepKey
+  kind: StoryKind
 }) {
   return (
     <nav className="mx-auto flex max-w-form flex-wrap items-center gap-1 border-b pb-3">
+      {kind === "TEMPLATE" && (
+        <Badge variant="secondary" className="mr-2">
+          Template
+        </Badge>
+      )}
       {steps.map((step, index) => {
         const active = step.key === current
         const content = (
@@ -44,7 +53,7 @@ export function StoryStepsNav({
         return step.enabled && !active ? (
           <Link
             key={step.key}
-            href={`/stories/${storyId}/${step.segment}`}
+            href={`/stories/${storyId}/${step.segment}${kind === "TEMPLATE" ? "?template=1" : ""}`}
             className={className}
           >
             {content}

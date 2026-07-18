@@ -9,6 +9,11 @@ const listCharactersByStoryIds = (db: PrismaDb, storyIds: string[]) =>
 
 export const prismaCharacterRepo = (db: PrismaDb): CharacterRepo => ({
   create: (data) => db.character.create({ data }),
+  async createMany(input) {
+    const created = []
+    for (const data of input) created.push(await db.character.create({ data }))
+    return created
+  },
   getById: (id) => db.character.findUnique({ where: { id } }),
   listByStory: (storyId) => listCharactersByStoryIds(db, [storyId]),
   listByStoryIds: (storyIds) => listCharactersByStoryIds(db, storyIds),

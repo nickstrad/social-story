@@ -7,6 +7,7 @@ import { pdfRouter } from "./routers/pdf"
 import { ruleRouter } from "./routers/rule"
 import { storyRouter } from "./routers/story"
 import { taskRouter } from "./routers/task"
+import { templateRouter } from "./routers/template"
 
 export const appRouter = createTRPCRouter({
   health: publicProcedure.query(() => "ok"),
@@ -19,6 +20,7 @@ export const appRouter = createTRPCRouter({
   rule: ruleRouter,
   story: storyRouter,
   task: taskRouter,
+  template: templateRouter,
 })
 
 export type AppRouter = typeof appRouter

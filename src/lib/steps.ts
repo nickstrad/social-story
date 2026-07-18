@@ -1,4 +1,4 @@
-import type { StoryStatus } from "@/server/domain/types"
+import type { StoryKind, StoryStatus } from "@/server/domain/types"
 
 export type StepKey = "script" | "characters" | "base" | "pages" | "export"
 
@@ -12,6 +12,7 @@ export interface StepState {
 }
 
 export interface StoryStepInput {
+  kind: StoryKind
   status: StoryStatus
   script: string
   charactersCount: number
@@ -32,7 +33,7 @@ export function deriveStepStates(story: StoryStepInput): StepState[] {
   const hasBaseImage = story.baseImageUrl !== null
   const hasPageImages = story.pagesWithImageCount > 0
 
-  return [
+  const steps: StepState[] = [
     {
       key: "script",
       label: "Script",
@@ -69,4 +70,7 @@ export function deriveStepStates(story: StoryStepInput): StepState[] {
       enabled: hasPageImages,
     },
   ]
+  return story.kind === "TEMPLATE"
+    ? steps.filter((step) => step.key !== "export")
+    : steps
 }

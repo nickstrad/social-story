@@ -15,6 +15,9 @@ import {
 import { baseImageKey } from "@/server/services/storage-keys"
 
 const storyInput = z.object({ storyId: z.string().min(1) })
+const storyGetInput = storyInput.extend({
+  kind: z.enum(["STORY", "TEMPLATE"]).default("STORY"),
+})
 const scriptSchema = z.string().trim().min(1).max(50_000)
 const titleSchema = z.string().trim().max(200)
 
@@ -26,23 +29,25 @@ export const storyRouter = createTRPCRouter({
         userId: ctx.session.user.id,
         title: input.title ?? "",
         script: input.script,
+        kind: "STORY",
         status: "DRAFT",
       })
       return clientStory(story)
     }),
 
   list: protectedProcedure.query(async ({ ctx }) => {
-    return (await ctx.deps.repos.stories.listByUser(ctx.session.user.id)).map(
-      clientStory
-    )
+    return (
+      await ctx.deps.repos.stories.listByUser(ctx.session.user.id, "STORY")
+    ).map(clientStory)
   }),
 
-  get: protectedProcedure.input(storyInput).query(async ({ ctx, input }) => {
+  get: protectedProcedure.input(storyGetInput).query(async ({ ctx, input }) => {
     const story = await assertStoryOwnership(
       ctx.deps.repos,
       input.storyId,
       ctx.session.user.id
     )
+    if (story.kind !== input.kind) throw new TRPCError({ code: "NOT_FOUND" })
     const [characters, rules, pages] = await Promise.all([
       ctx.deps.repos.characters.listByStory(story.id),
       ctx.deps.repos.rules.listByStory(story.id),
@@ -93,7 +98,7 @@ export const storyRouter = createTRPCRouter({
         ctx.session.user.id
       )
       const candidates = (
-        await ctx.deps.repos.stories.listByUser(story.userId)
+        await ctx.deps.repos.stories.listByUser(story.userId, "STORY")
       ).filter(
         (candidate) =>
           candidate.id !== story.id && Boolean(candidate.baseImageAssetId)

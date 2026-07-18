@@ -5,12 +5,13 @@ import { toast } from "sonner"
 import { deriveParseState } from "@/lib/parseState"
 import { trpc } from "@/lib/trpc"
 import { useTask } from "@/hooks/useTaskPolling"
+import type { StoryKind } from "@/server/domain/types"
 
 const SAVE_DEBOUNCE_MS = 800
 
-export function useScriptEditor(storyId: string) {
+export function useScriptEditor(storyId: string, kind: StoryKind = "STORY") {
   const utils = trpc.useUtils()
-  const [story] = trpc.story.get.useSuspenseQuery({ storyId })
+  const [story] = trpc.story.get.useSuspenseQuery({ storyId, kind })
 
   const [title, setTitle] = useState(story.title)
   const [script, setScript] = useState(story.script)
@@ -39,9 +40,9 @@ export function useScriptEditor(storyId: string) {
       return
     if (lastTerminal.current === task.id) return
     lastTerminal.current = task.id
-    void utils.story.get.invalidate({ storyId })
+    void utils.story.get.invalidate({ storyId, kind })
     if (task.status === "SUCCEEDED") toast.success("Story parsed")
-  }, [task, storyId, utils])
+  }, [task, storyId, kind, utils])
 
   const titleTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const scriptTimer = useRef<ReturnType<typeof setTimeout>>(undefined)

@@ -7,8 +7,15 @@ import { PageHeader } from "@/components/layout/PageHeader"
 import { PageLayout } from "@/components/layout/PageLayout"
 import { useBaseImage } from "@/hooks/useBaseImage"
 import { deriveStepStates } from "@/lib/steps"
+import type { StoryKind } from "@/server/domain/types"
 
-export function BaseImageScreen({ storyId }: { storyId: string }) {
+export function BaseImageScreen({
+  storyId,
+  storyKind,
+}: {
+  storyId: string
+  storyKind: StoryKind
+}) {
   const {
     story,
     characters,
@@ -20,8 +27,9 @@ export function BaseImageScreen({ storyId }: { storyId: string }) {
     reuseSources,
     isReusing,
     onReuse,
-  } = useBaseImage(storyId)
+  } = useBaseImage(storyId, storyKind)
   const steps = deriveStepStates({
+    kind: story.kind,
     status: story.status,
     script: story.script,
     charactersCount: characters.length,
@@ -32,7 +40,12 @@ export function BaseImageScreen({ storyId }: { storyId: string }) {
 
   return (
     <PageLayout width="form" spacing="relaxed">
-      <StoryStepsNav storyId={storyId} steps={steps} current="base" />
+      <StoryStepsNav
+        storyId={storyId}
+        steps={steps}
+        current="base"
+        kind={story.kind}
+      />
       <PageHeader
         title="Base image"
         description="Generate the reference sheet that keeps your characters consistent across every page."
@@ -49,7 +62,12 @@ export function BaseImageScreen({ storyId }: { storyId: string }) {
         isReusing={isReusing}
         onReuse={onReuse}
       />
-      <StoryFlowFooter storyId={storyId} steps={steps} current="base" />
+      <StoryFlowFooter
+        storyId={storyId}
+        steps={steps}
+        current="base"
+        kind={story.kind}
+      />
     </PageLayout>
   )
 }

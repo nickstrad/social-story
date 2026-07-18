@@ -12,10 +12,12 @@ import {
   type PageGenState,
 } from "@/hooks/usePageGeneration"
 import { useStoryTasks } from "@/hooks/useTaskPolling"
+import type { StoryKind } from "@/server/domain/types"
 
-function usePageMutations(storyId: string) {
+function usePageMutations(storyId: string, kind: StoryKind) {
   const utils = trpc.useUtils()
-  const invalidate = () => utils.story.get.invalidate({ storyId })
+  const storyKey = { storyId, kind }
+  const invalidate = () => utils.story.get.invalidate(storyKey)
   const onError = (error: { message: string }) => toast.error(error.message)
 
   const add = trpc.page.add.useMutation({ onSuccess: invalidate, onError })
@@ -42,24 +44,21 @@ function usePageMutations(storyId: string) {
     // Optimistically flip the page in the cached story so the grid/editor react
     // instantly; roll back on error, reconcile on settle.
     onMutate: async ({ pageId, hidden }) => {
-      await utils.story.get.cancel({ storyId })
-      const previous = utils.story.get.getData({ storyId })
+      await utils.story.get.cancel(storyKey)
+      const previous = utils.story.get.getData(storyKey)
       if (previous) {
-        utils.story.get.setData(
-          { storyId },
-          {
-            ...previous,
-            pages: previous.pages.map((page) =>
-              page.id === pageId ? { ...page, hidden } : page
-            ),
-          }
-        )
+        utils.story.get.setData(storyKey, {
+          ...previous,
+          pages: previous.pages.map((page) =>
+            page.id === pageId ? { ...page, hidden } : page
+          ),
+        })
       }
       return { previous }
     },
     onError: (error, _vars, context) => {
       if (context?.previous) {
-        utils.story.get.setData({ storyId }, context.previous)
+        utils.story.get.setData(storyKey, context.previous)
       }
       onError(error)
     },
@@ -77,9 +76,10 @@ function usePageMutations(storyId: string) {
  */
 export function usePagesEditor(
   storyId: string,
-  initialFocusedPageId: string | null = null
+  initialFocusedPageId: string | null = null,
+  kind: StoryKind = "STORY"
 ) {
-  const [story] = trpc.story.get.useSuspenseQuery({ storyId })
+  const [story] = trpc.story.get.useSuspenseQuery({ storyId, kind })
   const pages = useMemo(
     () => [...story.pages].sort((a, b) => a.position - b.position),
     [story.pages]
@@ -87,8 +87,8 @@ export function usePagesEditor(
   const pageIds = useMemo(() => pages.map((page) => page.id), [pages])
 
   const { tasks } = useStoryTasks(storyId)
-  const bulk = useBulkGeneration(storyId, pageIds)
-  const mutations = usePageMutations(storyId)
+  const bulk = useBulkGeneration(storyId, pageIds, kind)
+  const mutations = usePageMutations(storyId, kind)
 
   const [focusedPageId, setFocusedPageId] = useState<string | null>(
     initialFocusedPageId

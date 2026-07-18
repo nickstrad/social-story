@@ -14,6 +14,7 @@ export function character(id: string, name = id): ClientCharacter {
     photoUrl: null,
     photoDescription: null,
     libraryCharacterId: null,
+    isOptional: false,
     createdAt: now,
     updatedAt: now,
   }

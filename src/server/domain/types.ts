@@ -1,4 +1,5 @@
 export type StoryStatus = "DRAFT" | "PARSED" | "READY"
+export type StoryKind = "STORY" | "TEMPLATE"
 export type RuleKind =
   "TOGETHER" | "ALWAYS_INCLUDE" | "NEVER_INCLUDE" | "FREEFORM"
 export type PageKind = "COVER" | "PAGE"
@@ -20,6 +21,8 @@ export interface Story {
   userId: string
   title: string
   script: string
+  kind: StoryKind
+  templateId: string | null
   status: StoryStatus
   baseImageAssetId: string | null
   coverNote: string | null
@@ -37,6 +40,7 @@ export interface Character {
   photoAssetId: string | null
   photoDescription: string | null
   libraryCharacterId: string | null
+  isOptional: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -136,20 +140,36 @@ export interface ClientPageImage extends PageImage {
 }
 
 export type CreateStory = Pick<Story, "userId" | "title" | "script"> &
-  Partial<Pick<Story, "status" | "baseImageAssetId" | "coverNote">>
+  Partial<
+    Pick<
+      Story,
+      "kind" | "templateId" | "status" | "baseImageAssetId" | "coverNote"
+    >
+  >
 export type UpdateStory = Partial<
-  Pick<Story, "title" | "script" | "status" | "baseImageAssetId" | "coverNote">
+  Pick<
+    Story,
+    | "title"
+    | "script"
+    | "kind"
+    | "templateId"
+    | "status"
+    | "baseImageAssetId"
+    | "coverNote"
+  >
 >
 export type CreateCharacter = Pick<Character, "storyId" | "name"> &
   Partial<
     Pick<
       Character,
+      | "id"
       | "role"
       | "age"
       | "appearance"
       | "photoAssetId"
       | "photoDescription"
       | "libraryCharacterId"
+      | "isOptional"
     >
   >
 export type UpdateCharacter = Partial<
@@ -162,6 +182,7 @@ export type UpdateCharacter = Partial<
     | "photoAssetId"
     | "photoDescription"
     | "libraryCharacterId"
+    | "isOptional"
   >
 >
 export type CreateLibraryCharacter = Pick<LibraryCharacter, "userId" | "name"> &

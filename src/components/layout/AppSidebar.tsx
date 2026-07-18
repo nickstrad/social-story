@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   BookOpenIcon,
   ImagesIcon,
+  LayoutTemplateIcon,
   PlusIcon,
   SettingsIcon,
   UsersIcon,
@@ -28,6 +29,7 @@ import { storyTitle } from "@/server/domain/storyTitle"
 const NAV = [
   { href: "/stories/new", icon: PlusIcon, label: "New story" },
   { href: "/stories", icon: BookOpenIcon, label: "All stories" },
+  { href: "/templates", icon: LayoutTemplateIcon, label: "Templates" },
   { href: "/characters", icon: UsersIcon, label: "Characters" },
   { href: "/artifacts", icon: ImagesIcon, label: "Artifacts" },
   {

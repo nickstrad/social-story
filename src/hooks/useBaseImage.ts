@@ -8,6 +8,7 @@ import type {
   ClientCharacter as Character,
   ClientStory as Story,
   Task,
+  StoryKind,
 } from "@/server/domain/types"
 import { trpc } from "@/lib/trpc"
 import { useStoryTasks } from "@/hooks/useTaskPolling"
@@ -58,9 +59,10 @@ export function matchingBaseImageSources(
   })
 }
 
-export function useBaseImage(storyId: string) {
+export function useBaseImage(storyId: string, kind: StoryKind = "STORY") {
   const utils = trpc.useUtils()
-  const [story] = trpc.story.get.useSuspenseQuery({ storyId })
+  const storyKey = { storyId, kind }
+  const [story] = trpc.story.get.useSuspenseQuery(storyKey)
   const [characters] = trpc.character.listForStory.useSuspenseQuery({ storyId })
   const [sources] = trpc.story.baseImageSources.useSuspenseQuery({ storyId })
   const { tasks } = useStoryTasks(storyId)
@@ -75,14 +77,14 @@ export function useBaseImage(storyId: string) {
         // A task can finish before the first poll (as it does with the E2E
         // inline dispatcher). Refresh the story here as well as on a witnessed
         // active → terminal transition so the new URL is never left stale.
-        utils.story.get.invalidate({ storyId }),
+        utils.story.get.invalidate(storyKey),
       ])
     },
     onError: (error) => toast.error(error.message),
   })
   const reuse = trpc.story.reuseBaseImage.useMutation({
     onSuccess: async () => {
-      await utils.story.get.invalidate({ storyId })
+      await utils.story.get.invalidate(storyKey)
       toast.success("Base image reused")
     },
     onError: (error) => toast.error(error.message),
@@ -97,7 +99,7 @@ export function useBaseImage(storyId: string) {
     previousStatus.current = status
     if (!wasActive) return
     if (status === "SUCCEEDED") {
-      void utils.story.get.invalidate({ storyId })
+      void utils.story.get.invalidate(storyKey)
       toast.success("Base image ready")
     } else if (status === "FAILED") {
       toast.error(activeTask?.error ?? "Base image generation failed")

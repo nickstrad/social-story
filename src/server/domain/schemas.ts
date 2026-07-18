@@ -36,6 +36,7 @@ export const characterInputSchema = z.object({
   age: z.string().trim().max(100).nullable().optional(),
   appearance: z.string().trim().max(2_000).nullable().optional(),
   photoDescription: z.string().trim().max(2_000).nullable().optional(),
+  isOptional: z.boolean().optional(),
 })
 
 type RuleKind = "TOGETHER" | "ALWAYS_INCLUDE" | "NEVER_INCLUDE" | "FREEFORM"

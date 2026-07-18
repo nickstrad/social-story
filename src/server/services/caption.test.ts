@@ -3,38 +3,39 @@
 import sharp from "sharp"
 import { describe, expect, it } from "vitest"
 
-import {
-  addCaptionBand,
-  bandHeight,
-  buildCaptionSvg,
-  wrapText,
-} from "./caption"
+import { addCaptionBand } from "./caption"
 
-describe("caption helpers", () => {
-  it("wraps exact fits, whitespace, and long words", () => {
-    expect(wrapText("one two", 7)).toEqual(["one two"])
-    expect(wrapText("", 5)).toEqual([""])
-    expect(wrapText("abcdefgh", 3)).toEqual(["abc", "def", "gh"])
+async function solidPng(width = 480, height = 320) {
+  return sharp({
+    create: { width, height, channels: 4, background: "#123456" },
   })
+    .png()
+    .toBuffer()
+}
 
-  it("scales the band with width and line count", () => {
-    expect(bandHeight(1_000, 2)).toBeGreaterThan(bandHeight(1_000, 1))
-    expect(bandHeight(1_000, 1)).toBeGreaterThan(bandHeight(500, 1))
-  })
-
-  it("escapes caption text in SVG", () => {
-    expect(buildCaptionSvg(240, ["A & <B>"])).toContain("A &amp; &lt;B&gt;")
-  })
-})
+async function captionInkWidth(source: Buffer, text: string) {
+  const sourceHeight = (await sharp(source).metadata()).height!
+  const { data, info } = await sharp(await addCaptionBand(source, text))
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+  let left = info.width
+  let right = -1
+  for (let y = sourceHeight; y < info.height; y += 1) {
+    for (let x = 0; x < info.width; x += 1) {
+      const offset = (y * info.width + x) * info.channels
+      if (data[offset] < 100) {
+        left = Math.min(left, x)
+        right = Math.max(right, x)
+      }
+    }
+  }
+  return right - left + 1
+}
 
 describe("addCaptionBand", () => {
   it("appends a lavender band without changing the artwork", async () => {
-    const source = await sharp({
-      create: { width: 120, height: 80, channels: 4, background: "#123456" },
-    })
-      .png()
-      .toBuffer()
-    const output = await addCaptionBand(source, "A calm caption")
+    const source = await solidPng(120, 80)
+    const output = await addCaptionBand(source, "A calm & reassuring <caption>")
     const sourcePixels = await sharp(source).raw().toBuffer()
     const { data: outputPixels, info } = await sharp(output)
       .raw()
@@ -47,12 +48,18 @@ describe("addCaptionBand", () => {
     expect([...lastPixel]).toEqual([234, 226, 246, 255])
   })
 
+  it("renders distinct letter shapes with the packaged font", async () => {
+    const source = await solidPng()
+    const [narrow, wide] = await Promise.all([
+      captionInkWidth(source, "iiiiiiii"),
+      captionInkWidth(source, "WWWWWWWW"),
+    ])
+
+    expect(wide).toBeGreaterThan(narrow * 2)
+  })
+
   it("returns the original bytes for blank text", async () => {
-    const source = await sharp({
-      create: { width: 4, height: 4, channels: 4, background: "red" },
-    })
-      .png()
-      .toBuffer()
+    const source = await solidPng(4, 4)
     expect(await addCaptionBand(source, "  \n ")).toBe(source)
   })
 })

@@ -1,3 +1,5 @@
+import path from "node:path"
+
 import sharp from "sharp"
 
 const BAND_COLOR = "#EAE2F6"
@@ -5,44 +7,10 @@ const TEXT_COLOR = "#2B2B2B"
 const FONT_FRACTION = 1 / 24
 const PADDING_FRACTION = 1 / 20
 const LINE_HEIGHT = 1.35
-const CHARACTER_WIDTH_ESTIMATE = 0.55
-
-export function wrapText(text: string, maxCharsPerLine: number): string[] {
-  const words = text.trim().split(/\s+/).filter(Boolean)
-  if (words.length === 0) return [""]
-
-  const lines: string[] = []
-  let current = ""
-  for (const word of words) {
-    if (word.length > maxCharsPerLine) {
-      if (current) {
-        lines.push(current)
-        current = ""
-      }
-      for (let offset = 0; offset < word.length; offset += maxCharsPerLine) {
-        const chunk = word.slice(offset, offset + maxCharsPerLine)
-        if (chunk.length === maxCharsPerLine) lines.push(chunk)
-        else current = chunk
-      }
-      continue
-    }
-
-    const candidate = current ? `${current} ${word}` : word
-    if (candidate.length <= maxCharsPerLine) current = candidate
-    else {
-      lines.push(current)
-      current = word
-    }
-  }
-  if (current || lines.length === 0) lines.push(current)
-  return lines
-}
-
-export function bandHeight(width: number, lineCount: number): number {
-  const padding = width * PADDING_FRACTION
-  const lineHeight = width * FONT_FRACTION * LINE_HEIGHT
-  return Math.ceil(2 * padding + Math.max(1, lineCount) * lineHeight)
-}
+const CAPTION_FONT_PATH = path.join(
+  process.cwd(),
+  "node_modules/geist/dist/fonts/geist-sans/Geist-Regular.ttf"
+)
 
 function escapeXml(value: string): string {
   return value
@@ -53,19 +21,35 @@ function escapeXml(value: string): string {
     .replaceAll("'", "&apos;")
 }
 
-export function buildCaptionSvg(width: number, lines: string[]): string {
+async function renderCaptionBand(width: number, text: string) {
   const fontSize = width * FONT_FRACTION
-  const padding = width * PADDING_FRACTION
-  const lineHeight = fontSize * LINE_HEIGHT
-  const height = bandHeight(width, lines.length)
-  const text = lines
-    .map(
-      (line, index) =>
-        `<text x="${width / 2}" y="${padding + fontSize + index * lineHeight}" text-anchor="middle">${escapeXml(line)}</text>`
-    )
-    .join("")
+  const padding = Math.ceil(width * PADDING_FRACTION)
+  const { data: caption, info: captionInfo } = await sharp({
+    text: {
+      text: `<span foreground="${TEXT_COLOR}">${escapeXml(text)}</span>`,
+      font: `Geist ${fontSize}`,
+      fontfile: CAPTION_FONT_PATH,
+      width: width - 2 * padding,
+      align: "center",
+      rgba: true,
+      spacing: Math.ceil(fontSize * (LINE_HEIGHT - 1)),
+      wrap: "word-char",
+    },
+  })
+    .png()
+    .toBuffer({ resolveWithObject: true })
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="${BAND_COLOR}"/><g fill="${TEXT_COLOR}" font-family="Arial, sans-serif" font-size="${fontSize}">${text}</g></svg>`
+  return sharp({
+    create: {
+      width,
+      height: captionInfo.height + 2 * padding,
+      channels: 4,
+      background: BAND_COLOR,
+    },
+  })
+    .composite([{ input: caption, gravity: "center" }])
+    .png()
+    .toBuffer({ resolveWithObject: true })
 }
 
 export async function addCaptionBand(
@@ -79,19 +63,14 @@ export async function addCaptionBand(
   if (!metadata.width || !metadata.height)
     throw new Error("Caption input has no dimensions")
 
-  const fontSize = metadata.width * FONT_FRACTION
-  const usableWidth = metadata.width * (1 - 2 * PADDING_FRACTION)
-  const maxChars = Math.max(
-    1,
-    Math.floor(usableWidth / (fontSize * CHARACTER_WIDTH_ESTIMATE))
+  const { data: band, info: bandInfo } = await renderCaptionBand(
+    metadata.width,
+    text.trim()
   )
-  const lines = wrapText(text, maxChars)
-  const height = bandHeight(metadata.width, lines.length)
-  const svg = Buffer.from(buildCaptionSvg(metadata.width, lines))
 
   return image
-    .extend({ bottom: height, background: BAND_COLOR })
-    .composite([{ input: svg, top: metadata.height, left: 0 }])
+    .extend({ bottom: bandInfo.height, background: BAND_COLOR })
+    .composite([{ input: band, top: metadata.height, left: 0 }])
     .png()
     .toBuffer()
 }

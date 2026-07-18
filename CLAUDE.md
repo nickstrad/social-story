@@ -25,8 +25,15 @@ Flow:
 5. Stop with the completed worktree ready for review. Never merge into `main`
    automatically; merge only after the user gives explicit consent.
 
-Once a plan's branch is merged into `main`, delete its worktree and branch —
-don't leave finished worktrees or branches lying around.
+Once a plan's branch is merged into `main`, finish the plan cleanup:
+
+1. Move its source document from `docs/plans/open/` to
+   `docs/plans/completed/` and commit that move on `main`.
+2. Delete the finished worktree.
+3. Delete the merged feature branch.
+
+Don't leave completed plans in `open`, or finished worktrees and branches lying
+around.
 
 Skip the Go CLI (`cli/`) in worktrees — deprecated, kept for reference only.
 

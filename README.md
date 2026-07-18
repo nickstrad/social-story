@@ -13,6 +13,8 @@ The planned UX: sign in, paste a social-story script, upload photos of the peopl
 
 The build is specified as self-contained plans in [`docs/plans/`](docs/plans/): start with [`docs/plans/completed/00-overview.md`](docs/plans/completed/00-overview.md) (architecture, conventions, dependency graph), then plans `01`–`12` in dependency order. Planned stack: Next.js 16 (App Router), tRPC v11, Prisma → Neon Postgres, Better Auth, Vercel Blob, Inngest, sharp, pdf-lib.
 
+Each plan lives in [`docs/plans/open/`](docs/plans/open/) until its work is finished, then moves to [`docs/plans/completed/`](docs/plans/completed/). Once a plan's branch is merged into `main`, delete its worktree and branch — don't leave finished worktrees or branches lying around.
+
 What exists at the root today:
 
 - Next.js 16 + TypeScript + Tailwind CSS 4 scaffold (`src/app/`)

@@ -1,5 +1,5 @@
 import { test, expect } from "../support/auth"
-import { createStory } from "../support/story"
+import { createStory, parseIntoPages } from "../support/story"
 
 // `test` here is the extended fixture: each test starts signed in as a fresh
 // user (see support/auth.ts), so the story list starts empty.
@@ -12,8 +12,7 @@ test("create a story, see it in the list, then delete it", async ({ page }) => {
   const storyId = await createStory(page, { title: "Dentist Day" })
 
   // Exercise the restrictive PageImage-to-Asset link before deleting the story.
-  await page.getByRole("button", { name: "Parse into pages" }).click()
-  await expect(page.getByText(/Parsed into 4 pages/)).toBeVisible()
+  await parseIntoPages(page, storyId)
   await page.goto(`/stories/${storyId}/pages`)
   await page.getByRole("button", { name: "Select all" }).click()
   await page.getByRole("button", { name: "Generate selected (4)" }).click()

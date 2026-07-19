@@ -40,14 +40,8 @@ export function ScriptScreen({
       <ScriptEditor
         title={editor.title}
         script={editor.script}
-        parseState={editor.parseState}
-        pageCount={editor.pageCount}
-        error={editor.error}
-        canReparse={editor.canReparse}
-        isTemplate={story.kind === "TEMPLATE"}
         onChangeTitle={editor.onChangeTitle}
         onChangeScript={editor.onChangeScript}
-        onParse={editor.onParse}
       />
       <StoryFlowFooter
         storyId={storyId}

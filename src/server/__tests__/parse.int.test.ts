@@ -27,7 +27,8 @@ const parsed: ParsedStory = {
       page: 1,
       text: "Sam sits in the big chair.",
       imagePrompt: "A child in a dentist chair",
-      characterNames: ["Sam"],
+      // Casing and stray whitespace must still resolve to the roster character.
+      characterNames: ["  sam "],
     },
     {
       page: 2,
@@ -129,7 +130,14 @@ describe("parse integration", () => {
     if (!task) throw new Error("Expected parse task")
     await runParseStoryTask(task, deps, recordingSteps)
 
+    // The off-roster "Ghost" is counted rather than silently dropped — and the
+    // name itself stays out of the durable step result.
+    expect(trace.at(-1)?.output).toMatchObject({
+      response: { unmatchedCharacterNameCount: 1 },
+    })
+
     const visibleTrace = JSON.stringify(trace)
+    expect(visibleTrace).not.toContain("Ghost")
     expect(visibleTrace).toContain("request")
     expect(visibleTrace).toContain("response")
     expect(visibleTrace).toContain("scriptCharacterCount")

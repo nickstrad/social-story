@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { XIcon } from "lucide-react"
 
+import { PageCharacterChips } from "./PageCharacterChips"
 import { PageImageDropzone } from "./PageImageDropzone"
 import { PageMetaForm } from "./PageMetaForm"
 import { SteeringBox } from "./SteeringBox"
@@ -11,11 +12,8 @@ import { TaskStatusBadge } from "@/components/tasks/TaskStatusBadge"
 import { Button } from "@/components/ui/button"
 import type { PageImageUploadState } from "@/hooks/usePageImageUpload"
 import type { PageGenState } from "@/hooks/usePageGeneration"
-import type { EditorPage } from "@/lib/pagesEditor"
-import type {
-  ClientCharacter as Character,
-  ClientPageImage as PageImage,
-} from "@/server/domain/types"
+import type { CharacterChip, EditorPage } from "@/lib/pagesEditor"
+import type { ClientPageImage as PageImage } from "@/server/domain/types"
 
 export interface PageFocusForm {
   text: string
@@ -42,8 +40,7 @@ export function PageFocusEditor({
   images,
   imagesLoading,
   form,
-  characters,
-  effectiveCharacterIds,
+  characterChips,
   hasPrev,
   hasNext,
   onGenerate,
@@ -65,8 +62,7 @@ export function PageFocusEditor({
   images: PageImage[]
   imagesLoading: boolean
   form: PageFocusForm
-  characters: Character[]
-  effectiveCharacterIds: string[]
+  characterChips: CharacterChip[]
   hasPrev: boolean
   hasNext: boolean
   onGenerate: () => void
@@ -114,6 +110,7 @@ export function PageFocusEditor({
 
   const openPicker = () => inputRef.current?.click()
   const uploading = upload.state === "uploading"
+  const busy = generationBusy || uploading
 
   return (
     <div className="grid gap-6">
@@ -138,7 +135,7 @@ export function PageFocusEditor({
             accept="image/png,image/jpeg,image/webp"
             className="sr-only"
             aria-label="Upload page image"
-            disabled={generationBusy || uploading}
+            disabled={busy}
             onChange={(event) => {
               const file = event.target.files?.[0]
               if (file) takeFile(file)
@@ -164,8 +161,14 @@ export function PageFocusEditor({
             images={images}
             selectedImageId={page.selectedImageId}
             loading={imagesLoading}
-            busy={generationBusy || uploading}
+            busy={busy}
             onSelect={onSelectVariant}
+          />
+          <PageCharacterChips
+            chips={characterChips}
+            isCover={page.kind === "COVER"}
+            disabled={busy}
+            onToggleCharacter={onToggleCharacter}
           />
           <SteeringBox
             value={form.steering}
@@ -185,10 +188,6 @@ export function PageFocusEditor({
           imagePrompt={form.imagePrompt}
           onChangeText={form.onChangeText}
           onChangeImagePrompt={form.onChangeImagePrompt}
-          characters={characters}
-          selectedCharacterIds={page.characterIds}
-          effectiveCharacterIds={effectiveCharacterIds}
-          onToggleCharacter={onToggleCharacter}
           hidden={page.hidden}
           onToggleHidden={onToggleHidden}
           onDelete={onDelete}

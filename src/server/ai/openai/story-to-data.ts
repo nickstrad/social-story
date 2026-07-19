@@ -1,4 +1,4 @@
-import { parsedStorySchema } from "@/server/domain/schemas"
+import { buildParsedStorySchema } from "@/server/domain/schemas"
 
 import type { StoryToData } from "../ports/story-to-data"
 import { buildParseSystemPrompt } from "../prompts/story-to-data"
@@ -15,7 +15,9 @@ export function openAIStoryToData(config: OpenAIActionConfig): StoryToData {
         generateStructuredOutput(config, {
           system: buildParseSystemPrompt(input.characters, input.rules),
           user: input.script,
-          schema: parsedStorySchema,
+          schema: buildParsedStorySchema(
+            input.characters.map(({ name }) => name)
+          ),
           schemaName: "story_pages",
         })
       ),

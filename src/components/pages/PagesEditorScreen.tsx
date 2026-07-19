@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { effectiveCharacters, type EditorPage } from "@/lib/pagesEditor"
+import { characterChips, type EditorPage } from "@/lib/pagesEditor"
 import { toggle } from "@/lib/selection"
 import { deriveStepStates } from "@/lib/steps"
 import type {
@@ -94,8 +94,7 @@ function FocusEditor({
       images={images}
       imagesLoading={imagesQuery.isLoading}
       form={form}
-      characters={characters}
-      effectiveCharacterIds={effectiveCharacters(page, rules, characters)}
+      characterChips={characterChips(page, rules, characters)}
       hasPrev={editor.hasPrev}
       hasNext={editor.hasNext}
       onGenerate={() => generation.generate(form.steering)}

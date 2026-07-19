@@ -39,6 +39,55 @@ export function effectiveCharacters(
   return applyRulesToPage(page.characterIds, rules, characters).characterIds
 }
 
+export interface CharacterChip {
+  id: string
+  name: string
+  /** Will this character be drawn on the page as things stand? */
+  effective: boolean
+  /**
+   * True when a visual rule decides this character's presence outright, so
+   * toggling the page's own selection cannot change the outcome. Such a chip is
+   * shown but not offered as a control — a click that silently does nothing is
+   * worse than a disabled chip that explains itself.
+   */
+  ruleLocked: boolean
+}
+
+/**
+ * One chip per roster character for the focused editor: who will be drawn, and
+ * whether the author can still change that. Derived by asking `applyRulesToPage`
+ * what the effective cast would be with and without each character selected,
+ * rather than by re-deriving rule semantics here.
+ */
+export function characterChips(
+  page: Page,
+  rules: Rule[],
+  characters: Character[]
+): CharacterChip[] {
+  const selected = new Set(page.characterIds)
+  const effective = new Set(effectiveCharacters(page, rules, characters))
+
+  return characters.map((character) => {
+    const withOthers = [...selected].filter((id) => id !== character.id)
+    const on = applyRulesToPage(
+      [...withOthers, character.id],
+      rules,
+      characters
+    ).characterIds.includes(character.id)
+    const off = applyRulesToPage(
+      withOthers,
+      rules,
+      characters
+    ).characterIds.includes(character.id)
+    return {
+      id: character.id,
+      name: character.name,
+      effective: effective.has(character.id),
+      ruleLocked: on === off,
+    }
+  })
+}
+
 export interface GridBadge {
   label: string
   variant: "secondary" | "destructive"

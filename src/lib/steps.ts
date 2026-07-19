@@ -45,7 +45,9 @@ export function deriveStepStates(story: StoryStepInput): StepState[] {
       key: "characters",
       label: "Characters",
       segment: "characters",
-      done: hasCharacters,
+      // Splitting the script into pages is this step's other job, so a
+      // deliberately scene-only story counts as done once it has parsed.
+      done: hasCharacters || parsed,
       enabled: scriptDone,
     },
     {
@@ -70,7 +72,12 @@ export function deriveStepStates(story: StoryStepInput): StepState[] {
       enabled: hasPageImages,
     },
   ]
-  return story.kind === "TEMPLATE"
-    ? steps.filter((step) => step.key !== "export")
-    : steps
+  return steps.filter((step) => {
+    if (step.key === "export" && story.kind === "TEMPLATE") return false
+    // A scene-only book (parsed with an empty roster) has no cast to anchor, so
+    // the character reference sheet does not apply. Dropping the step keeps the
+    // wizard's next-step affordance pointing somewhere reachable instead of at
+    // a permanently disabled one.
+    return !(step.key === "base" && parsed && !hasCharacters)
+  })
 }

@@ -5,6 +5,7 @@ import { PlusIcon, UsersIcon } from "lucide-react"
 import { AddFromLibraryDialog } from "./AddFromLibraryDialog"
 import { CharacterCard } from "./CharacterCard"
 import { CharacterForm } from "./CharacterForm"
+import { ParsePanel } from "./ParsePanel"
 import { RuleForm } from "./RuleForm"
 import { RuleList } from "./RuleList"
 import { PageHeader } from "@/components/layout/PageHeader"
@@ -238,6 +239,11 @@ export function CharactersScreen({
           }
         />
       </section>
+      <ParsePanel
+        storyId={storyId}
+        storyKind={story.kind}
+        hasCharacters={characters.length > 0}
+      />
       <StoryFlowFooter
         storyId={storyId}
         steps={steps}

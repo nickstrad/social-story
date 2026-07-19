@@ -5,6 +5,7 @@ import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc"
 import { characterInputSchema } from "@/server/domain/schemas"
 import type { Repos } from "@/server/ports/repos"
 import { clientLibraryCharacter } from "@/server/services/assets"
+import { libraryCharacterListParamsSchema } from "@/lib/validation/listParams"
 
 const libraryCharacterInput = z.object({
   libraryCharacterId: z.string().min(1),
@@ -17,11 +18,15 @@ async function ownedLibraryCharacter(id: string, userId: string, repos: Repos) {
 }
 
 const characters = createTRPCRouter({
-  list: protectedProcedure.query(async ({ ctx }) =>
-    (
-      await ctx.deps.repos.libraryCharacters.listByUser(ctx.session.user.id)
-    ).map(clientLibraryCharacter)
-  ),
+  list: protectedProcedure
+    .input(libraryCharacterListParamsSchema)
+    .query(async ({ ctx, input }) => {
+      const page = await ctx.deps.repos.libraryCharacters.listByUserPaged(
+        ctx.session.user.id,
+        input
+      )
+      return { ...page, items: page.items.map(clientLibraryCharacter) }
+    }),
   create: protectedProcedure
     .input(z.object({ character: characterInputSchema }))
     .mutation(async ({ ctx, input }) =>

@@ -13,6 +13,7 @@ import {
   replaceStoryBaseAsset,
 } from "@/server/services/assets"
 import { baseImageKey } from "@/server/services/storage-keys"
+import { storyListParamsSchema } from "@/lib/validation/listParams"
 
 const storyInput = z.object({ storyId: z.string().min(1) })
 const storyGetInput = storyInput.extend({
@@ -35,11 +36,16 @@ export const storyRouter = createTRPCRouter({
       return clientStory(story)
     }),
 
-  list: protectedProcedure.query(async ({ ctx }) => {
-    return (
-      await ctx.deps.repos.stories.listByUser(ctx.session.user.id, "STORY")
-    ).map(clientStory)
-  }),
+  list: protectedProcedure
+    .input(storyListParamsSchema)
+    .query(async ({ ctx, input }) => {
+      const page = await ctx.deps.repos.stories.listByUserPaged(
+        ctx.session.user.id,
+        "STORY",
+        input
+      )
+      return { ...page, items: page.items.map(clientStory) }
+    }),
 
   get: protectedProcedure.input(storyGetInput).query(async ({ ctx, input }) => {
     const story = await assertStoryOwnership(

@@ -9,6 +9,7 @@ import type {
   Task,
 } from "../domain/types"
 import type { Repos } from "../ports/repos"
+import { compareListItems, paginateList } from "@/lib/validation/listParams"
 
 const newId = () => crypto.randomUUID()
 const now = () => new Date()
@@ -36,6 +37,12 @@ export function inMemoryRepos(): Repos {
   const images = new Map<string, PageImage>()
   const tasks = new Map<string, Task>()
   const assets = new Map<string, Asset>()
+  const storiesByUser = (userId: string, kind?: Story["kind"]) =>
+    [...stories.values()].filter(
+      (item) => item.userId === userId && (!kind || item.kind === kind)
+    )
+  const libraryCharactersByUser = (userId: string) =>
+    [...libraryCharacters.values()].filter((item) => item.userId === userId)
   const pagesByStoryIds = (storyIds: string[]) =>
     byStoryIds(pages.values(), storyIds).sort((a, b) => a.position - b.position)
   const pageImagesByStoryIds = (storyIds: string[]) => {
@@ -67,9 +74,15 @@ export function inMemoryRepos(): Repos {
         return stories.get(id) ?? null
       },
       async listByUser(userId, kind) {
-        return [...stories.values()].filter(
-          (item) => item.userId === userId && (!kind || item.kind === kind)
+        return storiesByUser(userId, kind).sort((left, right) =>
+          compareListItems(left, right, {
+            field: "createdAt",
+            dir: "desc",
+          })
         )
+      },
+      async listByUserPaged(userId, kind, params) {
+        return paginateList(storiesByUser(userId, kind), params)
       },
       async update(id, input) {
         const value = {
@@ -168,9 +181,15 @@ export function inMemoryRepos(): Repos {
         return value?.userId === userId ? value : null
       },
       async listByUser(userId) {
-        return [...libraryCharacters.values()].filter(
-          (item) => item.userId === userId
+        return libraryCharactersByUser(userId).sort((left, right) =>
+          compareListItems(left, right, {
+            field: "createdAt",
+            dir: "desc",
+          })
         )
+      },
+      async listByUserPaged(userId, params) {
+        return paginateList(libraryCharactersByUser(userId), params)
       },
       async update(id, input) {
         const value = {

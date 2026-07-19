@@ -18,6 +18,7 @@ import {
   copyAsset,
 } from "@/server/services/assets"
 import { photoKey } from "@/server/services/storage-keys"
+import { storyListParamsSchema } from "@/lib/validation/listParams"
 
 const titleSchema = z.string().trim().min(1).max(200)
 const castEntrySchema = z
@@ -172,38 +173,44 @@ async function deleteFailedInstance(deps: Deps, storyId: string) {
 }
 
 export const templateRouter = createTRPCRouter({
-  list: protectedProcedure.query(async ({ ctx }) => {
-    const candidates = await ctx.deps.repos.stories.listByUser(
-      ctx.session.user.id,
-      "TEMPLATE"
-    )
-    const templates = await Promise.all(
-      candidates.map((candidate) =>
-        assertTemplateUsable(ctx.deps.repos, candidate, ctx.session.user.id)
+  list: protectedProcedure
+    .input(storyListParamsSchema)
+    .query(async ({ ctx, input }) => {
+      const candidatesPage = await ctx.deps.repos.stories.listByUserPaged(
+        ctx.session.user.id,
+        "TEMPLATE",
+        input
       )
-    )
-    const ids = templates.map((template) => template.id)
-    const [characters, pages] = await Promise.all([
-      ctx.deps.repos.characters.listByStoryIds(ids),
-      ctx.deps.repos.pages.listByStoryIds(ids),
-    ])
-    const countByStory = (rows: Array<{ storyId: string }>) => {
-      const counts = new Map<string, number>()
-      for (const row of rows) {
-        counts.set(row.storyId, (counts.get(row.storyId) ?? 0) + 1)
+      const templates = await Promise.all(
+        candidatesPage.items.map((candidate) =>
+          assertTemplateUsable(ctx.deps.repos, candidate, ctx.session.user.id)
+        )
+      )
+      const ids = templates.map((template) => template.id)
+      const [characters, pages] = await Promise.all([
+        ctx.deps.repos.characters.listByStoryIds(ids),
+        ctx.deps.repos.pages.listByStoryIds(ids),
+      ])
+      const countByStory = (rows: Array<{ storyId: string }>) => {
+        const counts = new Map<string, number>()
+        for (const row of rows) {
+          counts.set(row.storyId, (counts.get(row.storyId) ?? 0) + 1)
+        }
+        return counts
       }
-      return counts
-    }
-    const characterCounts = countByStory(characters)
-    const pageCounts = countByStory(pages)
-    return templates.map((template) => ({
-      ...clientStory(template),
-      counts: {
-        characters: characterCounts.get(template.id) ?? 0,
-        pages: pageCounts.get(template.id) ?? 0,
-      },
-    }))
-  }),
+      const characterCounts = countByStory(characters)
+      const pageCounts = countByStory(pages)
+      return {
+        items: templates.map((template) => ({
+          ...clientStory(template),
+          counts: {
+            characters: characterCounts.get(template.id) ?? 0,
+            pages: pageCounts.get(template.id) ?? 0,
+          },
+        })),
+        nextCursor: candidatesPage.nextCursor,
+      }
+    }),
 
   getForUse: protectedProcedure
     .input(z.object({ templateId: z.string().min(1) }))

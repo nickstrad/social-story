@@ -1,5 +1,7 @@
 import { test, expect } from "../support/auth"
 import type { Page } from "@playwright/test"
+import { PrismaClient } from "../../src/generated/prisma"
+import { E2E_DATABASE_URL } from "../support/constants"
 import { PHOTO, createStory, generateBaseImage } from "../support/story"
 
 async function addLibraryCharacter(page: Page, name: string) {
@@ -58,4 +60,39 @@ test("reuse saved characters and a matching cast base image", async ({
   await expect(
     page.getByRole("img", { name: "Character reference sheet" })
   ).toBeVisible()
+})
+
+test("loads another page and sorts the table by name", async ({
+  page,
+  user,
+}) => {
+  const prisma = new PrismaClient({ datasourceUrl: E2E_DATABASE_URL })
+  try {
+    const owner = await prisma.user.findUniqueOrThrow({
+      where: { email: user.email },
+    })
+    const start = new Date("2026-01-01T00:00:00Z").getTime()
+    await prisma.libraryCharacter.createMany({
+      data: Array.from({ length: 25 }, (_, index) => ({
+        userId: owner.id,
+        name: `Paged character ${String(index + 1).padStart(2, "0")}`,
+        createdAt: new Date(start + index * 1_000),
+        updatedAt: new Date(start + index * 1_000),
+      })),
+    })
+  } finally {
+    await prisma.$disconnect()
+  }
+
+  await page.goto("/characters")
+  await expect(page.getByText("Paged character 25")).toBeVisible()
+  await expect(page.getByText("Paged character 01")).toHaveCount(0)
+  await page.getByRole("button", { name: "Show more" }).click()
+  await expect(page.getByText("Paged character 01")).toBeVisible()
+
+  await page.getByRole("button", { name: "Table view" }).click()
+  await page.getByRole("button", { name: /^Name/ }).click()
+  await expect(
+    page.locator('[data-slot="table-body"] [data-slot="table-row"]').first()
+  ).toContainText("Paged character 01")
 })

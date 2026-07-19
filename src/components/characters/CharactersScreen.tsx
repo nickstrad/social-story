@@ -112,7 +112,12 @@ export function CharactersScreen({
     addFromLibrary,
     saveToLibrary,
   } = useCharacters(storyId)
-  const { characters: libraryCharacters } = useLibraryCharacters()
+  const {
+    characters: libraryCharacters,
+    fetchNextPage: fetchNextLibraryPage,
+    hasNextPage: hasNextLibraryPage,
+    isFetchingNextPage: isFetchingNextLibraryPage,
+  } = useLibraryCharacters()
   const { rules, remove: removeRule } = useRules(storyId)
   const [editingCharacter, setEditingCharacter] = useState<
     Character | null | undefined
@@ -243,6 +248,9 @@ export function CharactersScreen({
         open={libraryOpen}
         onOpenChange={setLibraryOpen}
         characters={libraryCharacters}
+        hasNextPage={Boolean(hasNextLibraryPage)}
+        isFetchingNextPage={isFetchingNextLibraryPage}
+        onLoadMore={() => void fetchNextLibraryPage()}
         existingIds={
           new Set(
             characters.flatMap((character) =>

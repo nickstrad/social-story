@@ -5,7 +5,11 @@ import { ArtifactsSkeleton } from "@/components/artifacts/ArtifactsSkeleton"
 import { HydrateClient, prefetch, trpc } from "@/lib/trpc-server"
 
 export default function ArtifactsPage() {
-  prefetch(trpc.artifact.list.prefetch())
+  prefetch(
+    trpc.artifact.list.prefetchInfinite({
+      sort: { field: "createdAt", dir: "desc" },
+    })
+  )
   return (
     <HydrateClient>
       <ErrorBoundary fallbackTitle="Could not load artifacts">

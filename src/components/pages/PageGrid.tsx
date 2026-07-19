@@ -4,7 +4,7 @@ import { ChevronDownIcon, ChevronUpIcon, EyeOffIcon } from "lucide-react"
 
 import { FadeInImage } from "./FadeInImage"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/icon-button"
 import { Card } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -94,24 +94,24 @@ export function PageGrid({
             </button>
             {!isCover && (
               <div className="flex justify-end gap-1">
-                <Button
+                <IconButton
                   size="icon"
                   variant="ghost"
                   className="size-7"
-                  aria-label="Move page up"
+                  label="Move page up"
                   onClick={() => onMove(page.id, -1)}
                 >
                   <ChevronUpIcon className="size-4" />
-                </Button>
-                <Button
+                </IconButton>
+                <IconButton
                   size="icon"
                   variant="ghost"
                   className="size-7"
-                  aria-label="Move page down"
+                  label="Move page down"
                   onClick={() => onMove(page.id, 1)}
                 >
                   <ChevronDownIcon className="size-4" />
-                </Button>
+                </IconButton>
               </div>
             )}
           </Card>

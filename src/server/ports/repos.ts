@@ -25,11 +25,22 @@ import type {
   UpdateTask,
   UpdateAsset,
 } from "../domain/types"
+import type {
+  LibraryCharacterSortField,
+  ListParams,
+  Page as ListPage,
+  StorySortField,
+} from "@/lib/validation/listParams"
 
 export interface StoryRepo {
   create(input: CreateStory): Promise<Story>
   getById(id: string): Promise<Story | null>
   listByUser(userId: string, kind?: StoryKind): Promise<Story[]>
+  listByUserPaged(
+    userId: string,
+    kind: StoryKind | undefined,
+    params: ListParams<StorySortField>
+  ): Promise<ListPage<Story>>
   update(id: string, input: UpdateStory): Promise<Story>
   delete(id: string): Promise<void>
 }
@@ -48,6 +59,10 @@ export interface LibraryCharacterRepo {
   create(input: CreateLibraryCharacter): Promise<LibraryCharacter>
   getOwnedById(id: string, userId: string): Promise<LibraryCharacter | null>
   listByUser(userId: string): Promise<LibraryCharacter[]>
+  listByUserPaged(
+    userId: string,
+    params: ListParams<LibraryCharacterSortField>
+  ): Promise<ListPage<LibraryCharacter>>
   update(id: string, input: UpdateLibraryCharacter): Promise<LibraryCharacter>
   delete(id: string): Promise<void>
 }

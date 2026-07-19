@@ -3,8 +3,8 @@
 import Image from "next/image"
 import { PencilIcon, SaveIcon, Trash2Icon } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { IconButton } from "@/components/ui/icon-button"
 import { Skeleton } from "@/components/ui/skeleton"
 
 interface CharacterCardCharacter {
@@ -59,32 +59,31 @@ export function CharacterCard({
               "No metadata yet"}
           </p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`Edit ${character.name}`}
-          onClick={onEdit}
-        >
-          <PencilIcon />
-        </Button>
-        {onSaveToLibrary && (
-          <Button
+        <div className="flex shrink-0 flex-wrap items-center gap-1">
+          <IconButton
             variant="ghost"
-            size="icon"
-            aria-label={`Save ${character.name} to library`}
-            onClick={onSaveToLibrary}
+            label={`Edit ${character.name}`}
+            onClick={onEdit}
           >
-            <SaveIcon />
-          </Button>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`Delete ${character.name}`}
-          onClick={onDelete}
-        >
-          <Trash2Icon />
-        </Button>
+            <PencilIcon />
+          </IconButton>
+          {onSaveToLibrary && (
+            <IconButton
+              variant="ghost"
+              label={`Save ${character.name} to library`}
+              onClick={onSaveToLibrary}
+            >
+              <SaveIcon />
+            </IconButton>
+          )}
+          <IconButton
+            variant="ghost"
+            label={`Delete ${character.name}`}
+            onClick={onDelete}
+          >
+            <Trash2Icon />
+          </IconButton>
+        </div>
       </CardHeader>
       {(character.appearance || character.photoDescription) && (
         <CardContent className="space-y-2 text-sm">

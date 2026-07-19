@@ -16,7 +16,7 @@ import {
 import type { StepKey } from "@/lib/steps"
 import type { Artifact, ArtifactKind } from "@/server/domain/artifacts"
 
-const kindLabels: Record<ArtifactKind, string> = {
+export const kindLabels: Record<ArtifactKind, string> = {
   BASE_IMAGE: "Base image",
   CHARACTER_PHOTO: "Photo",
   PAGE_IMAGE: "Page image",
@@ -34,7 +34,7 @@ const kindStep: Record<ArtifactKind, StepKey> = {
   PDF: "export",
 }
 
-const artifactHref = (artifact: Artifact): string =>
+export const artifactHref = (artifact: Artifact): string =>
   `/stories/${artifact.storyId}/${kindStep[artifact.kind]}`
 
 export function ArtifactGrid({ artifacts }: { artifacts: Artifact[] }) {

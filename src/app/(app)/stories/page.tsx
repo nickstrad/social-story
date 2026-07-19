@@ -5,7 +5,11 @@ import { StoryListSkeleton } from "@/components/story/StoryListSkeleton"
 import { HydrateClient, prefetch, trpc } from "@/lib/trpc-server"
 
 export default function StoriesPage() {
-  prefetch(trpc.story.list.prefetch())
+  prefetch(
+    trpc.story.list.prefetchInfinite({
+      sort: { field: "createdAt", dir: "desc" },
+    })
+  )
   return (
     <HydrateClient>
       <ErrorBoundary fallbackTitle="Could not load stories">

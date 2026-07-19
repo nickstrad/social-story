@@ -3,6 +3,7 @@
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { LoadMoreButton } from "@/components/collections/LoadMoreButton"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
@@ -39,6 +40,9 @@ export function UseTemplateDialog({
   open,
   template,
   libraryCharacters,
+  hasNextLibraryPage,
+  isFetchingNextLibraryPage,
+  onLoadMoreLibrary,
   isSubmitting,
   onOpenChange,
   onSubmit,
@@ -46,6 +50,9 @@ export function UseTemplateDialog({
   open: boolean
   template?: TemplateForUse
   libraryCharacters: ClientLibraryCharacter[]
+  hasNextLibraryPage: boolean
+  isFetchingNextLibraryPage: boolean
+  onLoadMoreLibrary: () => void
   isSubmitting: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (input: {
@@ -190,6 +197,11 @@ export function UseTemplateDialog({
                 )
               })}
             </div>
+            <LoadMoreButton
+              hasNextPage={hasNextLibraryPage}
+              isFetchingNextPage={isFetchingNextLibraryPage}
+              onClick={onLoadMoreLibrary}
+            />
           </div>
         )}
 

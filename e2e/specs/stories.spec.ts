@@ -31,3 +31,23 @@ test("create a story, see it in the list, then delete it", async ({ page }) => {
 
   await expect(page.getByText("No stories yet")).toBeVisible()
 })
+
+test("persists grid and table view choices across reloads", async ({
+  page,
+}) => {
+  await createStory(page, { title: "Persistent view" })
+  await page.goto("/stories")
+
+  await page.getByRole("button", { name: "Table view" }).click()
+  await expect(page.locator('[data-slot="table"]')).toBeVisible()
+  await page.reload()
+  await expect(page.locator('[data-slot="table"]')).toBeVisible()
+
+  await page.getByRole("button", { name: "Grid view" }).click()
+  await expect(page.locator('[data-slot="table"]')).toHaveCount(0)
+  await page.reload()
+  await expect(page.locator('[data-slot="table"]')).toHaveCount(0)
+  await expect(
+    page.getByRole("main").getByRole("link", { name: "Persistent view" })
+  ).toBeVisible()
+})

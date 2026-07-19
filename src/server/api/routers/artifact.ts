@@ -13,6 +13,7 @@ import {
 } from "@/server/services/assets"
 import type { Story } from "@/server/domain/types"
 import type { Repos } from "@/server/ports/repos"
+import { artifactListParamsSchema } from "@/lib/validation/listParams"
 
 function groupBy<T>(
   values: T[],
@@ -76,40 +77,49 @@ export const artifactRouter = createTRPCRouter({
     }),
 
   /**
-   * Every generated blob the signed-in user owns, newest first. Scoped by
-   * listByUser, so ownership is enforced by construction — there is no
-   * artifact lookup that could reach another user's story.
+   * Generated blobs for one cursor page of the signed-in user's stories.
+   * Ownership is enforced by the paged story query, so no artifact lookup can
+   * reach another user's story.
    */
-  list: protectedProcedure.query(async ({ ctx }) => {
-    const stories = await ctx.deps.repos.stories.listByUser(ctx.session.user.id)
-    const storyIds = stories.map((story) => story.id)
-    const [characters, pages, pageImages, tasks, assets] = await Promise.all([
-      ctx.deps.repos.characters.listByStoryIds(storyIds),
-      ctx.deps.repos.pages.listByStoryIds(storyIds),
-      ctx.deps.repos.pages.listImagesByStoryIds(storyIds),
-      ctx.deps.repos.tasks.listByStoryIds(storyIds),
-      ctx.deps.repos.assets.listByStoryIds(storyIds),
-    ])
+  list: protectedProcedure
+    .input(artifactListParamsSchema)
+    .query(async ({ ctx, input }) => {
+      const storyPage = await ctx.deps.repos.stories.listByUserPaged(
+        ctx.session.user.id,
+        "STORY",
+        input
+      )
+      const stories = storyPage.items
+      const storyIds = stories.map((story) => story.id)
+      const [characters, pages, pageImages, tasks, assets] = await Promise.all([
+        ctx.deps.repos.characters.listByStoryIds(storyIds),
+        ctx.deps.repos.pages.listByStoryIds(storyIds),
+        ctx.deps.repos.pages.listImagesByStoryIds(storyIds),
+        ctx.deps.repos.tasks.listByStoryIds(storyIds),
+        ctx.deps.repos.assets.listByStoryIds(storyIds),
+      ])
 
-    const storyIdByPageId = new Map(
-      pages.map((page) => [page.id, page.storyId])
-    )
-    const charactersByStory = groupBy(characters, (item) => item.storyId)
-    const pagesByStory = groupBy(pages, (item) => item.storyId)
-    const imagesByStory = groupBy(pageImages, (item) =>
-      storyIdByPageId.get(item.pageId)
-    )
-    const tasksByStory = groupBy(tasks, (item) => item.storyId)
-    const assetsByStory = groupBy(assets, (item) => item.storyId ?? undefined)
+      const storyIdByPageId = new Map(
+        pages.map((page) => [page.id, page.storyId])
+      )
+      const charactersByStory = groupBy(characters, (item) => item.storyId)
+      const pagesByStory = groupBy(pages, (item) => item.storyId)
+      const imagesByStory = groupBy(pageImages, (item) =>
+        storyIdByPageId.get(item.pageId)
+      )
+      const tasksByStory = groupBy(tasks, (item) => item.storyId)
+      const assetsByStory = groupBy(assets, (item) => item.storyId ?? undefined)
 
-    const sources: StoryArtifactSources[] = stories.map((story) => ({
-      story,
-      characters: charactersByStory.get(story.id) ?? [],
-      pages: pagesByStory.get(story.id) ?? [],
-      pageImages: imagesByStory.get(story.id) ?? [],
-      tasks: tasksByStory.get(story.id) ?? [],
-      assets: assetsByStory.get(story.id) ?? [],
-    }))
-    return collectArtifacts(sources)
-  }),
+      const sources: StoryArtifactSources[] = stories.map((story) => ({
+        story,
+        characters: charactersByStory.get(story.id) ?? [],
+        pages: pagesByStory.get(story.id) ?? [],
+        pageImages: imagesByStory.get(story.id) ?? [],
+        tasks: tasksByStory.get(story.id) ?? [],
+        assets: assetsByStory.get(story.id) ?? [],
+      }))
+      const items = collectArtifacts(sources)
+      if (input.sort.dir === "asc") items.reverse()
+      return { items, nextCursor: storyPage.nextCursor }
+    }),
 })

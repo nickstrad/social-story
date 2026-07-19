@@ -2,17 +2,34 @@ import { z } from "zod"
 
 const requiredText = z.string().trim().min(1)
 
-export const parsedStorySchema = z.object({
-  title: requiredText,
-  pages: z.array(
-    z.object({
-      page: z.number().int().positive(),
-      text: requiredText,
-      imagePrompt: requiredText,
-      characterNames: z.array(requiredText),
-    })
-  ),
-})
+function parsedStoryShape(characterNames: z.ZodType<string>) {
+  return z.object({
+    title: requiredText,
+    pages: z.array(
+      z.object({
+        page: z.number().int().positive(),
+        text: requiredText,
+        imagePrompt: requiredText,
+        characterNames: z.array(characterNames),
+      })
+    ),
+  })
+}
+
+export const parsedStorySchema = parsedStoryShape(requiredText)
+
+/**
+ * Per-request parse schema. With a non-empty roster the character names are an
+ * enum, so OpenAI structured outputs in `strict` mode make an off-roster name
+ * impossible rather than merely unlikely — name resolution downstream is then a
+ * defensive layer, not the mechanism. An empty roster falls back to the static
+ * unconstrained schema (an enum needs at least one member).
+ */
+export function buildParsedStorySchema(characterNames: string[]) {
+  const names = characterNames.map((name) => name.trim()).filter(Boolean)
+  if (names.length === 0) return parsedStorySchema
+  return parsedStoryShape(z.enum(names))
+}
 
 export const createStorySchema = z.object({
   title: requiredText.max(200),

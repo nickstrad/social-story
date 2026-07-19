@@ -8,7 +8,8 @@ export function buildParseSystemPrompt(
   const roster =
     characters.length === 0
       ? "No recurring characters have been defined. Use an empty characterNames array."
-      : `The available recurring characters are:\n${characters.map(describeCharacter).join("\n")}\nUse only these exact names.`
+      : `The available recurring characters are:\n${characters.map(describeCharacter).join("\n")}\nUse these names EXACTLY as written above — no nicknames, descriptions, or variations.
+If the story is written in the first person ("I", "me", "my"), map that narrator to the roster character the story is about, inferring from their role and description.`
   const ruleText = rules.map((rule) => `- ${rule.text}`).join("\n")
 
   return `You convert a social story into a structured, illustrated picture book.
@@ -18,7 +19,8 @@ For every page provide its 1-based page number, the exact simple and reassuring 
 
 ${roster}
 
-Do NOT put people on every page. Use an empty characterNames array for scene-only pages. Only include characters when the page is specifically about a person doing something, and keep the group small.
+Do NOT put people on every page. Use an empty characterNames array for scene-only pages. Only include characters when the page is specifically about a person doing something, and keep the group small when they do appear.
+Aim for a good mix across the book rather than making every page scene-only or every page crowded.
 ${ruleText ? `\nFollow these author rules verbatim when assigning characters and describing scenes:\n${ruleText}\n` : ""}
 Respond ONLY with JSON matching the requested schema.`
 }

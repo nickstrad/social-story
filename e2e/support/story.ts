@@ -49,6 +49,28 @@ export async function addCharacterPhoto(
   await expect(page.getByRole("img", { name })).toBeVisible()
 }
 
+/**
+ * Split the script into pages from the Characters step, where the parse action
+ * lives so the model always sees the roster. An empty roster goes through the
+ * confirmation dialog, so the caller states which path it is on rather than
+ * probing for the dialog — a one-shot visibility check would race the portal
+ * render and silently skip the confirmation.
+ */
+export async function parseIntoPages(
+  page: Page,
+  storyId: string,
+  { hasCharacters = false }: { hasCharacters?: boolean } = {}
+): Promise<void> {
+  await page.goto(`/stories/${storyId}/characters`)
+  await page.getByRole("button", { name: /Parse into pages/ }).click()
+  if (!hasCharacters) {
+    const confirm = page.getByRole("button", { name: "Parse anyway" })
+    await expect(confirm).toBeVisible()
+    await confirm.click()
+  }
+  await expect(page.getByText(/Parsed into \d+ pages/)).toBeVisible()
+}
+
 /** Run the base-image task to completion via the Base image step. */
 export async function generateBaseImage(
   page: Page,

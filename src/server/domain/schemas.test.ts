@@ -1,7 +1,9 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vitest"
+import { toJSONSchema } from "zod"
 import {
+  buildParsedStorySchema,
   characterInputSchema,
   createStorySchema,
   parsedStorySchema,
@@ -37,6 +39,48 @@ describe("domain schemas", () => {
         characterIds: ["a", "b"],
       }).kind
     ).toBe("TOGETHER")
+  })
+
+  it("constrains parsed character names to the roster when one exists", () => {
+    const schema = buildParsedStorySchema(["Allison", " Mom "])
+    const page = { page: 1, text: "Hi", imagePrompt: "A wave" }
+
+    expect(
+      schema.safeParse({
+        title: "Trip",
+        pages: [{ ...page, characterNames: ["Allison", "Mom"] }],
+      }).success
+    ).toBe(true)
+    expect(
+      schema.safeParse({
+        title: "Trip",
+        pages: [{ ...page, characterNames: ["Grandma"] }],
+      }).success
+    ).toBe(false)
+
+    // Strict structured outputs read the enum off the emitted JSON schema, so
+    // an off-roster name is impossible rather than merely unlikely.
+    expect(JSON.stringify(toJSONSchema(schema))).toContain(
+      '"enum":["Allison","Mom"]'
+    )
+  })
+
+  it("falls back to unconstrained names when the roster is empty", () => {
+    const schema = buildParsedStorySchema([])
+    expect(schema).toBe(parsedStorySchema)
+    expect(
+      schema.safeParse({
+        title: "Trip",
+        pages: [
+          {
+            page: 1,
+            text: "Hi",
+            imagePrompt: "A wave",
+            characterNames: ["Anyone"],
+          },
+        ],
+      }).success
+    ).toBe(true)
   })
 
   it("bounds author steering text", () => {

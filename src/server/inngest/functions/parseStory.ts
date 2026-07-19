@@ -72,7 +72,10 @@ async function saveConvertedPages(
   const currentPages = await deps.repos.pages.listByStory(context.story.id)
   await assertPagesCanBeReplaced(deps, currentPages)
 
-  const pages = parsedStoryToPages(parsed, context.characters)
+  const { pages, unmatchedCharacterNames } = parsedStoryToPages(
+    parsed,
+    context.characters
+  )
   const { pages: ruledPages } = applyRulesToStory(
     pages,
     context.rules,
@@ -90,6 +93,7 @@ async function saveConvertedPages(
   return {
     pageCount: created.length,
     titleWasGenerated: !context.story.title.trim(),
+    unmatchedCharacterNameCount: unmatchedCharacterNames.length,
   }
 }
 
@@ -118,6 +122,11 @@ export async function runParseStoryTask(
           savedPageCount: saved.pageCount,
           coverPageAdded: true,
           titleWasGenerated: saved.titleWasGenerated,
+          // Roster-constrained output should keep this at zero; a non-zero count
+          // makes a regression visible instead of silent. The names themselves
+          // are model-authored story content and must not enter a durable step
+          // result, so only the count crosses this boundary.
+          unmatchedCharacterNameCount: saved.unmatchedCharacterNameCount,
         },
         result,
       }

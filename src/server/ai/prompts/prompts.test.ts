@@ -105,4 +105,18 @@ describe("AI prompt policies", () => {
     expect(prompt).toContain("All hats are green")
     expect(buildParseSystemPrompt([], [])).toContain("No recurring characters")
   })
+
+  it("guides the parse mix, exact names, and narrator mapping", () => {
+    const prompt = buildParseSystemPrompt([allison], [])
+    expect(prompt).toContain("Do NOT put people on every page")
+    expect(prompt).toContain("good mix")
+    expect(prompt).toContain("EXACTLY")
+    expect(prompt).toContain("first person")
+
+    // Narrator mapping and exact-name guidance only make sense with a roster.
+    const rosterless = buildParseSystemPrompt([], [])
+    expect(rosterless).not.toContain("EXACTLY")
+    expect(rosterless).not.toContain("first person")
+    expect(rosterless).toContain("Do NOT put people on every page")
+  })
 })

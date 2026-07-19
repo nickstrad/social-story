@@ -53,7 +53,7 @@ Application call sites pass semantic data and never assemble prompts.
 
 | Action                   | Semantic input and output                                                                            | Binding/model                   | Prompt owner                          | Deterministic fake                                              | Production caller                                       |
 | ------------------------ | ---------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------- |
-| `storyToData`            | Script, cast context, rules → validated `ParsedStory`                                                | `AI_STORY_TO_DATA_*`            | `prompts/story-to-data.ts`            | `createFakeAiActions({ storyToData })`; E2E parse fixture       | `inngest/functions/parseStory.ts`                       |
+| `storyToData`            | Script, cast context, rules → validated `ParsedStory` (roster-constrained, see below)                | `AI_STORY_TO_DATA_*`            | `prompts/story-to-data.ts`            | `createFakeAiActions({ storyToData })`; E2E parse fixture       | `inngest/functions/parseStory.ts`                       |
 | `characterPhotoAutofill` | Authorized normalized `InputImage` → exact `appearance` and `photoDescription` suggestion            | `AI_CHARACTER_PHOTO_AUTOFILL_*` | `prompts/character-photo-autofill.ts` | bounded suggestion in `createE2eAiActions`                      | `POST /api/describe/photo`                              |
 | `baseImage`              | Cast, labeled photos, dimensions → `GeneratedArtwork`                                                | `AI_BASE_IMAGE_*`               | `prompts/illustration.ts`             | `createFakeAiActions({ baseImage })`; E2E base fixture          | `inngest/functions/baseImage.ts`                        |
 | `pageImage`              | Scene, page cast, full cast, rules, steering, explicit anchor/photo, dimensions → `GeneratedArtwork` | `AI_PAGE_IMAGE_*`               | `prompts/illustration.ts`             | `createFakeAiActions({ pageImage })`; E2E scripted page fixture | content-page branch of `inngest/functions/pageImage.ts` |
@@ -61,6 +61,31 @@ Application call sites pass semantic data and never assemble prompts.
 
 All current production bindings use OpenAI. Separate constructors and bindings
 are intentional even where the implementation shares a private transport.
+
+### `storyToData` output schema is built per request
+
+The port contract is unchanged — character _names_ go in and come back — but the
+structured-output schema is not static. `openAIStoryToData` calls
+`buildParsedStorySchema(input.characters.map(c => c.name))`
+(`domain/schemas.ts`), which makes each page's `characterNames` a `z.enum` of the
+roster. Under OpenAI `strict` mode this makes an off-roster name (`"mom"`,
+`"Allison (the narrator)"`) impossible rather than merely unlikely, so
+`parsedStoryToPages` cannot silently drop a page's cast. An empty roster falls
+back to the static, unconstrained `parsedStorySchema` — a legitimate, fully
+scene-only book.
+
+Name resolution downstream is a defensive layer, not the mechanism: it matches
+case- and whitespace-insensitively and reports how many names it still could not
+resolve as `unmatchedCharacterNameCount` in the parse task's step response, so a
+regression is visible in the task log instead of silent. Only the count crosses
+that boundary — the names are model-authored story content, which durable step
+results must never carry.
+
+The parse prompt (`prompts/story-to-data.ts`) keeps its scene-only guidance and
+adds, when a roster exists, exact-name and first-person-narrator mapping
+instructions plus a nudge toward a good mix of peopled and scene-only pages. The
+E2E fake is unchanged in shape: it parses the checked-in fixture against the
+static schema.
 
 Page and cover artwork can also be uploaded by the user. That synchronous path
 normalizes and captions the image without calling `deps.ai`, creating an action,

@@ -1,5 +1,5 @@
 import { test, expect } from "../support/auth"
-import { addCharacter, createStory } from "../support/story"
+import { addCharacter, createStory, parseIntoPages } from "../support/story"
 
 // Walks `deriveStepStates` gating end-to-end through the real UI. Enabled steps
 // render as links; disabled steps render as plain spans (0 links). Pages/Export
@@ -22,9 +22,7 @@ test("steps unlock in order as their prerequisites are satisfied", async ({
   await expect(page.getByRole("link", { name: /^3 Base image$/ })).toBeVisible()
 
   // Parsing the script unlocks Pages (parsed status + page count > 0).
-  await page.goto(`/stories/${storyId}/script`)
-  await page.getByRole("button", { name: "Parse into pages" }).click()
-  await expect(page.getByText("Complete")).toBeVisible()
+  await parseIntoPages(page, storyId, { hasCharacters: true })
   await expect(page.getByRole("link", { name: /^4 Pages$/ })).toBeVisible()
 
   // Export stays locked until pages have generated images (a later flow).

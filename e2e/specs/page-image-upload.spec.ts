@@ -1,5 +1,5 @@
 import { expect, test } from "../support/auth"
-import { createStory } from "../support/story"
+import { createStory, parseIntoPages } from "../support/story"
 
 const PAGE_IMAGE = "e2e/fixtures/images/page-1.png"
 
@@ -7,8 +7,7 @@ test("uploads a page image and confirms before adding another variant", async ({
   page,
 }) => {
   const storyId = await createStory(page)
-  await page.getByRole("button", { name: "Parse into pages" }).click()
-  await expect(page.getByText(/Parsed into 4 pages/)).toBeVisible()
+  await parseIntoPages(page, storyId)
 
   await page.goto(`/stories/${storyId}/pages`)
   await page.getByRole("button", { name: /Page 1 ·/ }).click()

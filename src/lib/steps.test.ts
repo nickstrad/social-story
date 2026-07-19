@@ -70,6 +70,25 @@ describe("deriveStepStates", () => {
     expect(steps.export.done).toBe(true)
   })
 
+  it("treats a parsed scene-only story as past the characters step", () => {
+    const steps = states({ script: "s", status: "PARSED", pagesCount: 20 })
+    expect(steps.characters.done).toBe(true)
+    // No cast means no character reference sheet to build, so the step drops
+    // out rather than sitting permanently disabled between Characters and Pages.
+    expect(steps.base).toBeUndefined()
+    expect(steps.pages.enabled).toBe(true)
+  })
+
+  it("keeps the base step once the story has a cast", () => {
+    const steps = states({
+      script: "s",
+      status: "PARSED",
+      charactersCount: 1,
+      pagesCount: 20,
+    })
+    expect(steps.base).toMatchObject({ enabled: true, done: false })
+  })
+
   it("omits export for templates", () => {
     expect(states({ kind: "TEMPLATE" }).export).toBeUndefined()
   })

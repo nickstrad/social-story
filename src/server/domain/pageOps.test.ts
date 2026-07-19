@@ -77,8 +77,8 @@ describe("page collection operations", () => {
     ])
   })
 
-  it("maps parsed names to ids, drops unknowns, and creates a cover", () => {
-    const result = parsedStoryToPages(
+  it("resolves names case- and whitespace-insensitively and creates a cover", () => {
+    const { pages, unmatchedCharacterNames } = parsedStoryToPages(
       {
         title: "My Story",
         pages: [
@@ -86,18 +86,38 @@ describe("page collection operations", () => {
             page: 1,
             text: "Hello",
             imagePrompt: "A wave",
-            characterNames: ["Allison", "Unknown"],
+            characterNames: ["  allison ", "MOM"],
+          },
+        ],
+      },
+      [character("a", "Allison"), character("m", "Mom")]
+    )
+    expect(pages[0]).toMatchObject({
+      kind: "COVER",
+      position: 0,
+      text: "My Story",
+    })
+    expect(pages[1].characterIds).toEqual(["a", "m"])
+    expect(unmatchedCharacterNames).toEqual([])
+  })
+
+  it("reports names it could not resolve instead of dropping them silently", () => {
+    const { pages, unmatchedCharacterNames } = parsedStoryToPages(
+      {
+        title: "My Story",
+        pages: [
+          {
+            page: 1,
+            text: "Hello",
+            imagePrompt: "A wave",
+            characterNames: ["Allison", "Unknown", "Unknown"],
           },
         ],
       },
       [character("a", "Allison")]
     )
-    expect(result[0]).toMatchObject({
-      kind: "COVER",
-      position: 0,
-      text: "My Story",
-    })
-    expect(result[1].characterIds).toEqual(["a"])
+    expect(pages[1].characterIds).toEqual(["a"])
+    expect(unmatchedCharacterNames).toEqual(["Unknown"])
   })
 
   it("reorders content by the requested permutation and pins the cover", () => {
@@ -122,7 +142,7 @@ describe("page collection operations", () => {
   })
 
   it("creates unique ids when parsed page numbers repeat", () => {
-    const result = parsedStoryToPages(
+    const { pages } = parsedStoryToPages(
       {
         title: "My Story",
         pages: [
@@ -132,6 +152,6 @@ describe("page collection operations", () => {
       },
       []
     )
-    expect(result.map(({ id }) => id)).toEqual(["cover", "page-1", "page-2"])
+    expect(pages.map(({ id }) => id)).toEqual(["cover", "page-1", "page-2"])
   })
 })

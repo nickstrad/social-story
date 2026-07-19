@@ -4,6 +4,7 @@ import {
   addCharacter,
   createStory,
   generateBaseImage,
+  parseIntoPages,
 } from "../support/story"
 
 test("save, personalize, and illustrate a reusable story template", async ({
@@ -14,9 +15,7 @@ test("save, personalize, and illustrate a reusable story template", async ({
   await addCharacter(page, "Nick")
   await addCharacter(page, "Sibling")
 
-  await page.goto(`/stories/${storyId}/script`)
-  await page.getByRole("button", { name: "Parse into pages" }).click()
-  await expect(page.getByText(/Parsed into 4 pages/)).toBeVisible()
+  await parseIntoPages(page, storyId, { hasCharacters: true })
 
   await page.goto(`/stories/${storyId}/export`)
   await page.getByRole("button", { name: "Convert to template" }).click()

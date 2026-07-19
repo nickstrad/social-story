@@ -2,18 +2,10 @@
 
 import { ChevronLeftIcon, ChevronRightIcon, Trash2Icon } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import {
-  Field,
-  FieldDescription,
-  FieldLabel,
-  FieldTitle,
-} from "@/components/ui/field"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import type { ClientCharacter as Character } from "@/server/domain/types"
 
 export function PageMetaForm({
   isCover,
@@ -21,10 +13,6 @@ export function PageMetaForm({
   imagePrompt,
   onChangeText,
   onChangeImagePrompt,
-  characters,
-  selectedCharacterIds,
-  effectiveCharacterIds,
-  onToggleCharacter,
   hidden,
   onToggleHidden,
   onDelete,
@@ -38,10 +26,6 @@ export function PageMetaForm({
   imagePrompt: string
   onChangeText: (value: string) => void
   onChangeImagePrompt: (value: string) => void
-  characters: Character[]
-  selectedCharacterIds: string[]
-  effectiveCharacterIds: string[]
-  onToggleCharacter: (characterId: string) => void
   hidden: boolean
   onToggleHidden: (hidden: boolean) => void
   onDelete: () => void
@@ -50,9 +34,6 @@ export function PageMetaForm({
   onPrev: () => void
   onNext: () => void
 }) {
-  const selected = new Set(selectedCharacterIds)
-  const effective = new Set(effectiveCharacterIds)
-
   return (
     <div className="grid gap-5">
       <div className="flex items-center justify-between">
@@ -84,36 +65,6 @@ export function PageMetaForm({
           value={imagePrompt}
           onChange={(event) => onChangeImagePrompt(event.target.value)}
         />
-      </Field>
-
-      <Field>
-        <FieldTitle>Characters</FieldTitle>
-        {characters.length === 0 ? (
-          <FieldDescription>
-            No characters yet — add them in the Characters step.
-          </FieldDescription>
-        ) : (
-          <div className="grid gap-field">
-            {characters.map((character) => {
-              const byRule =
-                !selected.has(character.id) && effective.has(character.id)
-              return (
-                <FieldLabel key={character.id} className="font-normal">
-                  <Checkbox
-                    checked={selected.has(character.id)}
-                    onCheckedChange={() => onToggleCharacter(character.id)}
-                  />
-                  {character.name}
-                  {byRule && (
-                    <Badge variant="secondary" className="ml-1">
-                      added by rule
-                    </Badge>
-                  )}
-                </FieldLabel>
-              )
-            })}
-          </div>
-        )}
       </Field>
 
       {!isCover && (

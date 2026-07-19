@@ -92,11 +92,29 @@ export function reorderPages(pages: Page[], orderedPageIds: string[]): Page[] {
   )
 }
 
+/** Case- and whitespace-insensitive key so `" mom "` still resolves to `"Mom"`. */
+function nameKey(name: string): string {
+  return name.trim().toLocaleLowerCase()
+}
+
+export interface ParsedStoryPages {
+  pages: Page[]
+  /**
+   * Names the model returned that match no roster character. The parse schema is
+   * roster-constrained, so this should be empty; it is reported rather than
+   * dropped silently so a recurrence shows up in the task log.
+   */
+  unmatchedCharacterNames: string[]
+}
+
 export function parsedStoryToPages(
   parsed: ParsedStory,
   characters: Character[]
-): Page[] {
-  const idsByName = new Map(characters.map(({ id, name }) => [name, id]))
+): ParsedStoryPages {
+  const idsByName = new Map(
+    characters.map(({ id, name }) => [nameKey(name), id])
+  )
+  const unmatched = new Set<string>()
   const now = new Date()
   const common = {
     storyId: "",
@@ -115,7 +133,7 @@ export function parsedStoryToPages(
     imagePrompt: parsed.title,
     characterIds: [],
   }
-  return [
+  const pages = [
     cover,
     ...parsed.pages.map((page, index): Page => ({
       ...common,
@@ -125,9 +143,14 @@ export function parsedStoryToPages(
       text: page.text,
       imagePrompt: page.imagePrompt,
       characterIds: page.characterNames.flatMap((name) => {
-        const id = idsByName.get(name)
-        return id ? [id] : []
+        const id = idsByName.get(nameKey(name))
+        if (!id) {
+          unmatched.add(name)
+          return []
+        }
+        return [id]
       }),
     })),
   ]
+  return { pages, unmatchedCharacterNames: [...unmatched] }
 }

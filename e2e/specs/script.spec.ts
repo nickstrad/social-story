@@ -1,5 +1,5 @@
 import { test, expect } from "../support/auth"
-import { createStory, SAMPLE_SCRIPT } from "../support/story"
+import { createStory, parseIntoPages, SAMPLE_SCRIPT } from "../support/story"
 
 test("edits to title and script persist across a reload", async ({ page }) => {
   await createStory(page)
@@ -24,37 +24,25 @@ test("edits to title and script persist across a reload", async ({ page }) => {
   )
 })
 
-test("parsing the script reaches DONE and reports the page count", async ({
-  page,
-}) => {
+// Parsing moved to the Characters step so the roster is always in play when the
+// model assigns characters page by page.
+test("the script step no longer offers parsing", async ({ page }) => {
   await createStory(page)
-
-  await page.getByRole("button", { name: "Parse into pages" }).click()
-
-  // Immediate dispatcher runs the parse task inline, so the polling badge should
-  // reach a terminal Complete state and the parsed summary should appear.
-  await expect(page.getByText("Complete")).toBeVisible()
-  await expect(page.getByText(/Parsed into \d+ pages/)).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: /Parse into pages/ })
+  ).toHaveCount(0)
 })
 
 test("the footer shows artifacts and continues to characters", async ({
   page,
 }) => {
   const storyId = await createStory(page)
-  await page.getByRole("button", { name: "Parse into pages" }).click()
-  await expect(page.getByText("Complete")).toBeVisible()
 
   await page.getByRole("button", { name: "View artifacts" }).click()
   const artifacts = page.getByRole("dialog", { name: "Story artifacts" })
   await expect(artifacts).toBeVisible()
-  const scriptSection = artifacts.getByRole("button", {
-    name: "Story script",
-  })
-  const pagesSection = artifacts.getByRole("button", {
-    name: /Story pages · \d+/,
-  })
+  const scriptSection = artifacts.getByRole("button", { name: "Story script" })
   await expect(scriptSection).toHaveAttribute("aria-expanded", "false")
-  await expect(pagesSection).toHaveAttribute("aria-expanded", "false")
   await expect(artifacts.getByText(SAMPLE_SCRIPT, { exact: true })).toBeHidden()
 
   await scriptSection.click()
@@ -62,11 +50,21 @@ test("the footer shows artifacts and continues to characters", async ({
   await expect(
     artifacts.getByText(SAMPLE_SCRIPT, { exact: true })
   ).toBeVisible()
-  await expect(pagesSection).toHaveAttribute("aria-expanded", "false")
   await page.keyboard.press("Escape")
 
   await page.getByRole("link", { name: "Continue to Characters" }).click()
   await expect(page).toHaveURL(`/stories/${storyId}/characters`)
+})
+
+test("parsing from the characters step reaches DONE and reports the count", async ({
+  page,
+}) => {
+  const storyId = await createStory(page)
+  await parseIntoPages(page, storyId)
+
+  // Immediate dispatcher runs the parse task inline, so the polling badge should
+  // reach a terminal Complete state alongside the parsed summary.
+  await expect(page.getByText("Complete")).toBeVisible()
 })
 
 test("the characters step is reachable once the script has content", async ({

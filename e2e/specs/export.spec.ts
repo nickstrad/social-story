@@ -4,6 +4,7 @@ import {
   addCharacterPhoto,
   createStory,
   generateBaseImage,
+  parseIntoPages,
 } from "../support/story"
 
 test("generate all page images and export a valid PDF", async ({ page }) => {
@@ -21,9 +22,7 @@ test("generate all page images and export a valid PDF", async ({ page }) => {
   expect(imageUrl).toMatch(/^\/api\/me\/assets\//)
 
   // Parse through the real task handler using the canned LLM JSON fixture.
-  await page.goto(`/stories/${storyId}/script`)
-  await page.getByRole("button", { name: "Parse into pages" }).click()
-  await expect(page.getByText(/Parsed into 4 pages/)).toBeVisible()
+  await parseIntoPages(page, storyId, { hasCharacters: true })
 
   // Run every local image/caption task against the checked-in PNG fixture.
   await page.goto(`/stories/${storyId}/pages`)

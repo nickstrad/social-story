@@ -60,14 +60,14 @@ export function AppSidebar() {
   // Deliberately not a suspense query: the sidebar renders on every app page,
   // and it must never hold up the page's own content while stories load. The
   // protected layout prefetches this, so it is warm from the server.
-  const stories = trpc.story.list.useQuery()
+  const stories = trpc.story.list.useQuery({ limit: RECENT_LIMIT })
 
   // On mobile the sidebar is a sheet overlaying the page, so it has to close
   // itself on navigate — otherwise it covers the page the user just chose.
   // Inert on desktop, where nothing reads `openMobile`.
   const closeOnMobile = () => setOpenMobile(false)
 
-  const recent = stories.data?.slice(0, RECENT_LIMIT) ?? []
+  const recent = stories.data?.items ?? []
 
   return (
     <Sidebar

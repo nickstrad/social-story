@@ -1,8 +1,8 @@
 "use client"
 
 import { PencilIcon, Trash2Icon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { IconButton } from "@/components/ui/icon-button"
+import { Item, ItemActions, ItemContent, ItemGroup } from "@/components/ui/item"
 import { describeRule } from "@/lib/ruleText"
 import type { ClientCharacter as Character, Rule } from "@/server/domain/types"
 
@@ -20,30 +20,32 @@ export function RuleList({
   if (!rules.length)
     return <p className="text-sm text-muted-foreground">No visual rules yet.</p>
   return (
-    <div className="grid gap-2">
+    <ItemGroup>
       {rules.map((rule) => (
-        <Card key={rule.id}>
-          <CardContent className="flex items-center gap-3 py-3">
-            <p className="flex-1 text-sm">{describeRule(rule, characters)}</p>
-            <Button
+        <Item key={rule.id} variant="outline" size="xs">
+          <ItemContent className="min-w-0">
+            <p className="truncate text-sm">{describeRule(rule, characters)}</p>
+          </ItemContent>
+          <ItemActions className="ml-auto flex-wrap gap-1">
+            <IconButton
               variant="ghost"
-              size="icon"
-              aria-label="Edit rule"
+              size="icon-sm"
+              label="Edit rule"
               onClick={() => onEdit(rule)}
             >
               <PencilIcon />
-            </Button>
-            <Button
+            </IconButton>
+            <IconButton
               variant="ghost"
-              size="icon"
-              aria-label="Delete rule"
+              size="icon-sm"
+              label="Delete rule"
               onClick={() => onDelete(rule)}
             >
               <Trash2Icon />
-            </Button>
-          </CardContent>
-        </Card>
+            </IconButton>
+          </ItemActions>
+        </Item>
       ))}
-    </div>
+    </ItemGroup>
   )
 }

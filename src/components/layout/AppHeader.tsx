@@ -13,6 +13,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Spinner } from "@/components/ui/spinner"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 type AppHeaderProps = {
   email: string
@@ -23,18 +28,25 @@ type AppHeaderProps = {
 function AccountMenu({ email, isSigningOut, onSignOut }: AppHeaderProps) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={isSigningOut}
-            aria-label="Open account menu"
-          />
-        }
-      >
-        {isSigningOut ? <Spinner /> : <UserRoundIcon />}
-      </DropdownMenuTrigger>
+      <Tooltip>
+        <DropdownMenuTrigger
+          render={
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={isSigningOut}
+                  aria-label="Open account menu"
+                />
+              }
+            />
+          }
+        >
+          {isSigningOut ? <Spinner /> : <UserRoundIcon />}
+        </DropdownMenuTrigger>
+        <TooltipContent>Open account menu</TooltipContent>
+      </Tooltip>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="grid gap-0.5 py-1.5">

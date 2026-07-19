@@ -4,6 +4,7 @@ import Link from "next/link"
 import { BookOpenIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/icon-button"
 import {
   Card,
   CardAction,
@@ -74,15 +75,14 @@ export function StoryList({
               <Badge variant="secondary">{statusLabels[story.status]}</Badge>
             </CardDescription>
             <CardAction>
-              <Button
+              <IconButton
                 variant="ghost"
-                size="icon"
-                aria-label="Delete story"
+                label="Delete story"
                 className="relative z-10"
                 onClick={() => onDelete(story)}
               >
                 <Trash2Icon />
-              </Button>
+              </IconButton>
             </CardAction>
           </CardHeader>
         </Card>

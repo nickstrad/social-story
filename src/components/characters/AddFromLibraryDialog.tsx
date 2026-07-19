@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useState } from "react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { LoadMoreButton } from "@/components/collections/LoadMoreButton"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -24,6 +25,9 @@ export function AddFromLibraryDialog({
   onOpenChange,
   characters,
   existingIds,
+  hasNextPage,
+  isFetchingNextPage,
+  onLoadMore,
   isSubmitting,
   onSubmit,
 }: {
@@ -31,6 +35,9 @@ export function AddFromLibraryDialog({
   onOpenChange: (open: boolean) => void
   characters: ClientLibraryCharacter[]
   existingIds: Set<string>
+  hasNextPage: boolean
+  isFetchingNextPage: boolean
+  onLoadMore: () => void
   isSubmitting: boolean
   onSubmit: (ids: string[]) => Promise<void>
 }) {
@@ -105,6 +112,11 @@ export function AddFromLibraryDialog({
                 </FieldLabel>
               )
             })}
+            <LoadMoreButton
+              hasNextPage={hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              onClick={onLoadMore}
+            />
           </div>
         ) : (
           <Empty>

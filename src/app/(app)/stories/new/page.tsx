@@ -6,7 +6,11 @@ import { HydrateClient, prefetch, trpc } from "@/lib/trpc-server"
 
 export default function NewStoryPage() {
   // NewStoryScreen suspends on story.list (via useStories) for its create redirect.
-  prefetch(trpc.story.list.prefetch())
+  prefetch(
+    trpc.story.list.prefetchInfinite({
+      sort: { field: "createdAt", dir: "desc" },
+    })
+  )
   return (
     <HydrateClient>
       <ErrorBoundary fallbackTitle="Could not start a new story">

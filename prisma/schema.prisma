@@ -92,6 +92,9 @@ model Story {
 
   @@unique([id, userId])
   @@index([userId, kind])
+  @@index([userId, kind, createdAt, id])
+  @@index([userId, kind, updatedAt, id])
+  @@index([userId, kind, title, id])
 }
 
 model Character {
@@ -130,6 +133,8 @@ model LibraryCharacter {
   updatedAt        DateTime    @updatedAt
 
   @@index([userId])
+  @@index([userId, createdAt, id])
+  @@index([userId, name, id])
 }
 
 model Rule {

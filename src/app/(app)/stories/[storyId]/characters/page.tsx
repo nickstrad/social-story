@@ -17,7 +17,11 @@ export default async function CharactersPage({
   prefetch(trpc.story.get.prefetch({ storyId, kind: storyKind }))
   prefetch(trpc.character.listForStory.prefetch({ storyId }))
   prefetch(trpc.rule.listForStory.prefetch({ storyId }))
-  prefetch(trpc.library.characters.list.prefetch())
+  prefetch(
+    trpc.library.characters.list.prefetchInfinite({
+      sort: { field: "createdAt", dir: "desc" },
+    })
+  )
   return (
     <HydrateClient>
       <ErrorBoundary fallbackTitle="Could not load characters">

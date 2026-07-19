@@ -7,6 +7,7 @@ import superjson from "superjson"
 
 import { createQueryClient } from "@/lib/query-client"
 import { trpc } from "@/lib/trpc"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 export function TRPCProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(createQueryClient)
@@ -23,7 +24,9 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider delay={300}>{children}</TooltipProvider>
+      </QueryClientProvider>
     </trpc.Provider>
   )
 }

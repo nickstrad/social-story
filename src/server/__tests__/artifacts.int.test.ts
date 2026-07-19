@@ -130,7 +130,7 @@ describe("artifact router", () => {
       baseImageAssetId: otherAsset.id,
     })
 
-    const artifacts = await caller.artifact.list()
+    const { items: artifacts } = await caller.artifact.list()
     expect(artifacts.map((artifact) => artifact.id).sort()).toEqual(
       [base.id, photo.id, selected.id, pdf.id].sort()
     )
@@ -168,10 +168,9 @@ describe("artifact router", () => {
       await services.repos.stories.update(story.id, {
         baseImageAssetId: second.id,
       })
-      expect((await caller.artifact.list()).map((item) => item.id)).toEqual([
-        second.id,
-        first.id,
-      ])
+      expect(
+        (await caller.artifact.list()).items.map((item) => item.id)
+      ).toEqual([second.id, first.id])
     } finally {
       vi.useRealTimers()
     }
@@ -192,7 +191,7 @@ describe("artifact router", () => {
       status: "SUCCEEDED",
       resultJson: { assetId: "missing" },
     })
-    expect(await caller.artifact.list()).toEqual([])
+    expect((await caller.artifact.list()).items).toEqual([])
   })
 
   it("returns a cumulative story snapshot without exposing another user's story", async () => {

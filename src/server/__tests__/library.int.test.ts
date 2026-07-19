@@ -62,7 +62,7 @@ describe("character library integration", () => {
         appearance: "Curly hair",
       },
     })
-    expect(await caller.library.characters.list()).toEqual([created])
+    expect((await caller.library.characters.list()).items).toEqual([created])
 
     const updated = await caller.library.characters.update({
       libraryCharacterId: created.id,
@@ -89,7 +89,7 @@ describe("character library integration", () => {
     await caller.library.characters.delete({
       libraryCharacterId: created.id,
     })
-    expect(await caller.library.characters.list()).toEqual([])
+    expect((await caller.library.characters.list()).items).toEqual([])
   })
 
   it("copies library fields and photo into a distinct story asset", async () => {

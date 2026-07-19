@@ -17,7 +17,7 @@ export default async function ProtectedLayout({
   // link would try to fetch it during SSR against a relative URL, which has no
   // base on the server — it recovers on the client, but only after logging a
   // TRPCClientError per render. Hydrating the cache means no server fetch.
-  prefetch(trpc.story.list.prefetch())
+  prefetch(trpc.story.list.prefetch({ limit: 8 }))
 
   return (
     <HydrateClient>

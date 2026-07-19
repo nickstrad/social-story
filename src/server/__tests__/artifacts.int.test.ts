@@ -144,6 +144,26 @@ describe("artifact router", () => {
     expect(payload).not.toContain(raw.id)
     expect(payload).not.toContain(unselected.id)
     expect(payload).not.toContain(otherAsset.id)
+
+    const byLabel = await caller.artifact.list({
+      sort: { field: "label", dir: "asc" },
+    })
+    expect(byLabel.items.map((artifact) => artifact.label)).toEqual([
+      "Character reference sheet",
+      "Nick photo",
+      "Page 1",
+      "Trip.pdf",
+    ])
+
+    const byKind = await caller.artifact.list({
+      sort: { field: "kind", dir: "asc" },
+    })
+    expect(byKind.items.map((artifact) => artifact.kind)).toEqual([
+      "BASE_IMAGE",
+      "CHARACTER_PHOTO",
+      "PAGE_IMAGE",
+      "PDF",
+    ])
   })
 
   it("orders assets newest-first", async () => {

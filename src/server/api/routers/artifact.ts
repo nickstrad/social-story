@@ -13,7 +13,10 @@ import {
 } from "@/server/services/assets"
 import type { Story } from "@/server/domain/types"
 import type { Repos } from "@/server/ports/repos"
-import { artifactListParamsSchema } from "@/lib/validation/listParams"
+import {
+  artifactListParamsSchema,
+  paginateList,
+} from "@/lib/validation/listParams"
 
 function groupBy<T>(
   values: T[],
@@ -63,6 +66,42 @@ async function storyArtifactSnapshot(repos: Repos, story: Story) {
   }
 }
 
+/**
+ * Artifact labels are derived from several domain records, so assemble the
+ * user's owned metadata before applying artifact-level sorting and cursors.
+ */
+async function listUserArtifactSources(
+  repos: Repos,
+  userId: string
+): Promise<StoryArtifactSources[]> {
+  const stories = await repos.stories.listByUser(userId, "STORY")
+  const storyIds = stories.map((story) => story.id)
+  const [characters, pages, pageImages, tasks, assets] = await Promise.all([
+    repos.characters.listByStoryIds(storyIds),
+    repos.pages.listByStoryIds(storyIds),
+    repos.pages.listImagesByStoryIds(storyIds),
+    repos.tasks.listByStoryIds(storyIds),
+    repos.assets.listByStoryIds(storyIds),
+  ])
+  const storyIdByPageId = new Map(pages.map((page) => [page.id, page.storyId]))
+  const charactersByStory = groupBy(characters, (item) => item.storyId)
+  const pagesByStory = groupBy(pages, (item) => item.storyId)
+  const imagesByStory = groupBy(pageImages, (item) =>
+    storyIdByPageId.get(item.pageId)
+  )
+  const tasksByStory = groupBy(tasks, (item) => item.storyId)
+  const assetsByStory = groupBy(assets, (item) => item.storyId ?? undefined)
+
+  return stories.map((story) => ({
+    story,
+    characters: charactersByStory.get(story.id) ?? [],
+    pages: pagesByStory.get(story.id) ?? [],
+    pageImages: imagesByStory.get(story.id) ?? [],
+    tasks: tasksByStory.get(story.id) ?? [],
+    assets: assetsByStory.get(story.id) ?? [],
+  }))
+}
+
 export const artifactRouter = createTRPCRouter({
   /** A cumulative, story-scoped snapshot for the in-flow artifacts drawer. */
   forStory: protectedProcedure
@@ -76,50 +115,14 @@ export const artifactRouter = createTRPCRouter({
       return storyArtifactSnapshot(ctx.deps.repos, story)
     }),
 
-  /**
-   * Generated blobs for one cursor page of the signed-in user's stories.
-   * Ownership is enforced by the paged story query, so no artifact lookup can
-   * reach another user's story.
-   */
+  /** Generated blobs for the signed-in user, sorted and paged as artifacts. */
   list: protectedProcedure
     .input(artifactListParamsSchema)
     .query(async ({ ctx, input }) => {
-      const storyPage = await ctx.deps.repos.stories.listByUserPaged(
-        ctx.session.user.id,
-        "STORY",
-        input
+      const sources = await listUserArtifactSources(
+        ctx.deps.repos,
+        ctx.session.user.id
       )
-      const stories = storyPage.items
-      const storyIds = stories.map((story) => story.id)
-      const [characters, pages, pageImages, tasks, assets] = await Promise.all([
-        ctx.deps.repos.characters.listByStoryIds(storyIds),
-        ctx.deps.repos.pages.listByStoryIds(storyIds),
-        ctx.deps.repos.pages.listImagesByStoryIds(storyIds),
-        ctx.deps.repos.tasks.listByStoryIds(storyIds),
-        ctx.deps.repos.assets.listByStoryIds(storyIds),
-      ])
-
-      const storyIdByPageId = new Map(
-        pages.map((page) => [page.id, page.storyId])
-      )
-      const charactersByStory = groupBy(characters, (item) => item.storyId)
-      const pagesByStory = groupBy(pages, (item) => item.storyId)
-      const imagesByStory = groupBy(pageImages, (item) =>
-        storyIdByPageId.get(item.pageId)
-      )
-      const tasksByStory = groupBy(tasks, (item) => item.storyId)
-      const assetsByStory = groupBy(assets, (item) => item.storyId ?? undefined)
-
-      const sources: StoryArtifactSources[] = stories.map((story) => ({
-        story,
-        characters: charactersByStory.get(story.id) ?? [],
-        pages: pagesByStory.get(story.id) ?? [],
-        pageImages: imagesByStory.get(story.id) ?? [],
-        tasks: tasksByStory.get(story.id) ?? [],
-        assets: assetsByStory.get(story.id) ?? [],
-      }))
-      const items = collectArtifacts(sources)
-      if (input.sort.dir === "asc") items.reverse()
-      return { items, nextCursor: storyPage.nextCursor }
+      return paginateList(collectArtifacts(sources), input)
     }),
 })

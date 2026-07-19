@@ -222,6 +222,11 @@ export function TemplatesScreen() {
           data={templates}
           sort={sort}
           onSortChange={setSort}
+          nextPage={{
+            hasNext: Boolean(templatesState.hasNextPage),
+            isFetching: templatesState.isFetchingNextPage,
+            fetch: templatesState.fetchNextPage,
+          }}
         />
       ) : (
         <Empty className="border">
@@ -237,11 +242,13 @@ export function TemplatesScreen() {
         </Empty>
       )}
 
-      <LoadMoreButton
-        hasNextPage={Boolean(templatesState.hasNextPage)}
-        isFetchingNextPage={templatesState.isFetchingNextPage}
-        onClick={() => void templatesState.fetchNextPage()}
-      />
+      {view === "grid" && (
+        <LoadMoreButton
+          hasNextPage={Boolean(templatesState.hasNextPage)}
+          isFetchingNextPage={templatesState.isFetchingNextPage}
+          onClick={() => void templatesState.fetchNextPage()}
+        />
+      )}
 
       <UseTemplateDialog
         key={`${useTarget?.id ?? "closed"}:${template.data?.id ?? "loading"}`}

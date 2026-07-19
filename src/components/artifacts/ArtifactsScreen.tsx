@@ -29,6 +29,12 @@ import type { Artifact } from "@/server/domain/artifacts"
 const sortOptions: SortOption<ArtifactSortField>[] = [
   { label: "Newest", sort: { field: "createdAt", dir: "desc" } },
   { label: "Oldest", sort: { field: "createdAt", dir: "asc" } },
+  { label: "Artifact A–Z", sort: { field: "label", dir: "asc" } },
+  { label: "Artifact Z–A", sort: { field: "label", dir: "desc" } },
+  { label: "Story A–Z", sort: { field: "storyTitle", dir: "asc" } },
+  { label: "Story Z–A", sort: { field: "storyTitle", dir: "desc" } },
+  { label: "Type A–Z", sort: { field: "kind", dir: "asc" } },
+  { label: "Type Z–A", sort: { field: "kind", dir: "desc" } },
 ]
 
 function ArtifactThumb({ artifact }: { artifact: Artifact }) {
@@ -63,9 +69,9 @@ export function ArtifactsScreen() {
   const columns = useMemo<ColumnDef<Artifact>[]>(
     () => [
       {
-        id: "thumb",
+        accessorKey: "label",
         header: "Artifact",
-        enableSorting: false,
+        enableSorting: true,
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
             <ArtifactThumb artifact={row.original} />
@@ -81,12 +87,12 @@ export function ArtifactsScreen() {
       {
         accessorKey: "storyTitle",
         header: "Story",
-        enableSorting: false,
+        enableSorting: true,
       },
       {
         accessorKey: "kind",
         header: "Type",
-        enableSorting: false,
+        enableSorting: true,
         cell: ({ row }) => (
           <Badge variant="secondary">{kindLabels[row.original.kind]}</Badge>
         ),
@@ -142,13 +148,20 @@ export function ArtifactsScreen() {
           sort={sort}
           onSortChange={setSort}
           getRowHref={artifactHref}
+          nextPage={{
+            hasNext: Boolean(queryState.hasNextPage),
+            isFetching: queryState.isFetchingNextPage,
+            fetch: queryState.fetchNextPage,
+          }}
         />
       )}
-      <LoadMoreButton
-        hasNextPage={Boolean(queryState.hasNextPage)}
-        isFetchingNextPage={queryState.isFetchingNextPage}
-        onClick={() => void queryState.fetchNextPage()}
-      />
+      {view === "grid" && (
+        <LoadMoreButton
+          hasNextPage={Boolean(queryState.hasNextPage)}
+          isFetchingNextPage={queryState.isFetchingNextPage}
+          onClick={() => void queryState.fetchNextPage()}
+        />
+      )}
     </PageLayout>
   )
 }

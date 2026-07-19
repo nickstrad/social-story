@@ -135,7 +135,7 @@ describe("paged collection procedures", () => {
     ])
   })
 
-  it("paginates artifacts at story granularity", async () => {
+  it("sorts and paginates artifacts by story title", async () => {
     vi.useFakeTimers()
     try {
       const deps = makeDeps()
@@ -160,13 +160,17 @@ describe("paged collection procedures", () => {
         })
       }
 
-      const first = await caller.artifact.list({ limit: 1 })
+      const first = await caller.artifact.list({
+        limit: 1,
+        sort: { field: "storyTitle", dir: "asc" },
+      })
       const second = await caller.artifact.list({
         limit: 1,
         cursor: first.nextCursor,
+        sort: { field: "storyTitle", dir: "asc" },
       })
-      expect(first.items.map((item) => item.storyTitle)).toEqual(["Second"])
-      expect(second.items.map((item) => item.storyTitle)).toEqual(["First"])
+      expect(first.items.map((item) => item.storyTitle)).toEqual(["First"])
+      expect(second.items.map((item) => item.storyTitle)).toEqual(["Second"])
       expect(second.nextCursor).toBeNull()
     } finally {
       vi.useRealTimers()

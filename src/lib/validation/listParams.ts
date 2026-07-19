@@ -73,7 +73,7 @@ export function createListParamsSchema<const Fields extends readonly string[]>(
 ) {
   const schema = z
     .object({
-      limit: z.number().int().min(1).max(100).default(24),
+      limit: z.number().int().min(1).max(100).default(20),
       cursor: cursorSchema.nullish(),
       sort: z
         .object({
@@ -118,7 +118,12 @@ export const libraryCharacterListParamsSchema = createListParamsSchema(
   { dateFields: ["createdAt"] }
 )
 
-export const artifactSortFields = ["createdAt"] as const
+export const artifactSortFields = [
+  "createdAt",
+  "label",
+  "storyTitle",
+  "kind",
+] as const
 export type ArtifactSortField = (typeof artifactSortFields)[number]
 export const artifactListParamsSchema = createListParamsSchema(
   artifactSortFields,

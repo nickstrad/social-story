@@ -62,7 +62,7 @@ test("reuse saved characters and a matching cast base image", async ({
   ).toBeVisible()
 })
 
-test("loads another page and sorts the table by name", async ({
+test("paginates the table and resets to page 1 when sorting", async ({
   page,
   user,
 }) => {
@@ -87,12 +87,23 @@ test("loads another page and sorts the table by name", async ({
   await page.goto("/characters")
   await expect(page.getByText("Paged character 25")).toBeVisible()
   await expect(page.getByText("Paged character 01")).toHaveCount(0)
-  await page.getByRole("button", { name: "Show more" }).click()
-  await expect(page.getByText("Paged character 01")).toBeVisible()
 
   await page.getByRole("button", { name: "Table view" }).click()
+  const tableRows = page.locator(
+    '[data-slot="table-body"] [data-slot="table-row"]'
+  )
+  await expect(tableRows).toHaveCount(20)
+  await page.getByRole("combobox", { name: "Rows per page" }).click()
+  await page.getByRole("option", { name: "10", exact: true }).click()
+  await expect(tableRows).toHaveCount(10)
+  await page.getByRole("combobox", { name: "Rows per page" }).click()
+  await page.getByRole("option", { name: "20", exact: true }).click()
+
+  await page.getByRole("button", { name: /Next/ }).click()
+  await expect(page.getByText("Page 2")).toBeVisible()
+  await expect(page.getByText("Paged character 01")).toBeVisible()
+
   await page.getByRole("button", { name: /^Name/ }).click()
-  await expect(
-    page.locator('[data-slot="table-body"] [data-slot="table-row"]').first()
-  ).toContainText("Paged character 01")
+  await expect(page.getByText("Page 1")).toBeVisible()
+  await expect(tableRows.first()).toContainText("Paged character 01")
 })

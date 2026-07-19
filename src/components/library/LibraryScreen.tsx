@@ -220,6 +220,11 @@ export function LibraryScreen() {
             data={characters}
             sort={sort}
             onSortChange={setSort}
+            nextPage={{
+              hasNext: Boolean(hasNextPage),
+              isFetching: isFetchingNextPage,
+              fetch: fetchNextPage,
+            }}
           />
         )
       ) : (
@@ -233,11 +238,13 @@ export function LibraryScreen() {
         </Empty>
       )}
 
-      <LoadMoreButton
-        hasNextPage={Boolean(hasNextPage)}
-        isFetchingNextPage={isFetchingNextPage}
-        onClick={() => void fetchNextPage()}
-      />
+      {view === "grid" && (
+        <LoadMoreButton
+          hasNextPage={Boolean(hasNextPage)}
+          isFetchingNextPage={isFetchingNextPage}
+          onClick={() => void fetchNextPage()}
+        />
+      )}
 
       <Dialog
         open={editing !== undefined}

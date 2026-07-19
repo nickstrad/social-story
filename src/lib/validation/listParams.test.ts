@@ -70,7 +70,7 @@ describe("list pagination", () => {
 
   it("applies defaults and rejects malformed cursors", () => {
     expect(storyListParamsSchema.parse(undefined)).toMatchObject({
-      limit: 24,
+      limit: 20,
       sort: { field: "createdAt", dir: "desc" },
     })
     expect(() =>

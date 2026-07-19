@@ -137,14 +137,21 @@ export function StoriesScreen() {
           sort={sort}
           onSortChange={setSort}
           getRowHref={(story) => `/stories/${story.id}/script`}
+          nextPage={{
+            hasNext: Boolean(hasNextPage),
+            isFetching: isFetchingNextPage,
+            fetch: fetchNextPage,
+          }}
         />
       )}
 
-      <LoadMoreButton
-        hasNextPage={Boolean(hasNextPage)}
-        isFetchingNextPage={isFetchingNextPage}
-        onClick={() => void fetchNextPage()}
-      />
+      {view === "grid" && (
+        <LoadMoreButton
+          hasNextPage={Boolean(hasNextPage)}
+          isFetchingNextPage={isFetchingNextPage}
+          onClick={() => void fetchNextPage()}
+        />
+      )}
 
       <AlertDialog
         open={Boolean(deleteTarget)}
